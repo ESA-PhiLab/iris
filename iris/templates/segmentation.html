@@ -1,0 +1,245 @@
+<html>
+<head>
+<title>Iris - Label AI4EO Imagery</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<script type="text/javascript" src="{{ url_for('static', filename='javascripts/utils.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('static', filename='javascripts/dialogue.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('static', filename='javascripts/segmentation.js') }}"></script>
+<script type="text/javascript">
+// When the window has loaded, DOM is ready, initialise the canvases:
+window.onload = init_canvases;
+
+// GLOBAL VARIABLES!!!
+// I know I am using global variables here but who cares....
+// Initialise the mask (TODO: find a way to create multidimensional arrays).
+var vars = {
+    'mask': null,
+    'user_mask': null,
+    'errors_mask': null,
+    // for performance reasons we draw the mask to a hidden canvas:
+    'hidden_mask': null,
+    'history': {
+        'mask': [],
+        'user_mask': [],
+        'current_epoch': 0,
+        'max_epochs': 30,
+    },
+    'classes': {{classes|tojson}},
+    'views': {{views|tojson}},
+    'tile_id': {{tile_id|tojson}},
+    'tile_images': new Array({{views|length}}),
+    'tile_shape': {{tile_shape|tojson}},
+    'mask_area': {{mask_area|tojson}},
+    'current_class': 0,
+    'cursor_canvas': [0, 0],
+    'cursor_tile': [0, 0],
+    'drag_start' : [0, 0],
+    'n_drawn_pixels': {
+        'total': 0,
+    },
+    'show_mask': true,
+    'mask_type': 'final',
+    'mask_highlight_edges': false,
+    'contrast': false,
+    'invert': false,
+    'brightness': 100,
+    'saturation': 100,
+    'ai': {
+        'train_ratio': 0.8,
+        'max_train_pixels': 20000,
+        'n_estimators': 100,
+        'max_depth': 30,
+        'n_leaves': 30,
+        'include_context': false,
+    },
+    'confusion_matrix': null,
+    'tool': {
+        "type": 'draw',
+        'size': 6,
+        'sprite': null,
+        'pixels': null,
+    },
+};
+
+
+// The size (shape) of the mask area:
+vars.mask_shape = [
+    vars.mask_area[2] - vars.mask_area[0], vars.mask_area[3] - vars.mask_area[1]
+];
+
+console.log(vars);
+
+function next_patch(){
+    goto_url({{url_for('next_tile', tile_id=tile_id)|tojson}});
+}
+
+function prev_patch(){
+    goto_url({{url_for('previous_tile', tile_id=tile_id)|tojson}});
+}
+
+function goto_url(url){
+    window.location = url
+}
+</script>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dialogue.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/segmentation.css') }}">
+
+</head>
+
+
+<body onkeydown="key_down(event)">
+    <div id="block-screen" class="block-screen"></div>
+
+    <div id="dialogue" class="dialogue">
+      <div class="dialogue-content">
+        <div id="dialogue-header" class="dialogue-header">
+          <span id="dialogue-close" class="dialogue-close" onclick="hide_dialogue();">&times;</span>
+          <h2 id="dialogue-title"></h2>
+        </div>
+        <div id="dialogue-body" class="dialogue-body"></div>
+      </div>
+    </div>
+
+    <div id="loader" class="loader">
+        <div style="text-align: center; width: 200px; margin: 0; position: absolute; top: 50%; left: 50%; margin-right: -50%; transform: translate(-50%, -50%)">
+            <div class="loader-spin"></div>
+            <div id="loader-text" style="font-weight: bold; text-align: center; margin: 0px 10px;">
+                Loading text...
+            </div>
+        </div>
+    </div>
+
+    <div id='message' class='message'></div>
+
+    <ul class='toolbar'>
+        <li class="toolbutton" id='tb_previous_tile' onclick='save_mask(prev_patch);'>&lt;</li>
+        <li class="toolbutton" id='tb_next_tile' onclick='save_mask(next_patch);'>&gt;</li>
+        <li class="toolbutton icon_button" id='tb_save_tile' onclick="save_mask();">
+            <img src="static/icons/save_tile.png" class="icon" />
+        </li>
+        <li class="toolbutton icon_button" id='tb_undo' onclick="undo();">
+            <img src="static/icons/undo.png" class="icon" />
+        </li>
+        <li class="toolbutton icon_button" id='tb_redo' onclick="redo();">
+            <img src="static/icons/redo.png" class="icon" />
+        </li>
+        <li class="toolbar_separator"></li>
+        <li class="toolbutton" id='tb_select_class' onclick='dialogue_class_selection();' style="width:200px;">
+        </li>
+        <li class="toolbar_separator"></li>
+        <li class="toolbutton icon_button" id='tb_tool_move' onclick="set_tool('move');">
+            <img src="static/icons/move.png" class="icon" />
+        </li>
+        <!-- <li class="toolbutton icon_button" id='tb_tool_reset_views' onclick="reset_views();">
+            <img src="static/icons/move.png" class="icon" />
+        </li> -->
+        <li class="toolbutton icon_button" id='tb_tool_draw' onclick="set_tool('draw');">
+            <img src="static/icons/pencil.png" class="icon" />
+        </li>
+        <li class="toolbutton icon_button" id='tb_tool_eraser' onclick="set_tool('eraser');">
+            <img src="static/icons/eraser.png" class="icon" />
+        </li>
+        <li class="toolbutton icon_button" id='tb_reset_mask' onclick='dialogue_reset_mask();'>
+            <img src="static/icons/reset_mask.png" class="icon" />
+        </li>
+        <li class="toolbutton icon_button" id='tb_predict_mask' onclick="predict_mask();">
+            <img src="static/icons/ai.png" class="icon" />
+        </li>
+        <li class="toolbar_separator"></li>
+        <li class="toolbutton icon_button" id='tb_toogle_mask' onclick="show_mask(!vars.show_mask);">
+            <img src="static/icons/show_mask.png" class="icon" />
+        </li>
+        <li class="toolbutton icon_button" id='tb_mask_final' onclick="set_mask_type('final');">
+            <img src="static/icons/mask_final.png" class="icon" />
+        </li>
+        <li class="toolbutton icon_button" id='tb_mask_user' onclick="set_mask_type('user');">
+            <img src="static/icons/mask_user.png" class="icon" />
+        </li>
+        <li class="toolbutton icon_button" id='tb_mask_errors' onclick="set_mask_type('errors');">
+            <img src="static/icons/mask_errors.png" class="icon" />
+        </li>
+        <!-- <li class="toolbutton icon_button" id='tb_mask_highlight_edges' onclick="set_mask_highlight_edges(!vars.mask_highlight_edges);">
+            <img src="static/icons/mask_errors.png" class="icon" />
+        </li> -->
+        <li class="toolbar_separator"></li>
+        <li class="toolbutton icon_button" id='tb_brightness_up' onclick="change_brightness(up=true);">
+            <img src="static/icons/brightness_up.png" class="icon" />
+        </li>
+        <li class="toolbutton icon_button" id='tb_brightness_down' onclick="change_brightness(up=false);">
+            <img src="static/icons/brightness_down.png" class="icon" />
+        </li>
+        <li class="toolbutton icon_button" id='tb_saturation_up' onclick="change_saturation(up=true);">
+            <img src="static/icons/saturation_up.png" class="icon" />
+        </li>
+        <li class="toolbutton icon_button" id='tb_saturation_down' onclick="change_saturation(up=false);">
+            <img src="static/icons/saturation_down.png" class="icon" />
+        </li>
+        <li class="toolbutton icon_button" id='tb_toggle_contrast' onclick="set_contrast(!vars.contrast);">
+            <img src="static/icons/contrast.png" class="icon" />
+        </li>
+        <li class="toolbutton icon_button" id='tb_toggle_invert' onclick="set_invert(!vars.invert);">
+            <img src="static/icons/invert.png" class="icon" />
+        </li>
+        <li class="toolbutton" id="tb_reset_filters" onclick='reset_filters();'>
+            Reset Filters
+        </li>
+        <li class="toolbutton" style="float: right;">Logged in as {{user.name}}</li>
+        <li class="toolbutton" onclick="dialogue_help();" style="float: right;">Help</li>
+        <li class="toolbutton icon_button" onclick="dialogue_config();" style="float: right;">
+            <img src="static/icons/preferences.png" class="icon" />
+        </li>
+    </ul>
+
+
+    <div style="margin: 10px 0px; width: 100%; height: 630px;">
+    {% for view in views%}
+        <div style="position: relative; left: calc(99vw*{{(loop.index-1)/views|length}});">
+            <div id="tile-{{ loop.index-1 }}">
+                <canvas id="canvas-{{ loop.index-1 }}-tile" class="view-canvas"
+                    style="z-index: 0; width: calc(99vw/{{view|length}}); height: calc(99vw/{{view|length}});"></canvas>
+                <canvas id="canvas-{{ loop.index-1 }}-mask" class="view-canvas"
+                    style="z-index: 1; width: calc(99vw/{{view|length}}); height: calc(99vw/{{view|length}});"></canvas>
+                <canvas id="canvas-{{ loop.index-1 }}-preview" class="view-canvas"
+                    style="z-index: 2; width: calc(99vw/{{view|length}}); height: calc(99vw/{{view|length}});"></canvas>
+            </div>
+            <!-- <p class="view-description"
+                style="max-width: calc(99vw/{{view|length}}); height: calc(99vw/{{view|length}});">
+                {{view.description}}
+            </p> -->
+        </div>
+    {% endfor %}
+    </div>
+
+    <div class="info-box" style="position: fixed; bottom: 10; left: 10; float: left; display: flex; flex-direction: row;">
+        <div style="float: left;">
+            <div>
+                <div class="button">
+                    <div id="different-classes" class="info-box-top">0</div>
+                    <div class="info-box-bottom">Classes</div>
+                </div>
+                <div class="button">
+                    <div id="drawn-pixels" class="info-box-top">0</div>
+                    <div class="info-box-bottom">Drawn pixels</div>
+                </div>
+                <div class="button" style="width: 50px;" onclick="dialogue_confusion_matrix();">
+                    <div id="ai-score" class="info-box-top">0 %</div>
+                    <div class="info-box-bottom">AI-Score</div>
+                </div>
+            </div>
+            <p id="ai-recommendation" class="info-box" style="max-width: 225px; word-wrap: break-word; border: 2px solid black; border-radius: 4px;">AI help is loading...</p>
+        </div>
+        <div style="float: left; margin: 0px 10px; border-left: 2px solid black;">
+            <img  style="float: left; margin: 0px 10px;" src="/load_thumbnail/{{tile_id}}" height=200 width=200 />
+        </div>
+        <div style="float: left; margin: 0px 10px;">
+            <table>
+                <tr><td><b>Tile name:</b></td><td>{{tile_id}}</td></tr>
+            </table>
+        </div>
+    </div>
+
+</body></html>

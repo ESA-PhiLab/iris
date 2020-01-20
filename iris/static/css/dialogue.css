@@ -1,0 +1,140 @@
+.block-screen {
+  visibility: hidden; /* Hidden by default */
+  position: fixed; /* Stay in place */
+  z-index: 100; /* Sit on top */
+  left: 0;
+  top: 0;
+  width: 100%; /* Full width */
+  height: 100%; /* Full height */
+  overflow: auto; /* Enable scroll if needed */
+  background-color: rgb(0,0,0); /* Fallback color */
+  background-color: rgba(0,0,0,0.6); /* Black w/ opacity */
+}
+
+/* The dialogue (background) */
+.dialogue {
+  display: none; /* Hidden by default */
+  position: fixed; /* Stay in place */
+  z-index: 100; /* Sit on top */
+  padding-top: 100px; /* Location of the box */
+  left: 0;
+  top: 0;
+  width: 100%; /* Full width */
+  height: 100%; /* Full height */
+  overflow: auto; /* Enable scroll if needed */
+  background-color: rgb(240,240,240,0.7); /* Fallback color */
+  background-color: rgba(240,240,240,0.7); /* Black w/ opacity */
+}
+
+/* dialogue Content */
+.dialogue-content {
+  position: relative;
+  background-color: #fefefe;
+  margin: auto;
+  padding: 0;
+  border: 2px;
+  border-style: solid;
+  border-radius: 4px;
+  border-color: black;
+  width: 50%;
+  box-shadow: 0 8px 16px 0 rgba(0,0,0,0.25),0 8px 24px 0 rgba(0,0,0,0.2);
+  -webkit-animation-name: dialogue-animatetop;
+  -webkit-animation-duration: 0.4s;
+  animation-name: dialogue-animatetop;
+  animation-duration: 0.4s;
+}
+
+.dialogue-body {
+    max-height: 70vh;
+    margin: 10px;
+    overflow: auto;
+}
+
+/* Add Animation */
+@-webkit-keyframes dialogue-animatetop {
+  from {top:-300px; opacity:0}
+  to {top:0; opacity:1}
+}
+
+@keyframes dialogue-animatetop {
+  from {top:-300px; opacity:0}
+  to {top:0; opacity:1}
+}
+
+/* The Close Button */
+.dialogue-close {
+  color: white;
+  float: right;
+  font-size: 28px;
+  font-weight: bold;
+}
+
+.dialogue-close:hover,
+.dialogue-close:focus {
+  color: #000;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.dialogue-header {
+  padding: 2px 16px;
+  background-color: #5cb85c;
+  color: white;
+}
+
+.dialogue-body {padding: 2px 16px;}
+
+/* The loader (background) */
+.loader {
+    position: fixed; /* Stay in place */
+    z-index: 100; /* Sit on top */
+    left: 0;
+    top: 0;
+    width: 100%; /* Full width */
+    height: 100%; /* Full height */
+    overflow: auto; /* Enable scroll if needed */
+    background-color: rgb(240,240,240); /* Fallback color */
+    background-color: rgba(240,240,240,0.7); /* Black w/ opacity */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    visibility: hidden;
+}
+
+.loader-spin {
+    width: 70px;
+    height: 70px;
+    margin: auto;
+    border-radius: 50%;
+    border-top: 2px solid black;
+    -webkit-animation: spin 2s linear infinite;
+    animation: spin 2s linear infinite;
+}
+
+@-webkit-keyframes spin {
+  0% { -webkit-transform: rotate(0deg); }
+  100% { -webkit-transform: rotate(360deg); }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.message {
+    visibility: hidden;
+    position: fixed;
+    bottom: 10;
+    right: 10;
+    max-width: 250px;
+    word-wrap: break-word;
+    background-color: black;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 5px 5px;
+    z-index: 50;
+    /* Fade in tooltip - takes 1 second to go from 0% to 100% opac: */
+    /* opacity: 0;
+    transition: opacity 1s; */
+}

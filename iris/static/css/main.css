@@ -1,0 +1,147 @@
+body {
+    font-size: 16px;
+    margin: 15px;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+button,.button {
+  background-color: #ffffff;
+  border: 2px;
+  border-style: solid;
+  border-radius: 4px;
+  border-color: black;
+  color: black;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-weight: bold;
+  margin: 2px 2px;
+  padding: 8px 10px;
+  cursor: pointer;
+  -webkit-touch-callout: none; /* iOS Safari */
+  -webkit-user-select: none; /* Safari */
+   -khtml-user-select: none; /* Konqueror HTML */
+     -moz-user-select: none; /* Old versions of Firefox */
+      -ms-user-select: none; /* Internet Explorer/Edge */
+          user-select: none; /* Non-prefixed version, currently
+                                supported by Chrome, Opera and Firefox */
+}
+
+.toolbutton {
+  float: left;
+  background-color: #ffffff;
+  border: 2px;
+  border-style: solid;
+  border-radius: 4px;
+  border-color: black;
+  color: black;
+  text-align: center;
+  /* display: block; */
+  font-weight: bold;
+  margin: 2px 2px;
+  padding: 9px 10px 10px 10px;
+  cursor: pointer;
+  font-size: 18px;
+  -webkit-touch-callout: none; /* iOS Safari */
+  -webkit-user-select: none; /* Safari */
+   -khtml-user-select: none; /* Konqueror HTML */
+     -moz-user-select: none; /* Old versions of Firefox */
+      -ms-user-select: none; /* Internet Explorer/Edge */
+          user-select: none; /* Non-prefixed version, currently
+                                supported by Chrome, Opera and Firefox */
+}
+
+.toolbar_separator {
+    float: left;
+    background-color: #000;
+    margin: 2px 6px;
+    width: 2px;
+    height: 44px;
+}
+
+button:hover,.button:hover,.toolbutton:hover{
+    background-color: #dddddd;
+}
+
+button.checked,.button.checked,.toolbutton.checked {
+    background-color: #ababab;
+}
+
+.icon_button {
+  padding: 2px 2px 1px 2px;
+}
+
+.toolbar {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+}
+
+.vl {
+    background-color: #000;
+    padding: 40px 6px;
+    /* height:30px; */
+    display: inline-block;
+}
+
+.info-box{
+    border: 2px;
+    border-style: solid;
+    border-radius: 4px;
+    border-color: black;
+    text-align: center;
+    text-decoration: none;
+    margin: 4px 2px;
+    padding: 5px 10px;
+}
+
+.info-box-top{
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.info-box-bottom{
+    font-size: 12px;
+    font-weight: normal;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  border: 2px;
+  border-style: solid;
+  border-radius: 6px;
+  border-color: black;
+  margin: 2px 2px;
+}
+
+td, th {
+  border: 1px solid #000;
+  padding: 8px;
+  border-style: outset;
+}
+
+th,td.first {
+    font-weight: bold;
+}
+
+td.upper-left {
+    font-size: 12px;
+    font-weight: normal;
+}
+
+.icon {
+    filter: blur(0.1px);
+}
+
+.key{
+    font-style: italic;
+}
+
+.key::before{
+    content: "<";
+}
+.key::after{
+    content: ">";
+}
