@@ -35,7 +35,25 @@ You can start IRIS in two different modes:
 
 ## Documentation
 
+### Label interface
+
 ### Project file
-Before you can use IRIS, you have to provide a configurations file for your project. See [examples](examples/example-config.yaml)
+Before you can use IRIS, you have to provide a configurations file for your project (must be in yaml or json format). See [here](examples/example-config.json) for an example.
+
+The table below shows different options for the configurations:
+
+Field | Description | JSON Example
+--- | --- | ---
+**label-mode** | IRIS is going to provide different label modes: *segmentation* or *classification* (the latter is not yet implemented) | `"label-mode": segmentation`
+**in_path** | The input directory for your project. This directory should contain subfolders (which names present the tile ids) with the images that you want to label. | `"in_path": "/home/user/projects/sentinel-labeling/examples"`
+**image_filename** | The filename of the images inside the tile folders. IRIS can load standard image formats (like *png* or *tif*) and numpy files (*npy*). The arrays inside the numpy arrays should have the shape HxWxC | `"image_filename": "image.npy"` 
+**out_path** | The output directory for your project. This directory will contain the mask files (from the segmentation) and user configurations | `"out_path": "/home/user/projects/sentinel-labeling/results"` 
+**classes** | This is a list of classes that you want to allow the user to label. Each class is represented as a dictionary with the keys *name*, *description*, *colour* and *user_colour* (optional). | ```"classes": [<br>{<br>"name": "Clear",<br>"description": "All clear pixels.",<br>"colour": [255,255,255,0],<br>"user_colour": [0,255,255,70]<br>},<br>{<br>"name": "Cloud",<br>"description": "All cloudy pixels.",<br>"colour": [255,255,0,70]<br>},<br>```
+
+**in_path** | The input directory for your project. This directory should contain the image tiles that you want to label. | `"/home/user/projects/sentinel-labeling/examples"` 
+**in_path** | The input directory for your project. This directory should contain the image tiles that you want to label. | `"/home/user/projects/sentinel-labeling/examples"` 
+
+### Project structure
+
 
 Coming soon.
