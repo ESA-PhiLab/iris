@@ -1,7 +1,8 @@
 ---
 label-mode: segmentation
-input_path: "/home/phiuser/projects/sentinel-labeling/examples"
-project_path: "/home/phiuser/projects/sentinel-labeling/"
+in_path: ""
+tile_filename: "image.npy"
+out_path: "/home/phiuser/projects/sentinel-labeling/"
 first_guess_available: False
 classes:
 - name: Clear
@@ -59,9 +60,9 @@ views:
     vary from dark to light brown and urban areas are cyan blue. Snow, ice, and clouds
     are <b>light cyan or white</b>.
   channels:
-  - (B10*70)
-  - (B10*70)
-  - (B10*70)
+  - (B11*70)
+  - (B11*70)
+  - (B11*70)
 - name: RGB
   description: Normal RGB image.
   channels:
@@ -77,5 +78,5 @@ views:
     white. Water Sediments are displayed as dark red.
   channels:
   - B1
-  - B11
   - B12
+  - B13

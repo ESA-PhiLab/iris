@@ -542,6 +542,7 @@ function undo(){
     vars.mask = vars.history.mask[vars.history.current_epoch].slice();
     vars.user_mask = vars.history.user_mask[vars.history.current_epoch].slice();
 
+    reload_hidden_mask();
     render_mask();
 }
 
@@ -559,6 +560,7 @@ function redo(){
     vars.mask = vars.history.mask[vars.history.current_epoch].slice();
     vars.user_mask = vars.history.user_mask[vars.history.current_epoch].slice();
 
+    reload_hidden_mask();
     render_mask();
 }
 

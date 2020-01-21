@@ -21,6 +21,7 @@ from sklearn.metrics import f1_score, confusion_matrix
 import yaml
 
 app = flask.Flask(__name__)
+app.config['EXPLAIN_TEMPLATE_LOADING'] = True
 
 # Reduce the amount of transferred data by compressing it:
 Compress(app)
