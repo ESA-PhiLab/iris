@@ -10,7 +10,7 @@ This application is a flask app which can be run locally.
 <hr />
 
 ## Installation
-Since IRIS is written in python, you will need a python 3.7 where you can install this app.
+Since IRIS is written in python, you will need a python 3.7 environment to use this app.
 Go to your preferenced installation folder via your console and clone this repository by running:
 
 `git clone https://github.com/ESA-PhiLab/iris.git`.
@@ -31,7 +31,7 @@ You will need a configuration file to run IRIS. There is one example in the exam
 You can start IRIS in two different modes:
 1) **label:** This will open a local browser application which helps you to perform manual segmentation of the images in your project. Start IRIS in the label mode like this: `iris label PROJECT_FILE`. Then open this address with your browser (chrome or firefox): `http://localhost:5000`
 
-2) **conclude:** (NOT YET IMPLEMENTED) After labelling is done (by using the *label* mode), you can use this mode bundle the output masks and get some statistics.
+2) **conclude:** (NOT YET IMPLEMENTED) After labelling is done (by using the *label* mode), you can use this mode to bundle the output masks and get some statistics.
 
 ## Documentation
 
@@ -48,10 +48,9 @@ Field | Description | JSON Example
 **in_path** | The input directory for your project. This directory should contain subfolders (which names present the tile ids) with the images that you want to label. | `"in_path": "/home/user/projects/sentinel-labeling/examples"`
 **image_filename** | The filename of the images inside the tile folders. IRIS can load standard image formats (like *png* or *tif*) and numpy files (*npy*). The arrays inside the numpy arrays should have the shape HxWxC | `"image_filename": "image.npy"` 
 **out_path** | The output directory for your project. This directory will contain the mask files (from the segmentation) and user configurations | `"out_path": "/home/user/projects/sentinel-labeling/results"` 
-**classes** | This is a list of classes that you want to allow the user to label. Each class is represented as a dictionary with the keys *name*, *description*, *colour* and *user_colour* (optional). | ```"classes": [<br>{<br>"name": "Clear",<br>"description": "All clear pixels.",<br>"colour": [255,255,255,0],<br>"user_colour": [0,255,255,70]<br>},<br>{<br>"name": "Cloud",<br>"description": "All cloudy pixels.",<br>"colour": [255,255,0,70]<br>},<br>```
-
-**in_path** | The input directory for your project. This directory should contain the image tiles that you want to label. | `"/home/user/projects/sentinel-labeling/examples"` 
-**in_path** | The input directory for your project. This directory should contain the image tiles that you want to label. | `"/home/user/projects/sentinel-labeling/examples"` 
+**classes** | This is a list of classes that you want to allow the user to label. Each class is represented as a dictionary with the following keys:<ul><li>*name:* Name of the class</li><li>*description:* Further description which explains the user more about the class (e.g. why is it different from another class, etc.)</li><li>*colour:* Colour for this class. Must be a list of 4 integers (RGBA) from 0 to 255.</li><li>*user_colour (optional)*: Colour for this class when user mask is activated in the interface. Useful for background classes which are normally transparent.</li></ul> | "classes": [<br>&nbsp;{<br>&nbsp;&nbsp;"name": "Clear",<br>&nbsp;&nbsp;"description": "All clear pixels.",<br>&nbsp;&nbsp;"colour": [255,255,255,0],<br>&nbsp;&nbsp;"user_colour": [0,255,255,70]<br>},<br>{<br>&nbsp;&nbsp;"name": "Cloud",<br>&nbsp;&nbsp;"description": "All cloudy pixels.",<br>&nbsp;&nbsp;"colour": [255,255,0,70]<br>}]<br>
+**image_shape** | The dimensions of the images you want to label (WxH). | `"image_shape": [1280, 1280]` 
+**mask_area** | In case you don't want to allow the user to label the complete image, you can limit the segmentation area. | `"mask_area": [128, 128, 1152, 1152]`
 
 ### Project structure
 
