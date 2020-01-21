@@ -33,14 +33,6 @@ def start(project, debug):
     # Make sure the HTML is understood in the descriptions:
     for view in project['views']:
         view['description'] = flask.Markup(view['description'])
-
-    project['tiles'] = {
-        basename(root): root
-        for root,dirs,files in os.walk(project['in_path'])
-        for file in files
-        if file == project['tile_filename']
-    }
-    project['tile_ids'] = list(sorted(project['tiles'].keys()))
     app.config['project'] = project
 
     # Let's the fun begin
@@ -235,7 +227,7 @@ def load_mask(tile_id):
 def read_tile(tile_id):
     filename = join(
         app.config['project']['tiles'][tile_id],
-        app.config['project']['tile_filename']
+        app.config['project']['image_filename']
     )
 
     return np.load(filename)

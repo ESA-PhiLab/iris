@@ -1,4 +1,5 @@
 import argparse
+import json
 from os.path import basename, dirname, exists, join
 import os
 import sys
@@ -14,7 +15,7 @@ def run_app():
     )
     parser.add_argument(
         "project", type=str,
-        help="Path to the project configurations file (yaml)."
+        help="Path to the project configurations file (yaml or json)."
     )
     parser.add_argument(
         "-d", "--debug", action="store_true",
@@ -24,7 +25,12 @@ def run_app():
 
     # Load the configurations of the project:
     with open(args.project, 'r') as stream:
-        project = yaml.safe_load(stream)
+        if args.project.endswith('json'):
+            project = json.load(stream)
+        elif args.project.endswith('yaml'):
+            project = yaml.safe_load(stream)
+        else:
+            raise OSError('Project file must be a JSON or YAML file!')
 
     project['mask_shape'] = (
         project['mask_area'][2]-project['mask_area'][0],
@@ -34,6 +40,14 @@ def run_app():
     project['users_path'] = join(project['out_path'], 'users')
     os.makedirs(project['users_path'], exist_ok=True)
     project['masks_path'] = join(project['out_path'], 'masks')
+
+    project['tiles'] = {
+        basename(root): root
+        for root,dirs,files in os.walk(project['in_path'])
+        for file in files
+        if file == project['image_filename']
+    }
+    project['tile_ids'] = list(sorted(project['tiles'].keys()))
 
     if args.mode == "label":
         import iris.label
