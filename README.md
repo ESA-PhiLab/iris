@@ -4,8 +4,7 @@
 
 <img src="preview/1.png" />
 
-Tool for manual image segmentation and classification of satellite imagery (or images in general).
-This application is a flask app which can be run locally. 
+Tool for manual image segmentation and classification of satellite imagery (or images in general). It was designed to accelerate the creation of machine learning training datasets for Earth Observation. This application is a flask app which can be run locally. 
 
 <hr />
 
