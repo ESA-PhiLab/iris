@@ -1218,6 +1218,7 @@ async function predict_mask(){
     }
 
     show_loader("Prepare training data...");
+
     // Get all the user pixels
     let all_user_pixels = new Array();
     let all_user_labels = new Array();

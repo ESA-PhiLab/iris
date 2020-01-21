@@ -5,7 +5,10 @@ setup(
     description="Tool for manual image segmentation and classification",
     packages=['iris'],
     package_data={
-        "": ["*.css", "*.html", ".js", "*.png"],
+        "iris": [
+            "templates/*", "static/css/*",
+            "static/icons/*", "static/javascripts/*"
+        ],
     },
     include_package_data=True,
     entry_points={
