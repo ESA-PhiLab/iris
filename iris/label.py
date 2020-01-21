@@ -98,7 +98,7 @@ def segmentation():
 
     return flask.render_template(
         'segmentation.html', tile_id=tile_id,
-        tile_shape=app.config['project']['tile_shape'], mask_area=app.config['project']['mask_area'],
+        tile_shape=app.config['project']['image_shape'], mask_area=app.config['project']['mask_area'],
         views=app.config['project']['views'], classes=app.config['project']['classes'],
         user=flask.session['user'],
     )
