@@ -17,5 +17,8 @@ setup(
     install_requires=[
         'flask',
         'numpy',
+        'pyyaml',
+        'lightgbm',
+        'scipy'
     ],
 )
