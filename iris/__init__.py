@@ -2,6 +2,7 @@ import argparse
 from ast import literal_eval
 import hashlib
 import io
+from operator import mul
 from os.path import basename, dirname, exists, join
 import os
 import time
@@ -19,33 +20,9 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import f1_score, confusion_matrix
 import yaml
 
-# Load the config file:
-with open(join(dirname(__file__), 'iris-config.yaml'), 'r') as stream:
-    config = yaml.safe_load(stream)
-
-config['mask_shape'] = (
-    config['mask_area'][2]-config['mask_area'][0],
-    config['mask_area'][3]-config['mask_area'][1],
-)
-
-config['users_path'] = join(config['project_path'], 'users')
-os.makedirs(config['users_path'], exist_ok=True)
-config['masks_path'] = join(config['project_path'], 'masks')
-
-
-# Make sure the HTML is understood in the descriptions:
-for view in config['views']:
-    view['description'] = flask.Markup(view['description'])
-
-tiles = {
-    basename(root): root
-    for root,dirs,files in os.walk(config['input_path'])
-    for file in files
-    if file == 'image.npy'
-}
-tile_ids = list(sorted(tiles.keys()))
-
 app = flask.Flask(__name__)
+
+# Reduce the amount of transferred data by compressing it:
 Compress(app)
 app.config['COMPRESS_MIMETYPES'] = [
     'text/html', 'text/css', 'text/xml',
@@ -58,7 +35,7 @@ app.secret_key = os.urandom(16)
 
 def load_user(username):
     user_id = hashlib.md5(username.encode()).hexdigest()
-    file = join(config['project_path'], 'users', user_id+'.yaml')
+    file = join(app.config['project']['users_path'], user_id+'.yaml')
     if not exists(file):
         return {
             'name': username,
@@ -70,7 +47,7 @@ def load_user(username):
         return yaml.safe_load(stream)
 
 def save_user(user):
-    file = join(config['project_path'], 'users', user['id']+'.yaml')
+    file = join(app.config['project']['users_path'], user['id']+'.yaml')
     with open(file, 'w') as stream:
         yaml.dump(user, stream)
 
@@ -100,23 +77,31 @@ def logout():
     flask.session.pop('user', None)
     return flask.redirect(flask.url_for('index'))
 
+def get_start_tile():
+    return app.config['project']['tile_ids'][0]
+
+def get_tile_ids():
+    # We will change this in future so each user gets different tiles:
+    return app.config['project']['tile_ids']
+
 @app.route('/segmentation', methods=['GET'])
 def segmentation():
     if 'user' not in flask.session:
         return flask.redirect(flask.url_for('login'))
 
-    tile_id = flask.request.args.get('tile_id', tile_ids[0])
+    tile_id = flask.request.args.get('tile_id', get_start_tile())
 
     return flask.render_template(
         'segmentation.html', tile_id=tile_id,
-        tile_shape=config['tile_shape'], mask_area=config['mask_area'],
-        views=config['views'], classes=config['classes'],
+        tile_shape=app.config['project']['tile_shape'], mask_area=app.config['project']['mask_area'],
+        views=app.config['project']['views'], classes=app.config['project']['classes'],
         user=flask.session['user'],
     )
 
 @app.route('/next_tile', methods=['GET'])
 def next_tile():
-    tile_id = flask.request.args.get('tile_id', tile_ids[0])
+    tile_ids = get_tile_ids()
+    tile_id = flask.request.args.get('tile_id', get_start_tile())
     index = tile_ids.index(tile_id);
     index += 1
     if index >= len(tile_ids):
@@ -128,7 +113,8 @@ def next_tile():
 
 @app.route('/previous_tile', methods=['GET'])
 def previous_tile():
-    tile_id = flask.request.args.get('tile_id', tile_ids[0])
+    tile_ids = get_tile_ids()
+    tile_id = flask.request.args.get('tile_id', get_start_tile())
     index = tile_ids.index(tile_id);
     index -= 1
     if index >= len(tile_ids):
@@ -155,7 +141,9 @@ def save_mask(tile_id):
     # 1 to mask_length: mask
     # mask_length to 2*mask_length: user mask
     # 2*mask_length + 1: magic end byte 254
-    mask_length = config['mask_shape'][0] * config['mask_shape'][1]
+    mask_length = \
+        app.config['project']['mask_shape'][0] \
+        * app.config['project']['mask_shape'][1]
 
     if len(data) != 2*mask_length + 2:
         print('Error: Octet-stream does not have the expected length!')
@@ -168,20 +156,20 @@ def save_mask(tile_id):
 
     # We get the mask in the form HxW where each element is a class id
     mask = data[1:mask_length+1]
-    mask = mask.reshape(config['mask_shape'][::-1])
+    mask = mask.reshape(app.config['project']['mask_shape'][::-1])
 
     # The user mask denotes who classified the pixels in the mask. If true, then
     # the user classified the pixel otherwise it was classified by the AI:
     user_mask = data[1+mask_length:-1].astype(np.bool)
-    user_mask = user_mask.reshape(config['mask_shape'][::-1])
+    user_mask = user_mask.reshape(app.config['project']['mask_shape'][::-1])
 
     # Change the mask to an encoded mask with the dimensions HxWxC where C is a
     # boolean layer for each different class
-    encoded_mask = np.empty((*mask.shape, len(config['classes'])))
+    encoded_mask = np.empty((*mask.shape, len(app.config['project']['classes'])))
     for i in range(encoded_mask.shape[-1]):
         encoded_mask[..., i] = mask == i
 
-    output_dir = join(config['masks_path'], tile_id)
+    output_dir = join(app.config['project']['masks_path'], tile_id)
     os.makedirs(output_dir, exist_ok=True)
     np.save(
         join(output_dir, f"{user['id']}.npy"),
@@ -206,10 +194,10 @@ def load_mask(tile_id):
 
     if user is not None:
         mask_file = join(
-            config['masks_path'], tile_id, f"{user['id']}.npy"
+            app.config['project']['masks_path'], tile_id, f"{user['id']}.npy"
         )
         user_mask_file = join(
-            config['masks_path'], tile_id,
+            app.config['project']['masks_path'], tile_id,
             f"{user['id']}_user.npy"
         )
         if exists(mask_file) and exists(user_mask_file):
@@ -232,7 +220,12 @@ def load_mask(tile_id):
     })
 
 def read_tile(tile_id):
-    return np.load(join(tiles[tile_id], 'image.npy'))
+    filename = join(
+        app.config['project']['tiles'][tile_id],
+        app.config['project']['tile_filename']
+    )
+
+    return np.load(filename)
 
 @app.route('/predict_mask/<tile_id>', methods=['POST'])
 def predict_mask(tile_id):
@@ -241,8 +234,8 @@ def predict_mask(tile_id):
 
     # Select only the masking area:
     mask_area = (
-        slice(config['mask_area'][0], config['mask_area'][2]),
-        slice(config['mask_area'][1], config['mask_area'][3]),
+        slice(app.config['project']['mask_area'][0], app.config['project']['mask_area'][2]),
+        slice(app.config['project']['mask_area'][1], app.config['project']['mask_area'][3]),
         slice(None, None, None)
     )
     image = image[mask_area]
@@ -306,16 +299,14 @@ def predict_mask(tile_id):
 
 @app.route('/load_tile/<tile_id>/<int:view>')
 def load_tile(tile_id, view):
-    image = np.load(join(tiles[tile_id], 'image.npy'))
-    metadata = get_metadata(tile_id)
+    image = read_tile(tile_id)
     user_image = parse_channels(
-        config['views'][view]['channels'],
-        image, metadata
+        app.config['project']['views'][view]['channels'], image
     )
     return array_to_png(user_image)
 
-def parse_channels(channels, image, metadata):
-    bands = {b_id: image[..., i] for i, b_id in enumerate(metadata['bands'])}
+def parse_channels(channels, image):
+    bands = {f"B{i+1}": image[..., i] for i in range(image.shape[-1])}
 
     user_bands = [
         eval(channel, bands)
@@ -324,14 +315,14 @@ def parse_channels(channels, image, metadata):
 
     return np.moveaxis(np.stack(user_bands), 0, -1)
 
-def get_metadata(tile_id):
-    with open(join(tiles[tile_id], 'metadata.json')) as file:
-        return json.load(file)
+# def get_metadata(tile_id):
+#     with open(join(tiles[tile_id], 'metadata.json')) as file:
+#         return json.load(file)
 
 @app.route('/load_thumbnail/<tile_id>')
 def load_thumbnail(tile_id):
     array = cv.imread(
-        join(tiles[tile_id], 'thumbnail.png')
+        join(app.config['project']['tiles'][tile_id], 'thumbnail.png')
     )
     return array_to_png(array[...,::-1])
 
@@ -347,3 +338,39 @@ def array_to_png(array):
 
 def array_to_json(array):
     return flask.jsonify(array.tolist())
+
+def run_app():
+    if len(sys.argv) < 2:
+        raise ValueError("Need the name of the project configuration file!")
+
+    # Load the configurations of the project:
+    with open(sys.argv[1], 'r') as stream:
+        project = yaml.safe_load(stream)
+
+    project['mask_shape'] = (
+        project['mask_area'][2]-project['mask_area'][0],
+        project['mask_area'][3]-project['mask_area'][1],
+    )
+
+    project['users_path'] = join(project['out_path'], 'users')
+    os.makedirs(project['users_path'], exist_ok=True)
+    project['masks_path'] = join(project['out_path'], 'masks')
+
+    # Make sure the HTML is understood in the descriptions:
+    for view in project['views']:
+        view['description'] = flask.Markup(view['description'])
+
+    project['tiles'] = {
+        basename(root): root
+        for root,dirs,files in os.walk(project['in_path'])
+        for file in files
+        if file == project['tile_filename']
+    }
+    project['tile_ids'] = list(sorted(project['tiles'].keys()))
+    app.config['project'] = project
+
+    # Let the fun begin
+    app.run(debug=True)
+
+if __name__ == '__main__':
+    run_app()

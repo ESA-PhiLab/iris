@@ -821,7 +821,7 @@ function render_tile(view_number){
     // Apply brightness, contrast and saturation filters:
     let filters = [];
     if (vars.invert){
-        filters.push("invert(100%)");
+        filters.push("invert(1)");
     }
     filters.push("brightness("+vars.brightness+"%)");
     if (vars.contrast){
@@ -980,6 +980,8 @@ function dialogue_help(){
     IRIS was developed by
     <p>John Mrziglod, &Phi;-lab, European Space Agency</p>
     <p>Alistair Francis, University College London</p>
+    <hr />
+    Find more information on <a href="https://github.com/ESA-PhiLab/iris" target="_blank">https://github.com/ESA-PhiLab/iris</a>
     </div>
 `;
 

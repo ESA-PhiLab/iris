@@ -187,8 +187,8 @@ function goto_url(url){
         <li class="toolbutton" id="tb_reset_filters" onclick='reset_filters();'>
             Reset Filters
         </li>
-        <li class="toolbutton" style="float: right;">Logged in as {{user.name}}</li>
-        <li class="toolbutton" onclick="dialogue_help();" style="float: right;">Help</li>
+        <li class="toolbutton" id="tb_user" style="float: right;">{{user.name}} | {{user.points}}</li>
+        <li class="toolbutton" onclick="dialogue_help();" style="float: right;">?</li>
         <li class="toolbutton icon_button" onclick="dialogue_config();" style="float: right;">
             <img src="static/icons/preferences.png" class="icon" />
         </li>
