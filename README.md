@@ -4,4 +4,34 @@
 <img src="preview/1.png" />
 
 Tool for manual image segmentation and classification of satellite imagery (or images in general).
-This application is a flask app which can be run locally. <b>Still in progress, more information is coming soon.</b>
+This application is a flask app which can be run locally. <b>Still in progress.</b>
+
+<hr />
+
+## Installation
+Since IRIS is written in python, you will need a python 3.7 where you can install this app.
+Go to your preferenced installation folder via your console and clone this repository by running:
+
+`git clone https://github.com/ESA-PhiLab/iris.git`.
+
+Enter the iris directory with
+
+`cd iris`
+
+and install the app with pip
+
+`pip install .`
+
+This should install all necessary python packages automatically.
+
+## Usage
+You will need a configuration file to run IRIS. There is one example in the examples folder you can use. Start IRIS from your command line with
+
+`iris CONFIG_FILE`
+
+Then open this address with your browser (chrome or firefox):
+
+`http://localhost:5000`
+
+## Documentation
+Coming soon.
