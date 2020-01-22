@@ -12,6 +12,7 @@ from flask_compress import Compress
 import numpy as np
 from PIL import Image
 from scipy.ndimage import minimum_filter, maximum_filter
+from skimage.io import imread
 from sklearn.model_selection import train_test_split
 import yaml
 
@@ -230,7 +231,12 @@ def read_tile(tile_id):
         app.config['project']['image_filename']
     )
 
-    return np.load(filename)
+    if filename.endswith('npy'):
+        return np.load(filename)
+    else:
+        image = imread(filename)
+        print(image.shape)
+        return image
 
 @app.route('/predict_mask/<tile_id>', methods=['POST'])
 def predict_mask(tile_id):

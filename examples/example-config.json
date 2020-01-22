@@ -33,6 +33,7 @@
   ],
   "image_shape": [1280, 1280],
   "mask_area": [128, 128, 1152, 1152],
+  "mask_output_format": "numpy",
   "views": [
     {
       "name": "Cirrus",

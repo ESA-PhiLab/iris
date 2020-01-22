@@ -19,6 +19,7 @@ setup(
         'numpy',
         'pyyaml',
         'lightgbm',
-        'scipy'
+        'scipy',
+        'scikit-image',
     ],
 )
