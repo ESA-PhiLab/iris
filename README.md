@@ -6,7 +6,7 @@
 
 Tool for manual image segmentation and classification of satellite imagery (or images in general). It was designed to accelerate the creation of machine learning training datasets for Earth Observation. This application is a flask app which can be run locally. Special highlights:
 * Support by AI (gradient boosted decision tree) when doing image segmentation
-* Multiple and configurable views for multispectral imagery available
+* Multiple and configurable views for multispectral imagery
 * Simple setup with pip and one configuration file
 * Platform independent app (runs on Linux, Windows and Mac OS)
 
