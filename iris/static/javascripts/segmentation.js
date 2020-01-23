@@ -123,12 +123,18 @@ function init_canvases(){
 
     init_events();
     init_toolbar_events();
+
+    // dialogue_login();
+
+    // if (vars.user === null){
+    //     dialogue_login();
+    // }
 }
 
 function init_events(){
     // Make all preview canvases sensitive to the user"s actions. Why preview?
     // Since they are the canvases on top:
-    for (var i=0; i < 3; i++) {
+    for (var i=0; i < vars.views.length; i++) {
         var canvas = document.getElementById("canvas-"+i+"-preview");
         canvas.addEventListener("mousemove", mouse_move, false);
         canvas.addEventListener("mousedown", mouse_down, false);
@@ -157,6 +163,38 @@ function init_toolbar_events(){
             toolbutton.onmouseleave = hide_message.bind(null);
         }
     }
+}
+
+function dialogue_login(){
+    let content = `
+    <form>
+        <p><b>Username (or e-mail):</b><br>
+            <input type=text name="login-username">
+        </p>
+        <p><b>Password: </b><br>
+            <input type=password name="login-password">
+        </p>
+    </form>
+    <button>Login</button>
+    <button>Register</button>
+    <button>Work anonymously</button>
+`;
+    show_dialogue("info", content, true, title="Login");
+}
+
+async function login(){
+    let username = get_object('login-username');
+    let password = get_object('login-password');
+
+    let response = await fetch("/login", {
+        method: "POST",
+        body: JSON.stringify({
+            "username": username,
+            "password": password,
+        })
+    });
+
+
 }
 
 function key_down(event){
@@ -495,12 +533,13 @@ function update_drawn_pixels(){
             different_classes += 1;
         }
     }
+
     get_object("different-classes").innerHTML = different_classes;
 
     if (different_classes >= 2){
-        get_object("ai-recommendation").innerHTML = "I am ready to learn!";
+        get_object("ai-recommendation").innerHTML = "Start the training!";
     } else {
-        get_object("ai-recommendation").innerHTML = "I need at least 10 pixels from two classes!";
+        get_object("ai-recommendation").innerHTML = "Draw at least 10 pixels from two classes!";
     }
 }
 
@@ -791,7 +830,7 @@ function render_mask(bbox=null){
 function render_preview(){
     let offset = get_tool_offset();
 
-    for (var i=0; i < 3; i++) {
+    for (var i=0; i < vars.views.length; i++) {
         var ctx = get_ctx("canvas-"+i+"-preview");
         ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
         ctx.fillStyle = "rgba(150, 150, 150, 0.5)";
@@ -803,7 +842,12 @@ function render_preview(){
 
         // Draw the boundaries of the masking area
         ctx.beginPath();
-        ctx.lineWidth = "2";
+        if (vars.views.length < 2){
+            ctx.lineWidth = "3";
+        } else {
+            ctx.lineWidth = "2";
+        }
+
         ctx.strokeStyle = "red";
         ctx.setLineDash([5, 15]);
         ctx.rect(

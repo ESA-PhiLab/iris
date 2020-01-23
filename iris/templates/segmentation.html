@@ -15,6 +15,7 @@ window.onload = init_canvases;
 // I know I am using global variables here but who cares....
 // Initialise the mask (TODO: find a way to create multidimensional arrays).
 var vars = {
+    'user': {{user|tojson}},
     'mask': null,
     'user_mask': null,
     'errors_mask': null,
@@ -89,7 +90,6 @@ function goto_url(url){
 <link rel="stylesheet" href="{{ url_for('static', filename='css/segmentation.css') }}">
 
 </head>
-
 
 <body onkeydown="key_down(event)">
     <div id="block-screen" class="block-screen"></div>
@@ -194,51 +194,72 @@ function goto_url(url){
         </li>
     </ul>
 
-
-    <div style="margin: 10px 0px; width: 100%; height: 630px;">
-    {% for view in views%}
-        <div style="position: relative; left: calc(99vw*{{(loop.index-1)/views|length}});">
-            <div id="tile-{{ loop.index-1 }}">
-                <canvas id="canvas-{{ loop.index-1 }}-tile" class="view-canvas"
-                    style="z-index: 0; width: calc(99vw/{{view|length}}); height: calc(99vw/{{view|length}});"></canvas>
-                <canvas id="canvas-{{ loop.index-1 }}-mask" class="view-canvas"
-                    style="z-index: 1; width: calc(99vw/{{view|length}}); height: calc(99vw/{{view|length}});"></canvas>
-                <canvas id="canvas-{{ loop.index-1 }}-preview" class="view-canvas"
-                    style="z-index: 2; width: calc(99vw/{{view|length}}); height: calc(99vw/{{view|length}});"></canvas>
+    <!-- Unfortunately, my css is really bad so we have to hardcode the different views here: -->
+    {% if views|length == 1 %}
+        <div style="margin: 10px 0px; width: 100%;">
+            <div style="position: relative;">
+                <div id="view-0">
+                    <canvas id="canvas-0-tile" class="view-canvas"
+                        style="z-index: 0; width: 80vh; height: 80vh;"></canvas>
+                    <canvas id="canvas-0-mask" class="view-canvas"
+                        style="z-index: 1; width: 80vh; height: 80vh;"></canvas>
+                    <canvas id="canvas-0-preview" class="view-canvas"
+                        style="z-index: 2; width: 80vh; height: 80vh;"></canvas>
+                </div>
             </div>
-            <!-- <p class="view-description"
-                style="max-width: calc(99vw/{{view|length}}); height: calc(99vw/{{view|length}});">
-                {{view.description}}
-            </p> -->
-        </div>
-    {% endfor %}
+    {% elif views|length == 2 %}
+        <div style="margin: 10px 0px; width: 100%;">
+        {% for view in views%}
+            <div style="position: relative; left: calc(70vh*{{ loop.index-1 }});">
+                <div id="view-{{ loop.index-1 }}">
+                    <canvas id="canvas-{{ loop.index-1 }}-tile" class="view-canvas"
+                        style="z-index: 0; width: 70vh; height: 70vh;"></canvas>
+                    <canvas id="canvas-{{ loop.index-1 }}-mask" class="view-canvas"
+                        style="z-index: 1; width: 70vh; height: 70vh;"></canvas>
+                    <canvas id="canvas-{{ loop.index-1 }}-preview" class="view-canvas"
+                        style="z-index: 2; width: 70vh; height: 70vh;"></canvas>
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <div style="margin: 10px 0px; width: 100%;">
+        {% for view in views%}
+            <div style="position: relative; left: calc(98vw/{{views|length}}*{{ loop.index-1 }});">
+                <div id="view-{{ loop.index-1 }}">
+                    <canvas id="canvas-{{ loop.index-1 }}-tile" class="view-canvas"
+                        style="z-index: 0; width: calc(98vw/{{views|length}}); height: calc(98vw/{{views|length}});"></canvas>
+                    <canvas id="canvas-{{ loop.index-1 }}-mask" class="view-canvas"
+                        style="z-index: 1; width: calc(98vw/{{views|length}}); height: calc(98vw/{{views|length}});"></canvas>
+                    <canvas id="canvas-{{ loop.index-1 }}-preview" class="view-canvas"
+                        style="z-index: 2; width: calc(98vw/{{views|length}}); height: calc(98vw/{{views|length}});"></canvas>
+                </div>
+            </div>
+        {% endfor %}
+    {% endif %}
+
     </div>
 
-    <div class="info-box" style="position: fixed; bottom: 10; left: 10; float: left; display: flex; flex-direction: row;">
-        <div style="float: left;">
-            <div>
-                <div class="button">
-                    <div id="different-classes" class="info-box-top">0</div>
-                    <div class="info-box-bottom">Classes</div>
-                </div>
-                <div class="button">
-                    <div id="drawn-pixels" class="info-box-top">0</div>
-                    <div class="info-box-bottom">Drawn pixels</div>
-                </div>
-                <div class="button" style="width: 50px;" onclick="dialogue_confusion_matrix();">
-                    <div id="ai-score" class="info-box-top">0 %</div>
-                    <div class="info-box-bottom">AI-Score</div>
-                </div>
-            </div>
-            <p id="ai-recommendation" class="info-box" style="max-width: 225px; word-wrap: break-word; border: 2px solid black; border-radius: 4px;">AI help is loading...</p>
+    <!-- <div class="info-box" style="position: fixed; bottom: 10; left: 10; float: left; display: flex; flex-direction: row;"> -->
+    <div class='statusbar' style="position: fixed; bottom: 10; z-index: 10;">
+        <div class="toolbutton">
+            <div  class="info-box-top">{{tile_id}}</div>
+            <div class="info-box-bottom">Tile-ID</div>
         </div>
-        <div style="float: left; margin: 0px 10px; border-left: 2px solid black;">
-            <img  style="float: left; margin: 0px 10px;" src="/load_thumbnail/{{tile_id}}" height=200 width=200 />
+        <div class="inactive-toolbutton">
+            <div id="different-classes" class="info-box-top">0</div>
+            <div class="info-box-bottom">Classes</div>
         </div>
-        <div style="float: left; margin: 0px 10px;">
-            <table>
-                <tr><td><b>Tile name:</b></td><td>{{tile_id}}</td></tr>
-            </table>
+        <div class="inactive-toolbutton">
+                <div id="drawn-pixels" class="info-box-top">0</div>
+                <div class="info-box-bottom">Drawn pixels</div>
+        </div>
+        <div class="toolbutton" onclick="dialogue_confusion_matrix();">
+            <div id="ai-score" class="info-box-top">0</div>
+            <div class="info-box-bottom">AI-Score</div>
+        </div>
+        <div class="info-box">
+            <img style="float: left;" src="static/icons/ai.png"></img>
+            <div style="float: left; margin-left: 10px;" id="ai-recommendation">0</div>
         </div>
     </div>
 

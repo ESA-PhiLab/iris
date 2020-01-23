@@ -27,7 +27,14 @@ button,.button {
                                 supported by Chrome, Opera and Firefox */
 }
 
-.toolbutton {
+.toolbar {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+}
+
+.toolbutton,.inactive-toolbutton {
   float: left;
   background-color: #ffffff;
   border: 2px;
@@ -51,12 +58,44 @@ button,.button {
                                 supported by Chrome, Opera and Firefox */
 }
 
+.inactive-toolbutton{
+    cursor: default;
+}
+
 .toolbar_separator {
     float: left;
     background-color: #000;
     margin: 2px 6px;
     width: 2px;
     height: 44px;
+}
+
+.statusbar {
+    display: flex;
+    align-items: stretch;
+    /* list-style-type: none; */
+    /* border: 2px solid black;
+    border-radius: 4px; */
+    width: 98%;
+    margin: 0;
+    padding: 0;
+    /* padding: 4px; */
+    overflow: auto;
+    font-size: 18px;
+}
+
+.statusbutton {
+  float: left;
+  margin: 0px;
+  padding: 0px 4px;
+}
+
+.statusbar_separator {
+    float: left;
+    background-color: #000;
+    margin: 0px 6px;
+    width: 2px;
+    height: 22px;
 }
 
 button:hover,.button:hover,.toolbutton:hover{
@@ -71,13 +110,6 @@ button.checked,.button.checked,.toolbutton.checked {
   padding: 2px 2px 1px 2px;
 }
 
-.toolbar {
-    list-style-type: none;
-    margin: 0;
-    padding: 0;
-    overflow: hidden;
-}
-
 .vl {
     background-color: #000;
     padding: 40px 6px;
@@ -86,14 +118,18 @@ button.checked,.button.checked,.toolbutton.checked {
 }
 
 .info-box{
+    display: flex;
+    justify-content: center;
     border: 2px;
     border-style: solid;
     border-radius: 4px;
     border-color: black;
-    text-align: center;
+    background-color: white;
     text-decoration: none;
-    margin: 4px 2px;
+    align-items: center;
+    margin: 2px 2px;
     padding: 5px 10px;
+    float: left;
 }
 
 .info-box-top{
@@ -105,6 +141,8 @@ button.checked,.button.checked,.toolbutton.checked {
     font-size: 12px;
     font-weight: normal;
 }
+
+
 
 table {
   border-collapse: collapse;

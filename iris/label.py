@@ -39,15 +39,14 @@ def start(project, debug):
     # Let's the fun begin
     app.run(debug=debug)
 
+def create_user(username, password):
+    pass
+
 def load_user(username):
     user_id = hashlib.md5(username.encode()).hexdigest()
     file = join(app.config['project']['users_path'], user_id+'.yaml')
     if not exists(file):
-        return {
-            'name': username,
-            'id': user_id,
-            'points': 0,
-        }
+        raise Exception("User does not exist or password is wrong!")
 
     with open(file, 'r') as stream:
         return yaml.safe_load(stream)
@@ -57,23 +56,49 @@ def save_user(user):
     with open(file, 'w') as stream:
         yaml.dump(user, stream)
 
+# {
+#     "name": "Cirrus",
+#     "description": "In this band combination vegetation appears in shades of red, soils vary from dark to light brown and urban areas are cyan blue. Snow, ice, and clouds are <b>light cyan or white</b>.",
+#     "channels": ["(B11*70)", "(B11*70)", "(B11*70)"]
+# },
+# {
+#     "name": "RGB",
+#     "description": "Normal RGB image.",
+#     "channels": ["B5", "B3", "B2"]
+# },
+# {
+#     "name": "RGB",
+#     "description": "Normal RGB image.",
+#     "channels": ["B5", "B3", "B2"]
+# },
+
 @app.route('/')
 def index():
-    if 'user' in flask.session:
-        return flask.redirect(flask.url_for('next_tile'))
-    else:
-        return flask.redirect(flask.url_for('login'))
+    return flask.redirect(flask.url_for('next_tile'))
 
-@app.route('/login', methods=['GET', 'POST'])
+@app.route('/register', methods=['POST'])
+def register():
+    if flask.request.method != 'POST':
+        return False
+
+    data = json.loads(flask.request.data)
+
+
+@app.route('/login', methods=['POST'])
 def login():
-    if flask.request.method == 'POST':
-        flask.session['user'] = load_user(flask.request.form['username'])
-        save_user(flask.session['user'])
-        return flask.redirect(flask.url_for('index'))
+    if flask.request.method != 'POST':
+        return False
 
-    return flask.render_template(
-        'login.html',
-    )
+    data = json.loads(flask.request.data)
+    flask.session['user'] = load_user(data['username'])
+    save_user(flask.session['user'])
+
+    return flask.jsonify({
+        'sucess': True,
+        'user': flask.session['user'],
+    })
+
+
 
 @app.route('/logout')
 def logout():
@@ -92,16 +117,14 @@ def get_tile_ids():
 
 @app.route('/segmentation', methods=['GET'])
 def segmentation():
-    if 'user' not in flask.session:
-        return flask.redirect(flask.url_for('login'))
-
+    user = flask.session.get('user', None)
     tile_id = flask.request.args.get('tile_id', get_start_tile())
 
     return flask.render_template(
         'segmentation.html', tile_id=tile_id,
         tile_shape=app.config['project']['image_shape'], mask_area=app.config['project']['mask_area'],
         views=app.config['project']['views'], classes=app.config['project']['classes'],
-        user=flask.session['user'],
+        user=user,
     )
 
 @app.route('/next_tile', methods=['GET'])
