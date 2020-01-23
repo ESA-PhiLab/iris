@@ -56,22 +56,6 @@ def save_user(user):
     with open(file, 'w') as stream:
         yaml.dump(user, stream)
 
-# {
-#     "name": "Cirrus",
-#     "description": "In this band combination vegetation appears in shades of red, soils vary from dark to light brown and urban areas are cyan blue. Snow, ice, and clouds are <b>light cyan or white</b>.",
-#     "channels": ["(B11*70)", "(B11*70)", "(B11*70)"]
-# },
-# {
-#     "name": "RGB",
-#     "description": "Normal RGB image.",
-#     "channels": ["B5", "B3", "B2"]
-# },
-# {
-#     "name": "RGB",
-#     "description": "Normal RGB image.",
-#     "channels": ["B5", "B3", "B2"]
-# },
-
 @app.route('/')
 def index():
     return flask.redirect(flask.url_for('next_tile'))
@@ -98,8 +82,6 @@ def login():
         'user': flask.session['user'],
     })
 
-
-
 @app.route('/logout')
 def logout():
     save_user(flask.session['user'])
@@ -125,6 +107,8 @@ def segmentation():
         tile_shape=app.config['project']['image_shape'], mask_area=app.config['project']['mask_area'],
         views=app.config['project']['views'], classes=app.config['project']['classes'],
         user=user,
+        thumbnail_available=bool(app.config['project']['files']['thumbnail']),
+        metadata_available=bool(app.config['project']['files']['metadata']),
     )
 
 @app.route('/next_tile', methods=['GET'])
@@ -251,14 +235,13 @@ def load_mask(tile_id):
 def read_tile(tile_id):
     filename = join(
         app.config['project']['tiles'][tile_id],
-        app.config['project']['image_filename']
+        app.config['project']['files']['image']
     )
 
     if filename.endswith('npy'):
         return np.load(filename)
     else:
         image = imread(filename)
-        print(image.shape)
         return image
 
 @app.route('/predict_mask/<tile_id>', methods=['POST'])
@@ -349,15 +332,44 @@ def parse_channels(channels, image):
 
     return np.moveaxis(np.stack(user_bands), 0, -1)
 
-# def get_metadata(tile_id):
-#     with open(join(tiles[tile_id], 'metadata.json')) as file:
-#         return json.load(file)
+def get_tile_dir(tile_id):
+    return app.config['project']['tiles'][tile_id]
+
+@app.route('/load_metadata/<tile_id>')
+def load_metadata(tile_id):
+    try:
+        filename = join(
+            get_tile_dir(tile_id),
+            app.config['project']['files']['metadata']
+        )
+        with open(filename, 'r') as stream:
+            if filename.endswith('json'):
+                metadata = json.load(stream)
+            elif filename.endswith('yaml'):
+                metadata = yaml.safe_load(stream)
+            else:
+                raise Exception("Unknown metadata format!")
+
+        metadata = {
+            k: flask.Markup(str(v))
+            for k, v in metadata.items()
+        }
+        return flask.jsonify({
+            "data": metadata
+        })
+    except Exception as err:
+        print(err)
+        return flask.jsonify({
+            "error": "Could not load metadata file."
+        })
 
 @app.route('/load_thumbnail/<tile_id>')
 def load_thumbnail(tile_id):
-    array = cv.imread(
-        join(app.config['project']['tiles'][tile_id], 'thumbnail.png')
+    filename = join(
+        get_tile_dir(tile_id),
+        app.config['project']['files']['thumbnail']
     )
+    array = cv.imread(filename)
     return array_to_png(array[...,::-1])
 
 def array_to_png(array):

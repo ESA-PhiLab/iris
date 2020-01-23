@@ -924,6 +924,48 @@ function show_mask(visible){
     }
 }
 
+async function dialogue_tile(){
+    if (!vars.thumbnail_available && !vars.metadata_available){
+        show_dialogue(
+            "info",
+            "No further tile information available.",
+            false, "Tile: "+vars.tile_id
+        );
+        return;
+    }
+    let content = '';
+    if (vars.thumbnail_available){
+        content += '<p><img src="/load_thumbnail/'+vars.tile_id+'"  style="display: block; margin-left: auto; margin-right: auto;"/></p>';
+    }
+
+    if (vars.metadata_available){
+        let response = await fetch('/load_metadata/'+vars.tile_id)
+        let json = await response.json();
+
+        if ('error' in json){
+            content += json.error;
+        } else {
+            content += '<table>';
+            content += '<tr><td><b>Attribute</b></td><td><b>Value</b></td></tr>';
+
+            // row and col are at the same the id for the row and column class, respectively
+            for (const attribute in json.data){
+                content += '<tr>';
+                content += '<td>'+attribute+'</td>';
+                content += '<td>'+json.data[attribute]+'</td>';
+                content += '</tr>';
+            }
+            content += '</table>';
+        }
+    } else {
+        content += 'No metadata information available!';
+    }
+
+    show_dialogue(
+        "info", content, false, "Tile: "+vars.tile_id
+    );
+}
+
 function dialogue_confusion_matrix(){
     if (vars.confusion_matrix === null){
         show_dialogue(
@@ -980,13 +1022,12 @@ function dialogue_class_selection(){
 
 function dialogue_help(){
     let content = `
-    <div>
+    <div style="position: fixed; background-color: white; width:46%;">
       <button onclick="open_tab('dialogue-help-tab', 'help-welcome');">Welcome</button>
       <button onclick="open_tab('dialogue-help-tab', 'help-faq');">FAQ</button>
       <button onclick="open_tab('dialogue-help-tab', 'help-hotkeys');">Hotkeys</button>
       <button onclick="open_tab('dialogue-help-tab', 'help-about');">About</button>
     </div>
-    <hr />
 `;
     content += "<div id='help-hotkeys' class='dialogue-help-tab' style='display:none'>"
     content  += "<h3>Hotkeys</h3>";

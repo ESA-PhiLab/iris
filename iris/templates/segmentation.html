@@ -33,6 +33,8 @@ var vars = {
     'tile_images': new Array({{views|length}}),
     'tile_shape': {{tile_shape|tojson}},
     'mask_area': {{mask_area|tojson}},
+    'thumbnail_available': {{thumbnail_available|tojson}},
+    'metadata_available': {{metadata_available|tojson}},
     'current_class': 0,
     'cursor_canvas': [0, 0],
     'cursor_tile': [0, 0],
@@ -241,8 +243,8 @@ function goto_url(url){
 
     <!-- <div class="info-box" style="position: fixed; bottom: 10; left: 10; float: left; display: flex; flex-direction: row;"> -->
     <div class='statusbar' style="position: fixed; bottom: 10; z-index: 10;">
-        <div class="toolbutton">
-            <div  class="info-box-top">{{tile_id}}</div>
+        <div class="toolbutton" onclick="dialogue_tile();">
+            <div class="info-box-top">{{tile_id}}</div>
             <div class="info-box-bottom">Tile-ID</div>
         </div>
         <div class="inactive-toolbutton">
