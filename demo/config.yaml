@@ -1,8 +1,8 @@
 ---
 label-mode: segmentation
-in_path: "C:/Users/alist/Documents/Projects/iris/demo/data"
+in_path: "./demo/data"
 image_filename: "image.npy"
-out_path: "C:/Users/alist/Documents/Projects/iris/demo/out"
+out_path: "./demo/out"
 first_guess_available: False
 classes:
 - name: Clear
