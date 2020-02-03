@@ -49,11 +49,11 @@ class Project:
                 self['segmentation']['mask_area'][3]-self['segmentation']['mask_area'][1],
             )
 
-        if isinstance(self.config['single_user'], str):
-            if self.config['single_user'].lower == 'false':
-                self.config['single_user'] = False
+        if isinstance(self.config['authentication_required'], str):
+            if self.config['authentication_required'].lower == 'false':
+                self.config['authentication_required'] = False
             else:
-                self.config['single_user'] = True
+                self.config['authentication_required'] = True
 
         self._init_paths_and_files(filename)
 

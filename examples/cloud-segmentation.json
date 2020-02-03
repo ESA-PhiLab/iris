@@ -1,7 +1,7 @@
 {
   "name": "cloud-segmentation",
   "label_mode": "segmentation",
-  "single_user": true,
+  "authentication_required": true,
   "paths": {
       "image": "images/{id}/image.tif",
       "thumbnail": "images/{id}/thumbnail.png",
