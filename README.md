@@ -29,12 +29,11 @@ and install the app with pip
 This should install all necessary python packages automatically.
 
 ## Usage
-You will need a configuration file to run IRIS. There is one example in the examples folder you can use. 
 
 You can start IRIS in two different modes:
-1) **label:** This will open a local browser application which helps you to perform manual segmentation of the images in your project. Start IRIS in the label mode like this: `iris label PROJECT_FILE`. Then open this address with your browser (chrome or firefox): `http://localhost:5000`
+1) **label:** This will open a local browser application which helps you to perform manual segmentation of the images in your project. You will need a configuration file for this. Have a look at the example folder for inspiration. After setting up the configuration file, start IRIS like this: `iris label PROJECT_FILE` and open `http://localhost:5000` with your browser (chrome or firefox).
 
-2) **conclude:** (NOT YET IMPLEMENTED) After labelling is done (by using the *label* mode), you can use this mode to bundle the output masks and get some statistics.
+2) **demo:** Keen on trying out iris without any setup? Try `iris demo` and have fun with the demo by open `http://localhost:5000` with your browser (chrome or firefox). 
 
 ## Documentation
 
@@ -47,7 +46,7 @@ The table below shows different options for the configurations:
 
 Field | Description | JSON Example
 --- | --- | ---
-**label-mode** | IRIS is going to provide different label modes: *segmentation* or *classification* (the latter is not yet implemented) | <sub><sup>`"label-mode": segmentation`</sub></sup>
+**label_mode** | IRIS is going to provide different label modes: *segmentation* or *classification* (the latter is not yet implemented) | <sub><sup>`"label-mode": segmentation`</sub></sup>
 **in_path** | The input directory for your project. This directory should contain subfolders (which names present the tile ids) with the images that you want to label. | <sub><sup>`"in_path": "/home/user/projects/sentinel-labeling/examples"`</sub></sup>
 **image_filename** | The filename of the images inside the tile folders. IRIS can load standard image formats (like *png* or *tif*) and numpy files (*npy*). The arrays inside the numpy arrays should have the shape HxWxC | <sub><sup>`"image_filename": "image.npy"` </sub></sup>
 **out_path** | The output directory for your project. This directory will contain the mask files (from the segmentation) and user configurations | <sub><sup>`"out_path": "/home/user/projects/sentinel-labeling/results"` 
