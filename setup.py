@@ -16,6 +16,8 @@ setup(
     },
     install_requires=[
         'flask',
+        'flask_compress',
+        'flask-sqlalchemy',
         'numpy',
         'pyyaml',
         'lightgbm',

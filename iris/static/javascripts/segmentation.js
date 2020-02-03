@@ -3,14 +3,14 @@ reasons, i.e. array_2d[y][x] is going to be array_1d[y*row_length+x]*/
 
 
 let commands = {
-    "previous_tile": {
-        "key": "Backspace", "description": "Save this tile and open previous one",
+    "previous_image": {
+        "key": "Backspace", "description": "Save this image and open previous one",
     },
-    "next_tile": {
-        "key": "Return", "description": "Save this tile and open next one",
+    "next_image": {
+        "key": "Return", "description": "Save this image and open next one",
     },
-    "save_tile": {
-        "key": "S", "description": "Save this tile",
+    "save_mask": {
+        "key": "S", "description": "Save this mask",
     },
     "undo": {
         "key": "U", "description": "Undo last modification",
@@ -80,6 +80,12 @@ let commands = {
     },
 };
 
+function init_segmentation(){
+    // Before we start, we check for the login, etc.
+    vars.next_action = init_canvases;
+    fetch_user_info();
+}
+
 function init_canvases(){
     // Make some performance optimisations and add tranformation tracker
     for (let canvas of document.getElementsByClassName("view-canvas")){
@@ -90,8 +96,8 @@ function init_canvases(){
         context.shadowColor = null;
         context.imageSmoothingEnabled = false;
 
-        canvas.width = vars.tile_shape[0];
-        canvas.height = vars.tile_shape[1];
+        canvas.width = vars.image_shape[0];
+        canvas.height = vars.image_shape[1];
 
         // Track transformations done to the canvas (like zooming and paning)
         trackTransforms(context);
@@ -101,34 +107,33 @@ function init_canvases(){
     // to the canvas once than redrawing each pixel to the canvas directly.
     // Hence, we use a hidden canvas for the mask:
     vars.hidden_mask = document.createElement('canvas');
-    vars.hidden_mask.width = vars.tile_shape[0];
-    vars.hidden_mask.height = vars.tile_shape[1];
-    vars.hidden_mask.getContext('2d').imageSmoothingEnabled = false;
+    vars.hidden_mask.width = vars.image_shape[0];
+    vars.hidden_mask.height = vars.image_shape[1];
+    let hidden_ctx = vars.hidden_mask.getContext('2d');
+    hidden_ctx.shadowOffsetX = 0;
+    hidden_ctx.shadowOffsetY = 0;
+    hidden_ctx.shadowBlur = 0;
+    hidden_ctx.shadowColor = null;
+    hidden_ctx.imageSmoothingEnabled = false;
 
     // Load mask:
     load_mask();
 
-    // Load the tiles and draw them when ready
+    // Load the images and draw them when ready
     for (var i=0; i < vars.views.length; i++){
-        // We will later overwrite vars.tile_images
-        vars.tile_images[i] = new Image();
-        vars.tile_images[i].src = "/load_tile/" + vars.tile_id + "/" + i;
-        vars.tile_images[i].onload = render_tile.bind(null, i, true);
+        // We will later overwrite vars.images
+        vars.images[i] = new Image();
+        vars.images[i].src = vars.url.segmentation+"load_image/" + vars.image_id + "/" + i;
+        vars.images[i].onload = render_image.bind(null, i, true);
     }
 
     set_tool(vars.tool.type);
-    render_preview();
-
     set_current_class(vars.current_class);
 
     init_events();
     init_toolbar_events();
 
-    // dialogue_login();
-
-    // if (vars.user === null){
-    //     dialogue_login();
-    // }
+    render_preview();
 }
 
 function init_events(){
@@ -165,19 +170,30 @@ function init_toolbar_events(){
     }
 }
 
+function dialogue_user(){
+    if (vars.user === null){
+        fetch_user_info();
+        return;
+    }
+
+
+}
+
 function dialogue_login(){
     let content = `
-    <form>
-        <p><b>Username (or e-mail):</b><br>
-            <input type=text name="login-username">
-        </p>
-        <p><b>Password: </b><br>
-            <input type=password name="login-password">
-        </p>
-    </form>
-    <button>Login</button>
-    <button>Register</button>
-    <button>Work anonymously</button>
+    <table style="border: 0px;">
+        <tr>
+            <td><b>Username:</b></td>
+            <td><input type=text id="login-username"></td>
+        </tr>
+        <tr>
+            <td><b>Password:</b></td>
+            <td><input type=password id="login-password"></td>
+        </tr>
+    </table>
+    <p style="color: red; font-weight: bold;" id="login-error"></p>
+    <button onclick="login();">Login</button>
+    <button onclick="dialogue_register();">Register</button>
 `;
     show_dialogue("info", content, true, title="Login");
 }
@@ -186,19 +202,103 @@ async function login(){
     let username = get_object('login-username');
     let password = get_object('login-password');
 
-    let response = await fetch("/login", {
+    let response = await fetch(vars.url.auth+"login", {
         method: "POST",
         body: JSON.stringify({
-            "username": username,
-            "password": password,
+            "username": username.value,
+            "password": password.value
+        })
+    });
+    let message = await response.text();
+
+    if (response.status >= 400) {
+        get_object('login-error').innerHTML = message;
+        return;
+    }
+    hide_dialogue();
+    fetch_user_info();
+}
+
+function dialogue_register(){
+    let content = `
+    <table style="border: 0px;">
+        <tr>
+            <td><b>Username:</b></td>
+            <td><input type=text id="register-username"></td>
+        </tr>
+        <tr>
+            <td><b>Password:</b></td>
+            <td><input type=password id="register-password"></td>
+        </tr>
+        <tr>
+            <td><b>Retype Password:</b></td>
+            <td><input type=password id="register-password-again"></td>
+        </tr>
+        <tr>
+            <td><b>E-Mail (optional for password recovery):</b></td>
+            <td><input type=email id="register-email"></td>
+        </tr>
+    </table>
+    <p style="color: red; font-weight: bold;" id="register-error"></p>
+    <button onclick="register();">Register</button>
+    <button onclick="dialogue_login();">Login</button>
+`;
+    show_dialogue("info", content, true, title="Register");
+}
+
+async function register(){
+    let username = get_object('register-username');
+    let password = get_object('register-password');
+    let password_again = get_object('register-password-again');
+    let email = get_object('register-email');
+
+    if (password.value != password_again.value){
+        get_object('register-error').innerHTML = 'The passwords are not identical!';
+        return;
+    }
+
+    let response = await fetch(vars.url.auth+"register", {
+        method: "POST",
+        body: JSON.stringify({
+            "username": username.value,
+            "password": password.value,
+            "email": email.value,
         })
     });
 
+    let message = await response.text();
+    if (response.status >= 400) {
+        get_object('register-error').innerHTML = message;
+        return;
+    }
+    hide_dialogue();
+    fetch_user_info();
+}
 
+async function fetch_user_info(){
+    let response = await fetch(vars.url.auth+"current_user");
+
+    if (response.status >= 400) {
+        dialogue_login();
+        return;
+    }
+
+    vars.user = await response.json();
+    let info_box = '<div class="info-box-top">'
+    info_box += nice_number(vars.user.segmentation.score)+'</div>';
+    info_box += '<div class="info-box-bottom">'+vars.user.name+'</div>';
+    get_object('user-info').innerHTML = info_box;
+
+    console.log(vars.user);
+
+    if (vars.next_action !== null){
+        vars.next_action();
+        vars.next_action = null;
+    }
 }
 
 function key_down(event){
-    var key = event.code;
+    let key = event.code;
 
     if (get_object('dialogue').style.display == "block"){
         // Don't allow any key events during an opened dialogue
@@ -261,7 +361,7 @@ function change_brightness(up){
         vars.brightness -= 10;
         vars.brightness = Math.max(0, vars.brightness);
     }
-    render_tiles();
+    render_images();
 }
 function change_saturation(up){
     if (up){
@@ -271,14 +371,14 @@ function change_saturation(up){
         vars.saturation -= 50;
         vars.saturation = Math.max(0, vars.saturation);
     }
-    render_tiles();
+    render_images();
 }
 
 function set_current_class(class_id){
     vars.current_class = class_id;
     var colour = vars.classes[class_id].colour;
     var css_colour = rgba2css(colour);
-    get_object("tb_select_class").innerHTML = "Class: " + vars.classes[class_id].name;
+    get_object("tb_current_class").innerHTML = vars.classes[class_id].name;
     get_object("tb_select_class").style["background-color"] = css_colour;
 
     // Convenience - automatically change to drawing tool after selecting class:
@@ -307,7 +407,7 @@ function set_contrast(visible){
         get_object("tb_toggle_contrast").classList.remove("checked");
     }
 
-    render_tiles();
+    render_images();
 }
 
 function set_invert(visible){
@@ -319,7 +419,7 @@ function set_invert(visible){
         get_object("tb_toggle_invert").classList.remove("checked");
     }
 
-    render_tiles();
+    render_images();
 }
 
 function set_tool(tool){
@@ -347,7 +447,7 @@ function mouse_wheel(event){
     var delta = Math.max(-1, Math.min(1, (event.wheelDelta || -event.detail)));
 
     if (event.shiftKey){
-        let canvas = get_object('canvas-0-tile');
+        let canvas = get_object('canvas-0-image');
         // Change size of tool:
         vars.tool.size += delta * 0.5 * vars.tool.size;
         vars.tool.size = round_number(Math.max(
@@ -371,8 +471,8 @@ function mouse_move(event){
         || (event.buttons == 1 && vars.tool.type == 'move')
     ){
         move(
-            vars.cursor_tile[0]-vars.drag_start[0],
-            vars.cursor_tile[1]-vars.drag_start[1]
+            vars.cursor_image[0]-vars.drag_start[0],
+            vars.cursor_image[1]-vars.drag_start[1]
         );
     }
 
@@ -388,7 +488,7 @@ function mouse_move(event){
 function mouse_down(event){
     update_cursor_coords(this, event);
 
-    vars.drag_start = [...vars.cursor_tile];
+    vars.drag_start = [...vars.cursor_image];
 
     if (event.buttons == 1 && vars.tool.type != 'move'){
         user_draws_on_mask();
@@ -400,7 +500,7 @@ function mouse_up(event){
 
 function mouse_enter(event){
     update_cursor_coords(this, event);
-    vars.drag_start = [...vars.cursor_tile];
+    vars.drag_start = [...vars.cursor_image];
 }
 
 function zoom(delta){
@@ -409,9 +509,9 @@ function zoom(delta){
     for (let canvas of document.getElementsByClassName('view-canvas')){
         let ctx = canvas.getContext('2d');
         // This makes sure that we zoom onto the current cursor position:
-        ctx.translate(...vars.cursor_tile);
+        ctx.translate(...vars.cursor_image);
         ctx.scale(factor, factor);
-        ctx.translate(-vars.cursor_tile[0], -vars.cursor_tile[1]);
+        ctx.translate(-vars.cursor_image[0], -vars.cursor_image[1]);
 
         constrain_view(ctx, factor, 0, 0);
     }
@@ -435,7 +535,7 @@ function constrain_view(ctx, scale, dx, dy){
     let transforms = ctx.getTransform();
 
     if (transforms.a*scale < 1){
-        // We don't want to allow any zooming outside of the tile area and reset
+        // We don't want to allow any zooming outside of the image area and reset
         // it to the default view
         correct_view = true;
 
@@ -455,7 +555,7 @@ function constrain_view(ctx, scale, dx, dy){
         transforms.f -= top_left.y;
     }
 
-    let bottom_right = ctx.getCanvasCoords(...vars.tile_shape);
+    let bottom_right = ctx.getCanvasCoords(...vars.image_shape);
     if (bottom_right.x < ctx.canvas.width){
         transforms.e -= bottom_right.x - ctx.canvas.width;
     }
@@ -474,13 +574,13 @@ function update_views(){
     translation action.*/
 
     // The coordinate system has changed:
-    let tile_coords = get_ctx('canvas-0-tile').getWorldCoords(
+    let image_coords = get_ctx('canvas-0-image').getWorldCoords(
         ...vars.cursor_canvas
     );
-    vars.cursor_tile = [tile_coords.x, tile_coords.y];
+    vars.cursor_image = [image_coords.x, image_coords.y];
 
     // Redraw everything:
-    render_tiles();
+    render_images();
     render_mask();
     render_preview();
 }
@@ -495,7 +595,7 @@ function reset_views(){
 }
 
 function update_cursor_coords(obj, event){
-    // Update the current coords to tile coordinate system:
+    // Update the current coords to image coordinate system:
     let rect = obj.getBoundingClientRect();
     let x = round_number(
         (event.clientX - rect.left) / (rect.right - rect.left) * obj.width
@@ -505,9 +605,9 @@ function update_cursor_coords(obj, event){
     );
 
     vars.cursor_canvas = [x, y];
-    let tile_coords = get_ctx('canvas-0-tile').getWorldCoords(x, y);
-    vars.cursor_tile = [
-        round_number(tile_coords.x), round_number(tile_coords.y)
+    let image_coords = get_ctx('canvas-0-image').getWorldCoords(x, y);
+    vars.cursor_image = [
+        round_number(image_coords.x), round_number(image_coords.y)
     ];
 }
 
@@ -610,14 +710,14 @@ function user_draws_on_mask(){
         * list([x0, y0, xn, yn]) - bounding_box in canvas coordinates
 
     */
-    let canvas = get_object('canvas-0-tile');
+    let canvas = get_object('canvas-0-image');
     let ctx = canvas.getContext('2d');
 
     // Get the area we finally have to render (update) in canvas coordinates.
     // This increases the performances:
     let drawing_area = {
-        'min_x': vars.tile_shape[0],
-        'min_y': vars.tile_shape[1],
+        'min_x': vars.image_shape[0],
+        'min_y': vars.image_shape[1],
         'max_x': 0,
         'max_y': 0,
     };
@@ -632,13 +732,13 @@ function user_draws_on_mask(){
     // canvas coordinates.
 
     // Get the bounding box mask coordinates:
-    let x_start = vars.cursor_tile[0] + offset.x,// - vars.mask_area[0],
+    let x_start = vars.cursor_image[0] + offset.x,// - vars.mask_area[0],
         x_end = x_start + vars.tool.size;
-    let y_start = vars.cursor_tile[1] + offset.y,// - vars.mask_area[1],
+    let y_start = vars.cursor_image[1] + offset.y,// - vars.mask_area[1],
         y_end = y_start + vars.tool.size;
 
     // Make sure we do not draw outside of the canvas. Hence, here we have the
-    // canvas boundaries in tile coordinates:
+    // canvas boundaries in image coordinates:
     let canvas_bounds = [
         ctx.getWorldCoords(0, 0),
         ctx.getWorldCoords(canvas.width, canvas.height)
@@ -806,7 +906,7 @@ function render_mask(bbox=null){
         var ctx = get_ctx("canvas-"+i+"-mask");
         if (bbox === null){
             // No specific coordinates are given, i.e. we redraw the whole mask:
-            ctx.clearRect(0, 0, ...vars.tile_shape);
+            ctx.clearRect(0, 0, ...vars.image_shape);
             ctx.drawImage(
                 vars.hidden_mask, vars.mask_area[0], vars.mask_area[1]
             );
@@ -835,8 +935,8 @@ function render_preview(){
         ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
         ctx.fillStyle = "rgba(150, 150, 150, 0.5)";
         ctx.fillRect(
-            vars.cursor_tile[0]+offset.x,
-            vars.cursor_tile[1]+offset.y,
+            vars.cursor_image[0]+offset.x,
+            vars.cursor_image[1]+offset.y,
             vars.tool.size, vars.tool.size
         );
 
@@ -858,10 +958,10 @@ function render_preview(){
     }
 }
 
-function render_tile(view_number){
-    let image = vars.tile_images[view_number];
+function render_image(view_number){
+    let image = vars.images[view_number];
     let canvas_id = "canvas-" + view_number;
-    let canvas = get_object(canvas_id+"-tile");
+    let canvas = get_object(canvas_id+"-image");
     let ctx = canvas.getContext('2d');
 
     // Apply brightness, contrast and saturation filters:
@@ -876,7 +976,6 @@ function render_tile(view_number){
     filters.push("saturate("+vars.saturation+"%)");
     canvas.style.filter = filters.join(" ");
 
-    // Draw the image
     ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
 }
 
@@ -904,7 +1003,7 @@ function reset_filters(){
     vars.saturation = 100;
     set_contrast(false);
     set_invert(false);
-    render_tiles();
+    render_images();
 }
 
 function show_mask(visible){
@@ -924,22 +1023,22 @@ function show_mask(visible){
     }
 }
 
-async function dialogue_tile(){
+async function dialogue_image(){
     if (!vars.thumbnail_available && !vars.metadata_available){
         show_dialogue(
             "info",
-            "No further tile information available.",
-            false, "Tile: "+vars.tile_id
+            "No further image information available.",
+            false, "image: "+vars.image_id
         );
         return;
     }
     let content = '';
     if (vars.thumbnail_available){
-        content += '<p><img src="/load_thumbnail/'+vars.tile_id+'"  style="display: block; margin-left: auto; margin-right: auto;"/></p>';
+        content += '<p><img src="'+vars.url.segmentation+'load_thumbnail/'+vars.image_id+'"  style="display: block; margin-left: auto; margin-right: auto;"/></p>';
     }
 
     if (vars.metadata_available){
-        let response = await fetch('/load_metadata/'+vars.tile_id)
+        let response = await fetch(vars.url.segmentation+'load_metadata/'+vars.image_id)
         let json = await response.json();
 
         if ('error' in json){
@@ -962,7 +1061,7 @@ async function dialogue_tile(){
     }
 
     show_dialogue(
-        "info", content, false, "Tile: "+vars.tile_id
+        "info", content, false, "image: "+vars.image_id
     );
 }
 
@@ -1161,12 +1260,17 @@ function open_tab(tabs_class, tab) {
 async function load_mask(){
     show_loader("Loading masks...");
 
-    var results = await download("/load_mask/" + vars.tile_id);
+    var results = await download(
+        vars.url.segmentation+"load_mask/" + vars.image_id
+    );
 
-    if (results.response.status !== 200) {
-      console.log("Could not load the mask from the server! Code: " +
-        results.response.status);
-      return;
+    if (results.response.status != 200 && results.response.status != 404) {
+        let error = await response.text();
+        show_dialogue(
+            "error",
+            "Could not load the mask from the server!" + error
+        );
+        return;
     }
 
     var mask_length = vars.mask_shape[1]*vars.mask_shape[0];
@@ -1175,12 +1279,11 @@ async function load_mask(){
     vars.errors_mask = new Uint8Array(mask_length);
     vars.errors_mask.fill(0);
 
-    var header = results.response.headers.get("content-type")
-    if (header == "application/octet-stream"){
+    if (results.response.status == 200){
         var data = results.data;
         vars.mask = data.slice(1, mask_length+1);
         vars.user_mask = data.slice(mask_length+1, 2*mask_length+1);
-    } else {
+    } else if (results.response.status == 404) {
         // Just use the default mask
         vars.mask.fill(0);
         vars.user_mask.fill(0);
@@ -1202,6 +1305,13 @@ async function download(url, init=null, html_object=null){
         var response = await fetch(url);
     } else {
         var response = await fetch(url, init);
+    }
+
+    if (response.status >= 400){
+        return {
+            "response": response,
+            "data": null
+        };
     }
 
     let header = response.headers.get("content-type");
@@ -1257,7 +1367,7 @@ function save_mask(call_afterwards=null){
     data.set(vars.user_mask, m_length+1);
     data.set(padding, 2*m_length+1);
 
-    fetch("/save_mask/" + vars.tile_id, {
+    fetch(vars.url.segmentation+"save_mask/" + vars.image_id, {
         method: "POST",
         body: data,
         headers: {
@@ -1270,19 +1380,19 @@ function save_mask(call_afterwards=null){
     );
 }
 
-function save_mask_finished(response, call_afterwards){
-    console.timeEnd("saving_mask");
+async function save_mask_finished(response, call_afterwards){
+    fetch_user_info();
+    
     if (response.status === 200) {
         show_message('Mask saved', 1000);
         if(call_afterwards !== null){
           call_afterwards();
         }
     } else {
-        console.log("Could not save the mask! Code: " + response.status);
+        let error = await response.text();
         show_dialogue(
             "error",
-            "<p>Could not save the mask due to an internal problem!</p>"
-            + "<p>Please contact john.mrziglod@esa.int</p>"
+            "<p>Could not save the mask due to an internal problem!</p>" + error
         )
     }
 }
@@ -1359,7 +1469,7 @@ async function predict_mask(){
 
     show_loader("Train AI...");
     let results = await download(
-            "/predict_mask/" + vars.tile_id,
+            vars.url.segmentation+"predict_mask/" + vars.image_id,
             {
                 method: "POST",
                 body: JSON.stringify({
@@ -1376,8 +1486,7 @@ async function predict_mask(){
         console.log("Could not predict the mask! Code: " + response.status);
         show_dialogue(
             "error",
-            "<p>Could not predict the mask due to an internal problem!</p>"
-            + "<p>Please contact john.mrziglod@esa.int</p>"
+            "<p>Could not predict the mask due to a server problem!</p>"
         )
         return;
     }
@@ -1462,8 +1571,8 @@ function update_ai_box(score, cm, tp, user_classes){
     get_object("ai-recommendation").innerHTML = recommendation;
 }
 
-function render_tiles(){
+function render_images(){
     for (var i=0; i < vars.views.length; i++){
-        render_tile(i);
+        render_image(i);
     }
 }

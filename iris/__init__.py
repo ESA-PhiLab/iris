@@ -4,14 +4,28 @@ from os.path import basename, dirname, exists, isabs, join
 import os
 import sys
 
+import flask
+from flask_sqlalchemy import SQLAlchemy
 import numpy as np
 import yaml
 
-def run_app():
+import iris.extensions
+from iris.project import project
+
+
+def get_demo_file(example=None):
+    demo_file = join(
+        dirname(dirname(__file__)), "examples/cloud-segmentation.json"
+    )
+
+    return demo_file
+
+def parse_cmd_line():
+    # Parse the command line
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "mode", type=str,
-        help="Specify the mode you want to start iris, can be either *label*, *demo* or *conclude*."
+        help="Specify the mode you want to start iris, can be either *segmentation* or *demo*."
     )
     parser.add_argument(
         "project", type=str, nargs='?',
@@ -24,76 +38,68 @@ def run_app():
     args = parser.parse_args()
 
     if args.mode == "demo":
-        filename = join(
-            dirname(dirname(__file__)), "examples/cloud-segmentation.json"
-        )
-        project = load_config(filename)
-    elif args.mode == "label" or args.mode == "conclude":
+        args.project = get_demo_file()
+    elif args.mode == "label":
         if not args.project:
-            raise Exception("Label or conclude mode require a project file!")
-
-        project = load_config(args.project)
+            raise Exception("Label mode require a project file!")
     else:
         raise Exception(f"Unknown mode '{mode}'!")
 
-    project['mask_shape'] = (
-        project['mask_area'][2]-project['mask_area'][0],
-        project['mask_area'][3]-project['mask_area'][1],
-    )
+    return vars(args)
 
-    project['users_path'] = join(project['out_path'], 'users')
-    os.makedirs(project['users_path'], exist_ok=True)
-    project['masks_path'] = join(project['out_path'], 'masks')
+def run_app():
+    app.run(debug=True)
 
-    project['tiles'] = {
-        basename(root): root
-        for root,dirs,files in os.walk(project['in_path'])
-        for file in files
-        if file == project['files']['image']
-    }
-    if not project['tiles']:
-        raise Exception(f"No images found in '{project['in_path']}'. Did you set files:image correctly in the config file?")
+def create_app(project_file):
+    project.load_from(project_file)
 
-    project['tile_ids'] = list(sorted(project['tiles'].keys()))
+    # Create the flask app:
+    app = flask.Flask(__name__)
+    # app.config['TESTING'] = True
+    app.config['EXPLAIN_TEMPLATE_LOADING'] = True
 
-    if args.mode == "label" or args.mode == "demo":
-        import iris.label
-        iris.label.start(project, args.debug)
-    elif args.mode == "conclude":
-        import iris.conclude
-        iris.conclude.start(project, args.debug)
-    else:
-        raise Exception(f"Unknown mode '{mode}'!")
+    # We need this secret key to encrypt cookies
+    app.secret_key = os.urandom(16)
+
+    # Database stuff:
+    app.config['SQLALCHEMY_DATABASE_URI'] = \
+        'sqlite:///' + join(project['paths']['project'], 'iris.db')
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
+    db = SQLAlchemy(app)
+
+    return app, db
+
+def register_extensions(app):
+    # Reduce the amount of transferred data by compressing it:
+    iris.extensions.Compress(app)
+    app.config['COMPRESS_MIMETYPES'] = [
+        'text/html', 'text/css', 'text/xml',
+        'application/json', 'application/octet-stream',
+        'application/javascript'
+    ]
+
+    from iris.segmentation import segmentation_app
+    app.register_blueprint(segmentation_app, url_prefix="/segmentation")
+    from iris.admin import admin_app
+    app.register_blueprint(admin_app, url_prefix="/admin")
+    from iris.auth import auth_app
+    app.register_blueprint(auth_app, url_prefix="/auth")
 
 
-def load_config(filename):
-    # Load the configurations of the project:
-    with open(filename, 'r') as stream:
-        if filename.endswith('json'):
-            config = json.load(stream)
-        elif filename.endswith('yaml'):
-            config = yaml.safe_load(stream)
-        else:
-            raise OSError('Project file must be a JSON or YAML file!')
+if len(sys.argv) > 1:
+    args = parse_cmd_line()
+else:
+    args = {}
+    args['project'] = get_demo_file()
 
-    if not isabs(config['in_path']):
-        config['in_path'] = join(dirname(filename), config['in_path'])
+app, db = create_app(args['project'])
+from iris.models import Image, User, Mask
 
-    if not isabs(config['out_path']):
-        config['out_path'] = join(dirname(filename), config['out_path'])
+db.create_all()
+db.session.commit()
 
-    if not exists(config['in_path']):
-        raise Exception(f"[CONFIG] in_path '{config['in_path']}' does not exist!")
+register_extensions(app)
 
-    default_files = {
-        'image': 'image.tif',
-        'thumbnail': False,
-        'metadata': False,
-    }
-
-    config['files'] = {**default_files, **config['files']}
-
-    return config
 
 if __name__ == '__main__':
     run_app()

@@ -32,10 +32,11 @@ button,.button {
     margin: 0;
     padding: 0;
     overflow: hidden;
+    display: flex;
+    align-items: stretch;
 }
 
-.toolbutton,.inactive-toolbutton {
-  float: left;
+.toolbutton,.inactive-toolbutton,.statusbutton,.inactive-statusbutton {
   background-color: #ffffff;
   border: 2px;
   border-style: solid;
@@ -43,10 +44,9 @@ button,.button {
   border-color: black;
   color: black;
   text-align: center;
-  /* display: block; */
   font-weight: bold;
   margin: 2px 2px;
-  padding: 9px 10px 10px 10px;
+  padding: 0px;
   cursor: pointer;
   font-size: 18px;
   -webkit-touch-callout: none; /* iOS Safari */
@@ -56,9 +56,19 @@ button,.button {
       -ms-user-select: none; /* Internet Explorer/Edge */
           user-select: none; /* Non-prefixed version, currently
                                 supported by Chrome, Opera and Firefox */
+
 }
 
-.inactive-toolbutton{
+.icon_button{
+    line-height: 0;
+}
+
+img {
+    margin: 0px;
+    padding: 0px;
+}
+
+.inactive-toolbutton,.inactive-statusbutton{
     cursor: default;
 }
 
@@ -67,7 +77,6 @@ button,.button {
     background-color: #000;
     margin: 2px 6px;
     width: 2px;
-    height: 44px;
 }
 
 .statusbar {
@@ -84,10 +93,8 @@ button,.button {
     font-size: 18px;
 }
 
-.statusbutton {
-  float: left;
-  margin: 0px;
-  padding: 0px 4px;
+.statusbutton,.inactive-statusbutton {
+  padding: 10px;
 }
 
 .statusbar_separator {
@@ -98,16 +105,12 @@ button,.button {
     height: 22px;
 }
 
-button:hover,.button:hover,.toolbutton:hover{
+button:hover,.button:hover,.toolbutton:hover,.statusbutton:hover{
     background-color: #dddddd;
 }
 
-button.checked,.button.checked,.toolbutton.checked {
+button.checked,.button.checked,.toolbutton.checked,.statusbutton.checked {
     background-color: #ababab;
-}
-
-.icon_button {
-  padding: 2px 2px 1px 2px;
 }
 
 .vl {
@@ -142,8 +145,6 @@ button.checked,.button.checked,.toolbutton.checked {
     font-weight: normal;
 }
 
-
-
 table {
   border-collapse: collapse;
   width: 100%;
@@ -171,6 +172,7 @@ td.upper-left {
 
 .icon {
     filter: blur(0.1px);
+    margin: 2px;
 }
 
 .key{

@@ -1,13 +1,21 @@
 <html>
 <head>
-<title>Iris - Label AI4EO Imagery</title>
 <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
 
 </head>
 <body>
-    <form method="post" action="{{url_for('login')}}">
-      <p><input type=text name=username>
-      <p><input type=submit value=Login class="button">
-    </form>
+    <table style="border: none;">
+        <tr>
+            <td><b>Username:</b></td>
+            <td><input type=text id="login-username"></td>
+        </tr>
+        <tr>
+            <td><b>Password:</b></td>
+            <td><input type=password id="login-password"></td>
+        </tr>
+    </table>
+    <p style="color: red; font-weight: bold;" id="login-error"></p>
+    <button onclick="login();">Login</button>
+    <a class="button" href="{{ url_for('auth.register') }}">Register</a>
 </body>
 </html>
