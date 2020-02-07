@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='javascripts/utils.js') }}">
+
+    <title>iris | help</title>
+</head>
+<body>
+    <div class="tab">
+        <button class="tablinks checked" onclick="open_tab(this, 'help', 'welcome');">Welcome</button>
+        <button class="tablinks" onclick="open_tab(this, 'help', 'page');">{{page}}</button>
+        <button class="tablinks" onclick="open_tab(this, 'help', 'hotkeys');">Hotkeys</button>
+        <button class="tablinks" onclick="open_tab(this, 'help', 'about');">About</button>
+    </div>
+
+    <div id='welcome' class='iris-tabs-help tabcontent' style='display:block'>
+        <h3>Welcome</h3>
+        Welcome to IRIS, a labelling tool for Sentinel-2 imagery.
+    </div>
+
+    <div id='hotkeys' class='iris-tabs-help tabcontent'>
+        <h3>Hotkeys</h3>
+        <table>
+            <tr><td><b>Command</b></td><td><b>Key</b></td></tr>
+            {% for key, description in hotkeys.items() %}
+                <tr><td>{{description}}</td>
+                    <td><span class='key'>{{key}}</span></td>
+                </tr>
+            {% endfor %}
+        </table>
+    </div>
+
+    <div id='page' class='iris-tabs-help tabcontent'>
+    {{page_content}}
+    </div>
+
+    <div id='about' class='iris-tabs-help tabcontent'>
+        <h3>About</h3>
+        IRIS was developed by
+        <p>John Mrziglod, &Phi;-lab, European Space Agency</p>
+        <p>Alistair Francis, University College London</p>
+        <hr />
+        Find more information on
+        <a href="https://github.com/ESA-PhiLab/iris" target="_blank">
+            https://github.com/ESA-PhiLab/iris
+        </a>
+    </div>
+</body>
+</html>

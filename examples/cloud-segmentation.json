@@ -44,8 +44,8 @@
   "views": [
     {
       "name": "Cirrus",
-      "description": "In this band combination vegetation appears in shades of red, soils vary from dark to light brown and urban areas are cyan blue. Snow, ice, and clouds are <b>light cyan or white</b>.",
-      "channels": ["(B11*100)", "(B11*100)", "(B11*100)"]
+      "description": "High snowy or icy mountain regions and high clouds are <b>white</b>.",
+      "channels": ["B11*100", "B11*100", "B11*100"]
     },
     {
       "name": "RGB",

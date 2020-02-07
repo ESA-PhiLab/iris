@@ -53,6 +53,26 @@ class User(JsonSerializable, db.Model):
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
+    def get_segmentation_details(self,):
+        masks = Mask.query.filter_by(creator=self).all()
+        details = {
+            'score': 0,
+            'score_pending': 0,
+            'n_masks': len(masks)
+        }
+        for mask in masks:
+            if mask.score_pending:
+                details['score_pending'] += mask.score
+            else:
+                details['score'] += mask.score
+
+        return details
+
+    def to_json(self):
+        data = super().to_json()
+        del data['password_hash']
+        return data
+
 class Image(JsonSerializable, db.Model):
     id = db.Column(db.String(256), primary_key=True)
     segmentation_agreement = db.Column(db.Float, default=0)

@@ -161,3 +161,15 @@ function get_object(canvas_id){
 function rgba2css(colour){
     return "rgba("+colour[0]+","+colour[1]+","+colour[2]+","+colour[3]/255+")"
 }
+
+function open_tab(tab_button, tabs_class, tab_id) {
+    var tabs = document.getElementsByClassName('iris-tabs-'+tabs_class);
+    for (let tab of tabs) {
+        tab.style.display = "none";
+    }
+    for (let button of tab_button.parentElement.children){
+        button.classList.remove("checked");
+    }
+    get_object(tab_id).style.display = "block";
+    tab_button.classList.add("checked");
+}

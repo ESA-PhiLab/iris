@@ -124,8 +124,8 @@
 .message {
     visibility: hidden;
     position: fixed;
-    bottom: 10;
-    right: 10;
+    bottom: 10px;
+    right: 10px;
     max-width: 320px;
     word-wrap: break-word;
     color: black;

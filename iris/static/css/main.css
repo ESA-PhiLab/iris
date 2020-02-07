@@ -25,6 +25,7 @@ button,.button {
       -ms-user-select: none; /* Internet Explorer/Edge */
           user-select: none; /* Non-prefixed version, currently
                                 supported by Chrome, Opera and Firefox */
+   transition: 0.3s;
 }
 
 .toolbar {
@@ -56,7 +57,7 @@ button,.button {
       -ms-user-select: none; /* Internet Explorer/Edge */
           user-select: none; /* Non-prefixed version, currently
                                 supported by Chrome, Opera and Firefox */
-
+   transition: 0.3s;
 }
 
 .icon_button{
@@ -120,7 +121,7 @@ button.checked,.button.checked,.toolbutton.checked,.statusbutton.checked {
     display: inline-block;
 }
 
-.info-box{
+.info-box{transition: 0.3s;
     display: flex;
     justify-content: center;
     border: 2px;
@@ -184,4 +185,30 @@ td.upper-left {
 }
 .key::after{
     content: ">";
+}
+
+/* Style the tab */
+.tab {
+  overflow: hidden;
+  border: 1px solid #000;
+}
+
+.tab button,.button {
+  float: left;
+  border: none;
+  border-radius: 0px;
+  outline: none;
+  cursor: pointer;
+  margin: 0px;
+  padding: 14px 16px;
+  font-size: 1em;
+}
+
+/* Style the tab content */
+.tabcontent {
+  display: none;
+  padding: 6px 12px;
+  border: 1px solid #000;
+  border-top: none;
+  overflow: auto;
 }

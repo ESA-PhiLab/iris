@@ -1,0 +1,246 @@
+{% extends "base.html" %}
+{% block title %}segmentation{% endblock %}
+{% block head %}
+    <link rel="stylesheet" href="{{ url_for('segmentation.static', filename='css/segmentation.css') }}">
+
+    <script type="text/javascript" src="{{ url_for('segmentation.static', filename='javascripts/segmentation.js') }}"></script>
+    <script type="text/javascript">
+
+        // GLOBAL VARIABLES!!!
+        // I know I am using global variables here but who cares....
+        // Initialise the mask (TODO: find a way to create multidimensional arrays).
+        vars = {
+            'url': vars.url,
+            'next_action': null,
+            'user': null,
+            'mask': null,
+            'user_mask': null,
+            'errors_mask': null,
+            // for performance reasons we draw the mask to a hidden canvas:
+            'hidden_mask': null,
+            'history': {
+                'mask': [],
+                'user_mask': [],
+                'current_epoch': 0,
+                'max_epochs': 30,
+            },
+            'classes': {{classes|tojson}},
+            'views': {{views|tojson}},
+            'image_id': {{image_id|tojson}},
+            'images': new Array({{views|length}}),
+            'image_shape': {{image_shape|tojson}},
+            'mask_area': {{mask_area|tojson}},
+            'thumbnail_available': {{thumbnail_available|tojson}},
+            'metadata_available': {{metadata_available|tojson}},
+            'current_class': 0,
+            'cursor_canvas': [0, 0],
+            'cursor_image': [0, 0],
+            'drag_start' : [0, 0],
+            'n_drawn_pixels': {
+                'total': 0,
+            },
+            'show_mask': true,
+            'mask_type': 'final',
+            'mask_highlight_edges': false,
+            'contrast': false,
+            'invert': false,
+            'brightness': 100,
+            'saturation': 100,
+            'ai': {
+                'train_ratio': 0.8,
+                'max_train_pixels': 20000,
+                'n_estimators': 100,
+                'max_depth': 30,
+                'n_leaves': 30,
+                'include_context': false,
+            },
+            'confusion_matrix': null,
+            'tool': {
+                "type": 'draw',
+                'size': 6,
+                'sprite': null,
+                'pixels': null,
+            },
+        };
+
+        // The size (shape) of the mask area:
+        vars.mask_shape = [
+            vars.mask_area[2] - vars.mask_area[0], vars.mask_area[3] - vars.mask_area[1]
+        ];
+
+        function next_image(){
+            goto_url({{url_for('segmentation.next_image', image_id=image_id)|tojson}});
+        }
+
+        function prev_image(){
+            goto_url({{url_for('segmentation.previous_image', image_id=image_id)|tojson}});
+        }
+
+        // When the window has loaded, DOM is ready, initialise the GUI, check login, etc:
+        window.onload = init_segmentation;
+    </script>
+
+{% endblock %}
+{% block content %}
+    <ul class='toolbar'>
+        <li class="toolbutton icon_button" id='tb_previous_image' onclick="save_mask(prev_image);">
+            <img src={{url_for('segmentation.static', filename='icons/previous.png')}} class="icon">
+        </li>
+        <li class="toolbutton icon_button" id='tb_next_image' onclick="save_mask(next_image);">
+            <img src={{url_for('segmentation.static', filename='icons/next.png')}} class="icon" />
+        </li>
+        <li class="toolbutton icon_button" id='tb_save_mask' onclick="save_mask();">
+            <img src={{url_for('segmentation.static', filename='icons/save_mask.png')}} class="icon" />
+        </li>
+        <li class="toolbutton icon_button" id='tb_undo' onclick="undo();">
+            <img src={{url_for('segmentation.static', filename='icons/undo.png')}} class="icon" />
+        </li>
+        <li class="toolbutton icon_button" id='tb_redo' onclick="redo();">
+            <img src={{url_for('segmentation.static', filename='icons/redo.png')}} class="icon" />
+        </li>
+        <li class="toolbar_separator"></li>
+        <li class="toolbutton icon_button" id="tb_select_class" onclick='dialogue_class_selection();' style="width: 200px;">
+                <img src={{url_for('segmentation.static', filename='icons/class.png')}} class="icon"  style="float: left;"/>
+                <span id="tb_current_class" style="position: relative; left: -6px; top: 18px;">0</span>
+        </li>
+        <li class="toolbar_separator"></li>
+        <li class="toolbutton icon_button" id='tb_tool_move' onclick="set_tool('move');">
+            <img src={{url_for('segmentation.static', filename='icons/move.png')}} class="icon" />
+        </li>
+        <!-- <li class="toolbutton icon_button" id='tb_tool_reset_views' onclick="reset_views();">
+            <img src={{url_for('segmentation.static', filename='icons/move.png')}} class="icon" />
+        </li> -->
+        <li class="toolbutton icon_button" id='tb_tool_draw' onclick="set_tool('draw');">
+            <img src={{url_for('segmentation.static', filename='icons/pencil.png')}} class="icon" />
+        </li>
+        <li class="toolbutton icon_button" id='tb_tool_eraser' onclick="set_tool('eraser');">
+            <img src={{url_for('segmentation.static', filename='icons/eraser.png')}} class="icon" />
+        </li>
+        <li class="toolbutton icon_button" id='tb_reset_mask' onclick='dialogue_reset_mask();'>
+            <img src={{url_for('segmentation.static', filename='icons/reset_mask.png')}} class="icon" />
+        </li>
+        <li class="toolbutton icon_button" id='tb_predict_mask' onclick="predict_mask();">
+            <img src={{url_for('segmentation.static', filename='icons/ai.png')}} class="icon" />
+        </li>
+        <li class="toolbar_separator"></li>
+        <li class="toolbutton icon_button" id='tb_toogle_mask' onclick="show_mask(!vars.show_mask);">
+            <img src={{url_for('segmentation.static', filename='icons/show_mask.png')}} class="icon" />
+        </li>
+        <li class="toolbutton icon_button" id='tb_mask_final' onclick="set_mask_type('final');">
+            <img src={{url_for('segmentation.static', filename='icons/mask_final.png')}} class="icon" />
+        </li>
+        <li class="toolbutton icon_button" id='tb_mask_user' onclick="set_mask_type('user');">
+            <img src={{url_for('segmentation.static', filename='icons/mask_user.png')}} class="icon" />
+        </li>
+        <li class="toolbutton icon_button" id='tb_mask_errors' onclick="set_mask_type('errors');">
+            <img src={{url_for('segmentation.static', filename='icons/mask_errors.png')}} class="icon" />
+        </li>
+        <!-- <li class="toolbutton icon_button" id='tb_mask_highlight_edges' onclick="set_mask_highlight_edges(!vars.mask_highlight_edges);">
+            <img src={{url_for('segmentation.static', filename='icons/mask_errors.png')}} class="icon" />
+        </li> -->
+        <li class="toolbar_separator"></li>
+        <li class="toolbutton icon_button" id='tb_brightness_up' onclick="change_brightness(up=true);">
+            <img src={{url_for('segmentation.static', filename='icons/brightness_up.png')}} class="icon" />
+        </li>
+        <li class="toolbutton icon_button" id='tb_brightness_down' onclick="change_brightness(up=false);">
+            <img src={{url_for('segmentation.static', filename='icons/brightness_down.png')}} class="icon" />
+        </li>
+        <li class="toolbutton icon_button" id='tb_saturation_up' onclick="change_saturation(up=true);">
+            <img src={{url_for('segmentation.static', filename='icons/saturation_up.png')}} class="icon" />
+        </li>
+        <li class="toolbutton icon_button" id='tb_saturation_down' onclick="change_saturation(up=false);">
+            <img src={{url_for('segmentation.static', filename='icons/saturation_down.png')}} class="icon" />
+        </li>
+        <li class="toolbutton icon_button" id='tb_toggle_contrast' onclick="set_contrast(!vars.contrast);">
+            <img src={{url_for('segmentation.static', filename='icons/contrast.png')}} class="icon" />
+        </li>
+        <li class="toolbutton icon_button" id='tb_toggle_invert' onclick="set_invert(!vars.invert);">
+            <img src={{url_for('segmentation.static', filename='icons/invert.png')}} class="icon" />
+        </li>
+        <li class="toolbutton icon_button" id="tb_reset_filters" onclick='reset_filters();'>
+            <img src={{url_for('segmentation.static', filename='icons/reset_filters.png')}} class="icon" />
+        </li>
+        <li class="toolbar_separator"></li>
+        <li class="toolbutton icon_button" onclick="dialogue_help();">
+            <img src={{url_for('segmentation.static', filename='icons/help.png')}} class="icon" />
+        </li>
+        <li class="toolbutton icon_button" onclick="dialogue_config();">
+            <img src={{url_for('segmentation.static', filename='icons/preferences.png')}} class="icon" />
+        </li>
+    </ul>
+
+    <!-- Unfortunately, my css is really bad so we have to hardcode the different views here: -->
+    {% if views|length == 1 %}
+        <div style="margin: 10px 0px; width: 100%;">
+            <div style="position: relative;">
+                <div id="view-0">
+                    <canvas id="canvas-0-image" class="view-canvas"
+                        style="z-index: 0; width: 80vh; height: 80vh;"></canvas>
+                    <canvas id="canvas-0-mask" class="view-canvas"
+                        style="z-index: 1; width: 80vh; height: 80vh;"></canvas>
+                    <canvas id="canvas-0-preview" class="view-canvas"
+                        style="z-index: 2; width: 80vh; height: 80vh;"></canvas>
+                </div>
+            </div>
+    {% elif views|length == 2 %}
+        <div style="margin: 10px 0px; width: 100%;">
+        {% for view in views%}
+            <div style="position: relative; left: calc(70vh*{{ loop.index-1 }});">
+                <div id="view-{{ loop.index-1 }}">
+                    <canvas id="canvas-{{ loop.index-1 }}-image" class="view-canvas"
+                        style="z-index: 0; width: 70vh; height: 70vh;"></canvas>
+                    <canvas id="canvas-{{ loop.index-1 }}-mask" class="view-canvas"
+                        style="z-index: 1; width: 70vh; height: 70vh;"></canvas>
+                    <canvas id="canvas-{{ loop.index-1 }}-preview" class="view-canvas"
+                        style="z-index: 2; width: 70vh; height: 70vh;"></canvas>
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <div style="margin: 10px 0px; width: 100%;">
+        {% for view in views%}
+            <div style="position: relative; left: calc(98vw/{{views|length}}*{{ loop.index-1 }});">
+                <div id="view-{{ loop.index-1 }}">
+                    <canvas id="canvas-{{ loop.index-1 }}-image" class="view-canvas"
+                        style="z-index: 0; width: calc(98vw/{{views|length}}); height: calc(98vw/{{views|length}});"></canvas>
+                    <canvas id="canvas-{{ loop.index-1 }}-mask" class="view-canvas"
+                        style="z-index: 1; width: calc(98vw/{{views|length}}); height: calc(98vw/{{views|length}});"></canvas>
+                    <canvas id="canvas-{{ loop.index-1 }}-preview" class="view-canvas"
+                        style="z-index: 2; width: calc(98vw/{{views|length}}); height: calc(98vw/{{views|length}});"></canvas>
+                </div>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    </div>
+
+    <!-- <div class="info-box" style="position: fixed; bottom: 10; left: 10; float: left; display: flex; flex-direction: row;"> -->
+    <div class='statusbar' style="position: fixed; bottom: 10px; z-index: 10;">
+        <div class="statusbutton" onclick="dialogue_user();" id="user-info">
+            <div style="float: left;">Login</div>
+        </div>
+        <div class="statusbutton" onclick="window.open({{url_for("admin.index")}},'_blank');">
+            <div style="font-size: 20px;">Admin</div>
+        </div>
+        <div class="statusbutton" onclick="dialogue_image();">
+            <div class="info-box-top">{{image_id}}</div>
+            <div class="info-box-bottom">image-ID</div>
+        </div>
+        <div class="inactive-statusbutton">
+            <div id="different-classes" class="info-box-top">0</div>
+            <div class="info-box-bottom">Classes</div>
+        </div>
+        <div class="inactive-statusbutton">
+                <div id="drawn-pixels" class="info-box-top">0</div>
+                <div class="info-box-bottom">Drawn pixels</div>
+        </div>
+        <div class="statusbutton" onclick="dialogue_confusion_matrix();">
+            <div id="ai-score" class="info-box-top">0</div>
+            <div class="info-box-bottom">AI-Score</div>
+        </div>
+        <div class="info-box">
+            <img style="float: left;" src={{url_for('segmentation.static', filename='icons/ai.png')}}></img>
+            <div style="float: left; margin-left: 10px;" id="ai-recommendation">AI is loading</div>
+        </div>
+    </div>
+{% endblock %}

@@ -1,0 +1,18 @@
+<table style="width: 80%;">
+    <tr style="font-weight: bold;">
+        <td>ID</td>
+        <td>Segmentation agreement (%)</td>
+        <td>Segmentation masks</td>
+        <td>Classification agreement (%)</td>
+        <td>Classification votes</td>
+    </tr>
+    {% for image in images %}
+        <tr>
+            <td>{{image.id}}</td>
+            <td>{{(100*image.segmentation_agreement)|round|int}}</td>
+            <td>{{image.n_segmentation_masks}}</td>
+            <td>{{(100*image.classification_agreement)|round|int}}</td>
+            <td>0</td>
+        </tr>
+    {% endfor %}
+</table>

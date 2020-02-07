@@ -1,5 +1,6 @@
 import argparse
 import json
+from getpass import getpass
 from os.path import basename, dirname, exists, isabs, join
 import os
 import sys
@@ -84,6 +85,8 @@ def register_extensions(app):
     app.register_blueprint(admin_app, url_prefix="/admin")
     from iris.auth import auth_app
     app.register_blueprint(auth_app, url_prefix="/auth")
+    from iris.help import help_app
+    app.register_blueprint(help_app, url_prefix="/help")
 
 
 if len(sys.argv) > 1:
@@ -97,6 +100,23 @@ from iris.models import Image, User, Mask
 
 db.create_all()
 db.session.commit()
+
+# Add a default admin account:
+admin = User.query.filter_by(name='admin').first()
+if admin is None:
+    print('Welcome to IRIS! No admin user was detected so please enter a new admin password.')
+    password_again = None
+    password = getpass('New admin password: ')
+    while password != password_again:
+        password_again = getpass('Retype admin password: ')
+
+    admin = User(
+        name='admin',
+        admin=True,
+    )
+    admin.set_password(password)
+    db.session.add(admin)
+    db.session.commit()
 
 register_extensions(app)
 
