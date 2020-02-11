@@ -43,9 +43,9 @@
   ],
   "views": [
     {
-      "name": "Cirrus",
-      "description": "High snowy or icy mountain regions and high clouds are <b>white</b>.",
-      "channels": ["B11*100", "B11*100", "B11*100"]
+    "name": "Cirrus",
+    "description": "High snowy or icy mountain regions and high clouds are <b>white</b>.",
+    "channels": ["B11*100", "B11*100", "B11*100"]
     },
     {
       "name": "RGB",
@@ -56,6 +56,10 @@
       "name": "Snow vs. Clouds",
       "description": "Small ice crystals in high-level clouds appear reddish-orange or peach, and thick ice snow looks vivid red (or red-orange). Bare soil appears bright cyan and vegetation seem greenish in the image. Water on the ground is very dark as it absorbs the SWIR and the red, but small (liquid) water drops in the clouds scatter the light equally in both visible and the SWIR, and therefore it appears white. Water Sediments are displayed as dark red.",
       "channels": ["B1", "B12", "B13"]
-    }
+  },
+  {
+      "name": "aerial",
+      "type": "bingmap"
+  }
   ]
 }

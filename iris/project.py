@@ -84,7 +84,8 @@ class Project:
 
         # Make sure the HTML is understood in the descriptions:
         for view in self.config['views']:
-            view['description'] = flask.Markup(view['description'])
+            view['description'] = flask.Markup(view.get('description', view['name']))
+            view['type'] = view.get('type', 'rgb')
 
     def __getitem__(self, key):
         return self.config[key]

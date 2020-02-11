@@ -57,6 +57,19 @@ function to_2d(array_1d, array_2d){
     }
 }
 
+function clip_string(string, max_length){
+    if (string.length <= max_length){
+        return string
+    }
+
+    let split_length = round_number((max_length-3) / 2);
+    let new_string = string.substring(0, split_length) + "...";
+    new_string += string.substring(string.length-split_length, string.length);
+    console.log(max_length, split_length, new_string);
+
+    return new_string;
+}
+
 function nice_number(number){
     var suffix = "";
     if (number > 1000000000){

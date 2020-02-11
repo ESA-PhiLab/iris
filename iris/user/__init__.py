@@ -9,13 +9,13 @@ from iris import db
 from iris.models import User, Mask
 from iris.project import project
 
-auth_app = flask.Blueprint(
-    'auth', __name__,
+user_app = flask.Blueprint(
+    'user', __name__,
     template_folder='templates',
     static_folder='static'
 )
 
-@auth_app.route('/')
+@user_app.route('/')
 def index():
     pass
 
@@ -33,19 +33,73 @@ def requires_auth(func):
         return func(*args, **kwargs)
     return decorated
 
-@auth_app.route('/current_user')
+def requires_admin(func):
+    @wraps(func)
+    def decorated(*args, **kwargs):
+        user_id = flask.session.get('user_id', None)
+
+        if user_id is None:
+            return flask.make_response('Not logged in!', 403)
+
+        user = User.query.get(user_id)
+        if user is None:
+            return flask.make_response('Not logged in!', 403)
+
+        if not user.admin:
+            return flask.make_response('The user has no admin rights!', 403)
+        return func(*args, **kwargs)
+    return decorated
+
+@user_app.route('/get/<user_id>', methods=['GET'])
 @requires_auth
-def current_user():
-    user = User.query.get(flask.session.get('user_id'))
+def get(user_id):
+    if user_id == 'current':
+        user_id = flask.session['user_id']
+
+    user = User.query.get(user_id)
+    if user is None:
+        flask.make_response('Unknown user!', 404)
 
     json_user = user.to_json()
 
     if project.segmentation:
         json_user['segmentation'] = user.get_segmentation_details()
 
-    return flask.jsonify(json_user)
+    current_user_id = flask.session['user_id']
+    if current_user_id == user_id or User.query.get(current_user_id).admin:
+        # Only an admin or the user themselves can see other's user data:
+        return json_user
+    else:
+        del json_user['email']
+        return json_user
 
-@auth_app.route('/register', methods=['POST'])
+@user_app.route('/show/<user_id>', methods=['GET'])
+@requires_auth
+def show(user_id):
+    if user_id == 'current':
+        user_id = flask.session['user_id']
+
+    user = User.query.get(user_id)
+    if user is None:
+        return flask.make_response('Unknown user id!', 404)
+
+    user_json = user.to_json()
+
+    current_user_id = flask.session['user_id']
+    if current_user_id == user_id:
+        return flask.render_template(
+            'user/show.html', user=user_json,
+            current_user=user_json
+        )
+    else:
+        current_user = User.query.get(current_user_id)
+
+        return flask.render_template(
+            'user/show.html', user=user_json,
+            current_user=current_user.to_json()
+        )
+
+@user_app.route('/register', methods=['POST'])
 def register():
     data = json.loads(flask.request.data)
     if len(data['username']) > 64:
@@ -77,7 +131,7 @@ def register():
 
     return flask.make_response(f"{new_user} successfully created!")
 
-@auth_app.route('/login', methods=['POST'])
+@user_app.route('/login', methods=['POST'])
 def login():
     data = json.loads(flask.request.data)
 
@@ -93,7 +147,7 @@ def login():
 
     return flask.make_response("Successful login!")
 
-@auth_app.route('/logout')
+@user_app.route('/logout')
 def logout():
     # remove the username from the session if it's there
     if 'user_id' in flask.session:

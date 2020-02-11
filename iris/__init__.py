@@ -83,10 +83,10 @@ def register_extensions(app):
     app.register_blueprint(segmentation_app, url_prefix="/segmentation")
     from iris.admin import admin_app
     app.register_blueprint(admin_app, url_prefix="/admin")
-    from iris.auth import auth_app
-    app.register_blueprint(auth_app, url_prefix="/auth")
     from iris.help import help_app
     app.register_blueprint(help_app, url_prefix="/help")
+    from iris.user import user_app
+    app.register_blueprint(user_app, url_prefix="/user")
 
 
 if len(sys.argv) > 1:

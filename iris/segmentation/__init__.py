@@ -17,7 +17,7 @@ from skimage.io import imread, imsave
 from sklearn.model_selection import train_test_split
 import yaml
 
-from iris.auth import requires_auth
+from iris.user import requires_auth
 from iris.models import db, Image, User, Mask
 from iris.project import project
 

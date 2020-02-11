@@ -62,6 +62,7 @@ button,.button {
 
 .icon_button{
     line-height: 0;
+    padding: 2px;
 }
 
 img {
@@ -211,4 +212,13 @@ td.upper-left {
   border: 1px solid #000;
   border-top: none;
   overflow: auto;
+}
+
+.tag-valid{
+    background-color: #00bb00;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    padding: 4px;
 }

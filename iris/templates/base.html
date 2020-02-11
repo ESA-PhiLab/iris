@@ -8,12 +8,12 @@
 
     <script type="text/javascript" src="{{ url_for('static', filename='javascripts/utils.js') }}"></script>
     <script type="text/javascript" src="{{ url_for('static', filename='javascripts/dialogue.js') }}"></script>
-    <script type="text/javascript" src="{{ url_for('static', filename='javascripts/auth.js') }}"></script>
+    <script type="text/javascript" src="{{ url_for('user.static', filename='javascripts/user.js') }}"></script>
     <script type="text/javascript">
         let vars = {
             'url': {
                 'segmentation': {{url_for('segmentation.index')|tojson}},
-                'auth': {{url_for('auth.index')|tojson}},
+                'user': {{url_for('user.index')|tojson}},
                 'admin': {{url_for('admin.index')|tojson}},
                 'help': {{url_for('help.index')|tojson}},
             }

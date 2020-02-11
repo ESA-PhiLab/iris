@@ -1,4 +1,15 @@
-// This requires diaglogue.js and a valid fetch_user_info function!
+// This requires diaglogue.js and a valid login_finished function!
+async function dialogue_user(label_mode){
+    let response = await fetch(vars.url.user+"show/current");
+
+    if (response.status >= 400) {
+        dialogue_login();
+        return;
+    }
+
+    let content = await response.text();
+    show_dialogue("info", content, false, title="User information");
+}
 
 function dialogue_login(){
     let content = `
@@ -23,7 +34,7 @@ async function login(){
     let username = get_object('login-username');
     let password = get_object('login-password');
 
-    let response = await fetch(vars.url.auth+"login", {
+    let response = await fetch(vars.url.user+"login", {
         method: "POST",
         body: JSON.stringify({
             "username": username.value,
@@ -79,7 +90,7 @@ async function register(){
         return;
     }
 
-    let response = await fetch(vars.url.auth+"register", {
+    let response = await fetch(vars.url.user+"register", {
         method: "POST",
         body: JSON.stringify({
             "username": username.value,
@@ -99,9 +110,17 @@ async function register(){
 }
 
 async function logout(next=null){
-    await fetch(vars.url.auth+"logout");
+    await fetch(vars.url.user+"logout");
 
     if (next !== null){
         next();
     }
+}
+
+function login_finished(){
+
+}
+function logout_finished(){
+    // Don't allow no login
+    dialogue_login();
 }

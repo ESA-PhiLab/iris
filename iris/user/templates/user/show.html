@@ -1,0 +1,14 @@
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+</head>
+
+<body>
+    {{user.name}}
+    {% if user.admin %} <span class="tag-valid">admin</span>{% endif %}
+    {% if user.tested %} <span class="tag-valid">tested</span>{% endif %}
+</body>
+
+</html>

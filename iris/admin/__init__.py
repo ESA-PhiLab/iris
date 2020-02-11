@@ -1,6 +1,6 @@
 import flask
 
-from iris.auth import requires_auth
+from iris.user import requires_admin
 from iris.models import db, Image, Mask, User
 from iris.project import project
 
@@ -24,7 +24,7 @@ def index():
     return flask.render_template('admin/index.html', user=user.to_json())
 
 @admin_app.route('/users', methods=['GET'])
-@requires_auth
+@requires_admin
 def users():
     users = User.query.all()
     users_json = [
@@ -35,7 +35,7 @@ def users():
     return flask.render_template('admin/users.html', users=users_json)
 
 @admin_app.route('/segmentation', methods=['GET'])
-@requires_auth
+@requires_admin
 def masks():
     masks = Mask.query.all()
     masks_json = [
@@ -46,7 +46,7 @@ def masks():
     return flask.render_template('admin/segmentation.html', masks=masks_json)
 
 @admin_app.route('/images', methods=['GET'])
-@requires_auth
+@requires_admin
 def images():
     images = Image.query.all()
     images_json = [

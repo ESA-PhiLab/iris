@@ -8,7 +8,7 @@
 
         // GLOBAL VARIABLES!!!
         // I know I am using global variables here but who cares....
-        // Initialise the mask (TODO: find a way to create multidimensional arrays).
+        // If there is a nicer design way to this in javascript, please come forward
         vars = {
             'url': vars.url,
             'next_action': null,
@@ -186,28 +186,38 @@
         <div style="margin: 10px 0px; width: 100%;">
         {% for view in views%}
             <div style="position: relative; left: calc(70vh*{{ loop.index-1 }});">
-                <div id="view-{{ loop.index-1 }}">
-                    <canvas id="canvas-{{ loop.index-1 }}-image" class="view-canvas"
-                        style="z-index: 0; width: 70vh; height: 70vh;"></canvas>
-                    <canvas id="canvas-{{ loop.index-1 }}-mask" class="view-canvas"
-                        style="z-index: 1; width: 70vh; height: 70vh;"></canvas>
-                    <canvas id="canvas-{{ loop.index-1 }}-preview" class="view-canvas"
-                        style="z-index: 2; width: 70vh; height: 70vh;"></canvas>
-                </div>
+                {% if view.type == "bingmap" %}
+                    <iframe style="z-index: 5" width="70vh" height="70vh" frameborder="1" src="https://www.bing.com/maps/embed?h=400&w=500&cp=51.102612146078414~85.91899395752384&lvl=7&typ=d&sty=h&src=SHELL&FORM=MBEDV8" scrolling="no">
+                    </iframe>
+                {% else %}
+                    <div id="view-{{ loop.index-1 }}">
+                        <canvas id="canvas-{{ loop.index-1 }}-image" class="view-canvas"
+                            style="z-index: 0; width: 70vh; height: 70vh;"></canvas>
+                        <canvas id="canvas-{{ loop.index-1 }}-mask" class="view-canvas"
+                            style="z-index: 1; width: 70vh; height: 70vh;"></canvas>
+                        <canvas id="canvas-{{ loop.index-1 }}-preview" class="view-canvas"
+                            style="z-index: 2; width: 70vh; height: 70vh;"></canvas>
+                    </div>
+                {% endif %}
             </div>
         {% endfor %}
     {% else %}
         <div style="margin: 10px 0px; width: 100%;">
         {% for view in views%}
             <div style="position: relative; left: calc(98vw/{{views|length}}*{{ loop.index-1 }});">
-                <div id="view-{{ loop.index-1 }}">
-                    <canvas id="canvas-{{ loop.index-1 }}-image" class="view-canvas"
-                        style="z-index: 0; width: calc(98vw/{{views|length}}); height: calc(98vw/{{views|length}});"></canvas>
-                    <canvas id="canvas-{{ loop.index-1 }}-mask" class="view-canvas"
-                        style="z-index: 1; width: calc(98vw/{{views|length}}); height: calc(98vw/{{views|length}});"></canvas>
-                    <canvas id="canvas-{{ loop.index-1 }}-preview" class="view-canvas"
-                        style="z-index: 2; width: calc(98vw/{{views|length}}); height: calc(98vw/{{views|length}});"></canvas>
-                </div>
+                {% if view.type == "bingmap" %}
+                    <iframe style="z-index: 5" style="z-index: 0; width: calc(98vw/{{views|length}}); height: calc(98vw/{{views|length}});" frameborder="0" src="https://www.bing.com/maps/embed?h=400&w=500&cp=51.102612146078414~85.91899395752384&lvl=7&typ=d&sty=h&src=SHELL&FORM=MBEDV8" scrolling="no">
+                    </iframe>
+                {% else %}
+                    <div id="view-{{ loop.index-1 }}">
+                        <canvas id="canvas-{{ loop.index-1 }}-image" class="view-canvas"
+                            style="z-index: 0; width: calc(98vw/{{views|length}}); height: calc(98vw/{{views|length}});"></canvas>
+                        <canvas id="canvas-{{ loop.index-1 }}-mask" class="view-canvas"
+                            style="z-index: 1; width: calc(98vw/{{views|length}}); height: calc(98vw/{{views|length}});"></canvas>
+                        <canvas id="canvas-{{ loop.index-1 }}-preview" class="view-canvas"
+                            style="z-index: 2; width: calc(98vw/{{views|length}}); height: calc(98vw/{{views|length}});"></canvas>
+                    </div>
+                {% endif %}
             </div>
         {% endfor %}
     {% endif %}
@@ -219,11 +229,11 @@
         <div class="statusbutton" onclick="dialogue_user();" id="user-info">
             <div style="float: left;">Login</div>
         </div>
-        <div class="statusbutton" onclick="window.open({{url_for("admin.index")}},'_blank');">
+        <div class="statusbutton" id="admin-button" onclick="window.open({{url_for("admin.index")}},'_blank');">
             <div style="font-size: 20px;">Admin</div>
         </div>
         <div class="statusbutton" onclick="dialogue_image();">
-            <div class="info-box-top">{{image_id}}</div>
+            <div class="info-box-top" id="image-id">{{image_id}}</div>
             <div class="info-box-bottom">image-ID</div>
         </div>
         <div class="inactive-statusbutton">

@@ -87,17 +87,22 @@ function init_segmentation(){
 }
 
 function init_canvases(){
-    // Make some performance optimisations and add tranformation tracker
+    // Make some performance optimisations and add transformation tracker
     for (let canvas of document.getElementsByClassName("view-canvas")){
+        // Here we set the resolution of the canvas in pixels. By setting
+        // it to the actual size of the canvas (apparently .scrollWidth gives
+        // the actual screen size in pixels) we make sure there are no blurring
+        // effects.
+        canvas.width = 300;
+        canvas.height = 300;
+
+        // To avoid any blurring of the images or masks, we disable smoothing
         var context = canvas.getContext("2d");
         context.shadowOffsetX = 0;
         context.shadowOffsetY = 0;
         context.shadowBlur = 0;
         context.shadowColor = null;
         context.imageSmoothingEnabled = false;
-
-        canvas.width = vars.image_shape[0];
-        canvas.height = vars.image_shape[1];
 
         // Track transformations done to the canvas (like zooming and paning)
         trackTransforms(context);
@@ -107,8 +112,8 @@ function init_canvases(){
     // to the canvas once than redrawing each pixel to the canvas directly.
     // Hence, we use a hidden canvas for the mask:
     vars.hidden_mask = document.createElement('canvas');
-    vars.hidden_mask.width = vars.image_shape[0];
-    vars.hidden_mask.height = vars.image_shape[1];
+    vars.hidden_mask.width = vars.mask_shape[0];
+    vars.hidden_mask.height = vars.mask_shape[1];
     let hidden_ctx = vars.hidden_mask.getContext('2d');
     hidden_ctx.shadowOffsetX = 0;
     hidden_ctx.shadowOffsetY = 0;
@@ -121,6 +126,10 @@ function init_canvases(){
 
     // Load the images and draw them when ready
     for (var i=0; i < vars.views.length; i++){
+        if (vars.views.type == "bingmap"){
+            continue;
+        }
+
         // We will later overwrite vars.images
         vars.images[i] = new Image();
         vars.images[i].src = vars.url.segmentation+"load_image/" + vars.image_id + "/" + i;
@@ -134,12 +143,19 @@ function init_canvases(){
     init_toolbar_events();
 
     render_preview();
+
+    get_object('image-id').innerHTML = clip_string(vars.image_id, 20);
+    reset_views();
 }
 
 function init_events(){
     // Make all preview canvases sensitive to the user"s actions. Why preview?
     // Since they are the canvases on top:
     for (var i=0; i < vars.views.length; i++) {
+        if (vars.views[i].type == "bingmap"){
+            continue;
+        }
+
         var canvas = document.getElementById("canvas-"+i+"-preview");
         canvas.addEventListener("mousemove", mouse_move, false);
         canvas.addEventListener("mousedown", mouse_down, false);
@@ -172,11 +188,14 @@ function init_toolbar_events(){
     }
 }
 
-function dialogue_user(){
-    if (vars.user === null){
-        fetch_user_info();
-        return;
-    }
+// {
+//   "name": "Cirrus",
+//   "description": "High snowy or icy mountain regions and high clouds are <b>white</b>.",
+//   "channels": ["B11*100", "B11*100", "B11*100"]
+// },
+{
+    "name": "aerial",
+    "type": "bingmap"
 }
 
 function login_finished(){
@@ -185,7 +204,7 @@ function login_finished(){
 }
 
 async function fetch_user_info(){
-    let response = await fetch(vars.url.auth+"current_user");
+    let response = await fetch(vars.url.user+"get/current");
 
     if (response.status >= 400) {
         dialogue_login();
@@ -195,8 +214,14 @@ async function fetch_user_info(){
     vars.user = await response.json();
     let info_box = '<div class="info-box-top">'
     info_box += nice_number(vars.user.segmentation.score)+'</div>';
-    info_box += '<div class="info-box-bottom">'+vars.user.name+'</div>';
+    info_box += '<div class="info-box-bottom">'+clip_string(vars.user.name, 25)+'</div>';
     get_object('user-info').innerHTML = info_box;
+
+    if (vars.user.admin){
+        get_object('admin-button').style.display = "block";
+    } else {
+        get_object('admin-button').style.display = "none";
+    }
 
     if (vars.next_action !== null){
         vars.next_action();
@@ -352,7 +377,7 @@ function get_tool_offset(){
 
 function mouse_wheel(event){
     var delta = Math.max(-1, Math.min(1, (event.wheelDelta || -event.detail)));
-
+reset_views
     if (event.shiftKey){
         let canvas = get_object('canvas-0-image');
         // Change size of tool:
@@ -441,13 +466,12 @@ function move(dx, dy){
 function constrain_view(ctx, scale, dx, dy){
     let transforms = ctx.getTransform();
 
-    if (transforms.a*scale < 1){
+    if (transforms.a*scale < ctx.canvas.width / vars.image_shape[0]){
         // We don't want to allow any zooming outside of the image area and reset
         // it to the default view
-        correct_view = true;
 
-        transforms.a = 1;
-        transforms.d = 1;
+        transforms.a = ctx.canvas.width / vars.image_shape[0];
+        transforms.d = ctx.canvas.width / vars.image_shape[0];
         transforms.b = 0;
         transforms.c = 0;
         transforms.e = 0;
@@ -493,12 +517,15 @@ function update_views(){
 }
 
 function reset_views(){
-    // for (let canvas of document.getElementsByClassName('view-canvas')){
-    //     let ctx = canvas.getContext('2d');
-    //     ctx.setTransform(1, 1, 0, 0, 0, 0);
-    // }
-    //
-    // update_views();
+    for (let canvas of document.getElementsByClassName('view-canvas')){
+        let ctx = canvas.getContext('2d');
+        ctx.setTransform(
+            ctx.canvas.width / vars.image_shape[0], 0, 0,
+            ctx.canvas.width / vars.image_shape[0], 0, 0
+        );
+    }
+
+    update_views();
 }
 
 function update_cursor_coords(obj, event){
@@ -808,14 +835,19 @@ function render_mask(bbox=null){
         area again.
     */
 
-    // Render the new mask sprite to all canvases (including patch canvases):
+    // Render the new mask sprite to all canvases:
     for (var i=0; i < vars.views.length; i++) {
+        if (vars.views[i].type == "bingmap"){
+            continue;
+        }
+
         var ctx = get_ctx("canvas-"+i+"-mask");
         if (bbox === null){
             // No specific coordinates are given, i.e. we redraw the whole mask:
             ctx.clearRect(0, 0, ...vars.image_shape);
             ctx.drawImage(
-                vars.hidden_mask, vars.mask_area[0], vars.mask_area[1]
+                vars.hidden_mask,
+                vars.mask_area[0], vars.mask_area[1]
             );
         } else {
             ctx.clearRect(
@@ -838,8 +870,12 @@ function render_preview(){
     let offset = get_tool_offset();
 
     for (var i=0; i < vars.views.length; i++) {
+        if (vars.views[i].type == "bingmap"){
+            continue;
+        }
+
         var ctx = get_ctx("canvas-"+i+"-preview");
-        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        ctx.clearRect(0, 0, ...vars.image_shape);
         ctx.fillStyle = "rgba(150, 150, 150, 0.5)";
         ctx.fillRect(
             vars.cursor_image[0]+offset.x,
@@ -866,6 +902,10 @@ function render_preview(){
 }
 
 function render_image(view_number){
+    if (vars.views[view_number].type == "bingmap"){
+        return;
+    }
+
     let image = vars.images[view_number];
     let canvas_id = "canvas-" + view_number;
     let canvas = get_object(canvas_id+"-image");
@@ -883,7 +923,11 @@ function render_image(view_number){
     filters.push("saturate("+vars.saturation+"%)");
     canvas.style.filter = filters.join(" ");
 
-    ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+    let transform = ctx.getTransform();
+
+    ctx.drawImage(
+        image, 0, 0, ...vars.image_shape
+    );
 }
 
 function dialogue_reset_mask(){
@@ -920,6 +964,9 @@ function show_mask(visible){
         state = "block";
     }
     for (var i=0; i < vars.views.length; i++){
+        if (vars.views[i].type == "bingmap"){
+            continue;
+        }
         get_object("canvas-"+i+"-mask").style.display = state;
     }
 
