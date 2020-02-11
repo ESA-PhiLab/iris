@@ -187,7 +187,7 @@
         {% for view in views%}
             <div style="position: relative; left: calc(70vh*{{ loop.index-1 }});">
                 {% if view.type == "bingmap" %}
-                    <iframe style="z-index: 5" width="70vh" height="70vh" frameborder="1" src="https://www.bing.com/maps/embed?h=400&w=500&cp=51.102612146078414~85.91899395752384&lvl=7&typ=d&sty=h&src=SHELL&FORM=MBEDV8" scrolling="no">
+                    <iframe id="canvas-{{loop.index-1}}-iframe" style="z-index: 5" frameborder="1" scrolling="no">
                     </iframe>
                 {% else %}
                     <div id="view-{{ loop.index-1 }}">
@@ -206,7 +206,7 @@
         {% for view in views%}
             <div style="position: relative; left: calc(98vw/{{views|length}}*{{ loop.index-1 }});">
                 {% if view.type == "bingmap" %}
-                    <iframe style="z-index: 5" style="z-index: 0; width: calc(98vw/{{views|length}}); height: calc(98vw/{{views|length}});" frameborder="0" src="https://www.bing.com/maps/embed?h=400&w=500&cp=51.102612146078414~85.91899395752384&lvl=7&typ=d&sty=h&src=SHELL&FORM=MBEDV8" scrolling="no">
+                    <iframe id="canvas-{{loop.index-1}}-iframe" style="z-index: 3;" frameborder="1" scrolling="no">
                     </iframe>
                 {% else %}
                     <div id="view-{{ loop.index-1 }}">

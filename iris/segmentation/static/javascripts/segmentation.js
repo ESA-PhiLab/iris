@@ -126,7 +126,8 @@ function init_canvases(){
 
     // Load the images and draw them when ready
     for (var i=0; i < vars.views.length; i++){
-        if (vars.views.type == "bingmap"){
+        if (vars.views[i].type == "bingmap"){
+            set_view_iframe(i);
             continue;
         }
 
@@ -148,6 +149,21 @@ function init_canvases(){
     reset_views();
 }
 
+function set_view_iframe(i){
+    let canvas = get_object('canvas-0-image');
+    let view = vars.views[i];
+    let url = "https://www.bing.com/maps/embed?";
+    url += "h="+canvas.scrollHeight;
+    url += "&w="+canvas.scrollWidth;
+    url += "&cp=51.0~85.0&lvl=7&typ=d&sty=b&src=SHELL&FORM=MBEDV8";
+    let iframe = get_object('canvas-'+i+'-iframe');
+    iframe.src = url;
+    iframe.height = canvas.scrollHeight;
+    iframe.width = canvas.scrollWidth;
+    console.log(url);
+    return url
+}
+
 function init_events(){
     // Make all preview canvases sensitive to the user"s actions. Why preview?
     // Since they are the canvases on top:
@@ -166,6 +182,7 @@ function init_events(){
     }
 
     document.body.onkeydown = key_down;
+    document.body.onresize = handle_resize;
 }
 
 function init_toolbar_events(){
@@ -188,15 +205,29 @@ function init_toolbar_events(){
     }
 }
 
+function handle_resize(){
+    // Update the views that have external content
+    for (var i=0; i < vars.views.length; i++){
+        if (vars.views[i].type == "bingmap"){
+            set_view_iframe(i);
+        }
+    }
+}
+
 // {
 //   "name": "Cirrus",
 //   "description": "High snowy or icy mountain regions and high clouds are <b>white</b>.",
 //   "channels": ["B11*100", "B11*100", "B11*100"]
 // },
-{
-    "name": "aerial",
-    "type": "bingmap"
-}
+// {
+//     "name": "aerial",
+//     "type": "bingmap"
+// }
+// {
+//   "name": "Snow vs. Clouds",
+//   "description": "Small ice crystals in high-level clouds appear reddish-orange or peach, and thick ice snow looks vivid red (or red-orange). Bare soil appears bright cyan and vegetation seem greenish in the image. Water on the ground is very dark as it absorbs the SWIR and the red, but small (liquid) water drops in the clouds scatter the light equally in both visible and the SWIR, and therefore it appears white. Water Sediments are displayed as dark red.",
+//   "channels": ["B1", "B12", "B13"]
+// },
 
 function login_finished(){
     // Redirect to fetch_user_info
