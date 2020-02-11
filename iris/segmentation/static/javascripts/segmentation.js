@@ -149,19 +149,37 @@ function init_canvases(){
     reset_views();
 }
 
-function set_view_iframe(i){
-    let canvas = get_object('canvas-0-image');
+async function set_view_iframe(i){
     let view = vars.views[i];
+
+    if (view.type != "bingmap"){
+        return;
+    }
+    // Default location
+    let location = "0~0";
+
+    // Check whetherthere was a location given in the metadata:
+    let response = await fetch(
+        vars.url.segmentation+'load_metadata/'+vars.image_id
+    );
+    if (response.status < 400){
+        let metadata = await response.json();
+        if ("location" in metadata){
+            location = metadata.location[0]+"~"+metadata.location[1];
+        }
+    }
+
+    let canvas = get_object('canvas-0-image');
     let url = "https://www.bing.com/maps/embed?";
     url += "h="+canvas.scrollHeight;
     url += "&w="+canvas.scrollWidth;
-    url += "&cp=51.0~85.0&lvl=7&typ=d&sty=b&src=SHELL&FORM=MBEDV8";
+    url += "&cp="+location;
+    url += "&lvl=12&typ=d&sty=a&src=SHELL&FORM=MBEDV8";
     let iframe = get_object('canvas-'+i+'-iframe');
     iframe.src = url;
     iframe.height = canvas.scrollHeight;
     iframe.width = canvas.scrollWidth;
     console.log(url);
-    return url
 }
 
 function init_events(){
@@ -213,21 +231,6 @@ function handle_resize(){
         }
     }
 }
-
-// {
-//   "name": "Cirrus",
-//   "description": "High snowy or icy mountain regions and high clouds are <b>white</b>.",
-//   "channels": ["B11*100", "B11*100", "B11*100"]
-// },
-// {
-//     "name": "aerial",
-//     "type": "bingmap"
-// }
-// {
-//   "name": "Snow vs. Clouds",
-//   "description": "Small ice crystals in high-level clouds appear reddish-orange or peach, and thick ice snow looks vivid red (or red-orange). Bare soil appears bright cyan and vegetation seem greenish in the image. Water on the ground is very dark as it absorbs the SWIR and the red, but small (liquid) water drops in the clouds scatter the light equally in both visible and the SWIR, and therefore it appears white. Water Sediments are displayed as dark red.",
-//   "channels": ["B1", "B12", "B13"]
-// },
 
 function login_finished(){
     // Redirect to fetch_user_info
@@ -408,7 +411,6 @@ function get_tool_offset(){
 
 function mouse_wheel(event){
     var delta = Math.max(-1, Math.min(1, (event.wheelDelta || -event.detail)));
-reset_views
     if (event.shiftKey){
         let canvas = get_object('canvas-0-image');
         // Change size of tool:
@@ -1024,21 +1026,21 @@ async function dialogue_image(){
 
     if (vars.metadata_available){
         let response = await fetch(
-            vars.url.segmentation+'load_metadata/'+vars.image_id
+            vars.url.segmentation+'load_metadata/'+vars.image_id+'?safe_html=True'
         );
-        let json = await response.json();
 
-        if ('error' in json){
-            content += json.error;
+        if (response.status >= 400){
+            content += await response.text();
         } else {
+            let metadata = await response.json();
             content += '<table>';
             content += '<tr><td><b>Attribute</b></td><td><b>Value</b></td></tr>';
 
             // row and col are at the same the id for the row and column class, respectively
-            for (const attribute in json.data){
+            for (const attribute in metadata){
                 content += '<tr>';
                 content += '<td>'+attribute+'</td>';
-                content += '<td>'+json.data[attribute]+'</td>';
+                content += '<td>'+metadata[attribute]+'</td>';
                 content += '</tr>';
             }
             content += '</table>';

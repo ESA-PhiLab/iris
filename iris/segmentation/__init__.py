@@ -34,7 +34,7 @@ def index():
     return flask.render_template(
         'segmentation.html',
         image_id=image_id,
-        image_shape=project['image_shape'],
+        image_shape=project['images']['shape'],
         mask_area=project['segmentation']['mask_area'],
         views=project['views'], classes=project['classes'],
         thumbnail_available='thumbnail' in project['files'][image_id],
@@ -67,12 +67,12 @@ def get_mask_filenames(image_id, user_id=None):
         user_id = project.user_id
 
     final_mask = join(
-        project['paths']['project'], 'segmentation', image_id,
+        project['path'], 'segmentation', image_id,
         f'{user_id}_final.npy'
     )
 
     user_mask = join(
-        project['paths']['project'], 'segmentation', image_id,
+        project['path'], 'segmentation', image_id,
         f'{user_id}_user.npy'
     )
 
@@ -375,13 +375,20 @@ def parse_channels(channels, image):
 
     return np.moveaxis(np.stack(user_bands), 0, -1)
 
-@segmentation_app.route('/load_metadata/<image_id>')
+@segmentation_app.route('/load_metadata/<image_id>', methods=['GET'])
 def load_metadata(image_id):
     metadata = project.get_metadata(image_id)
-    return flask.jsonify({
-        "data": metadata,
-        "format": "dictionary" if isinstance(metadata, dict) else "string"
-    })
+
+    if metadata is None:
+        return flask.make_response("No metadata found!", 404)
+
+    if flask.request.args.get('safe_html', False):
+        metadata = {
+            k: flask.Markup(str(v))
+            for k, v in metadata.items()
+        }
+
+    return metadata
 
 @segmentation_app.route('/load_thumbnail/<image_id>')
 def load_thumbnail(image_id):

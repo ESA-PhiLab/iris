@@ -64,7 +64,7 @@ def create_app(project_file):
 
     # Database stuff:
     app.config['SQLALCHEMY_DATABASE_URI'] = \
-        'sqlite:///' + join(project['paths']['project'], 'iris.db')
+        'sqlite:///' + join(project['path'], 'iris.db')
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
     db = SQLAlchemy(app)
 

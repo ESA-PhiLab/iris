@@ -2,15 +2,15 @@
   "name": "cloud-segmentation",
   "label_mode": "segmentation",
   "authentication_required": true,
-  "paths": {
-      "image": "images/{id}/image.tif",
-      "thumbnail": "images/{id}/thumbnail.png",
-      "metadata": "images/{id}/metadata.json"
+  "images": {
+      "path": "images/{id}/image.tif",
+      "shape": [512, 512]
   },
-  "image_shape": [512, 512],
+  "thumbnails": "images/{id}/thumbnail.png",
+  "metadata": "images/{id}/metadata.json",
   "segmentation": {
       "mask_encoding": "rgb",
-      "mask_path": "images/{id}/mask.png",
+      "path": "images/{id}/mask.png",
       "mask_area": [64, 64, 448, 448]
   },
   "classes": [

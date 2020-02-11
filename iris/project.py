@@ -20,8 +20,11 @@ class Project:
         self.name = None
         self.user_id = None
         self._re_images = None
+        self.file = None
 
     def load_from(self, filename):
+        self.file = filename
+
         if not filename.endswith('json') or filename.endswith('yaml'):
             raise Exception('[CONFIG] config file must be in JSON or YAML format!')
 
@@ -49,11 +52,11 @@ class Project:
                 self['segmentation']['mask_area'][3]-self['segmentation']['mask_area'][1],
             )
 
-        if isinstance(self.config['authentication_required'], str):
-            if self.config['authentication_required'].lower == 'false':
-                self.config['authentication_required'] = False
+        if isinstance(self['authentication_required'], str):
+            if self['authentication_required'].lower == 'false':
+                self['authentication_required'] = False
             else:
-                self.config['authentication_required'] = True
+                self['authentication_required'] = True
 
         self._init_paths_and_files(filename)
 
@@ -61,7 +64,7 @@ class Project:
         self.set_image_seed(0)
 
         if self.segmentation:
-            format = basename(self.config['paths']['mask']).split('.')[-1].lower()
+            format = basename(self['segmentation']['path']).split('.')[-1].lower()
             encodings = {
                 'npy': ['integer', 'binary', 'rgb', 'rgba'],
                 'tif': ['integer', 'rgb', 'rgba'],
@@ -90,72 +93,80 @@ class Project:
     def __getitem__(self, key):
         return self.config[key]
 
+    def __setitem__(self, key, value):
+        self.config[key] = value
+
     def _init_paths_and_files(self, filename):
-        default_paths = {
-            'thumbnail': False,
-            'metadata': False,
-            'project': join(dirname(filename), self.config['name']+'.iris'),
-        }
-
-        if self.segmentation:
-            default_paths['mask'] = self['segmentation'].get('mask_path', False)
-        self.config['paths'] = {**default_paths, **self.config['paths']}
-
-        if not self.config['paths']['mask']:
-            self.config['paths']['mask'] = join(
-                self.config['paths']['project'], 'segmentation', '{id}',
-                'mask.npy'
+        if project not in self.config:
+            self.config['path'] = join(
+                dirname(filename), self.config['name']+'.iris'
             )
 
-        # create the project path
-        os.makedirs(self.config['paths']['project'], exist_ok=True)
+        if self.segmentation:
+            if not self['segmentation']['path']:
+                self.config['segmentation']['path'] = join(
+                    self['path'], 'segmentation', '{id}', 'mask.npy'
+                )
 
-        if 'image' not in self.config['paths']:
-            raise Exception('[CONFIG] paths:image is required!')
+        # create the project path
+        os.makedirs(self['path'], exist_ok=True)
 
         # Make all paths absolute:
-        for k, v in self.config['paths'].items():
-            if v and not isabs(self['paths'][k]):
-                self.config['paths'][k] = join(dirname(filename), v)
+        self['images']['path'] = self.make_absolute(self['images']['path'])
+        if "thumbnails" in self.config:
+            self['thumbnails'] = self.make_absolute(self['thumbnails'])
+        if "metadata" in self.config:
+            self['metadata'] = self.make_absolute(self['metadata'])
+        if self.segmentation:
+            self['segmentation']['path'] = self.make_absolute(
+                self['segmentation']['path']
+            )
 
         # pre-compile the regex for the image path to get a better performance.
         # We will need it later to extract the image id:
-        id_pos = self.config['paths']['image'].find("{id}")
-        if self.config['paths']['image'].count('{id}') != 1:
-            raise Exception('[CONFIG] paths:image must contain exactly one placeholder "{id}"!')
-        escaped_path = re.escape(self.config['paths']['image'][:id_pos])
+        id_pos = self['images']['path'].find("{id}")
+        if self['images']['path'].count('{id}') != 1:
+            raise Exception('[CONFIG] images:path must contain exactly one placeholder "{id}"!')
+        escaped_path = re.escape(self['images']['path'][:id_pos])
         escaped_path += "(?P<id>.+)"
-        escaped_path += re.escape(self.config['paths']['image'][id_pos+4:])
+        escaped_path += re.escape(self['images']['path'][id_pos+4:])
 
         self._re_images = re.compile(escaped_path)
 
         self.config['files'] = dict(
             self._get_file_paths(image)
-            for image in glob(self.config['paths']['image'].format(id="*"))
+            for image in glob(self['images']['path'].format(id="*"))
         )
 
         if not self.config['files']:
             raise Exception(
-                f"[CONFIG] No images found in '{self.config['paths']['image']}'.\n"
-                "Did you set paths:image to a valid, existing path?")
+                f"[CONFIG] No images found in '{self['images']['path']}'.\n"
+                "Did you set images:path to a valid, existing path?")
 
         self.config['file_ids'] = list(sorted(self.config['files'].keys()))
 
+    def make_absolute(self, path):
+        if not path:
+            return path
+
+        if not isabs(path):
+            return join(dirname(self.file), path)
 
     def _get_file_paths(self, image_path):
         try:
             image_id = self._re_images.match(image_path).groups()[0]
             files = {
                 'image': image_path,
-                # Even if we were not in segmentation mode, just add it:
-                'mask': self['paths']['mask'].format(id=image_id)
             }
 
-            thumbnail_path = self.config['paths'].get('thumbnail', False)
+            if project.segmentation:
+                files['mask'] = self['segmentation']['path'].format(id=image_id)
+
+            thumbnail_path = self.config.get('thumbnails', False)
             if thumbnail_path:
                 thumbnail_path = thumbnail_path.format(id=image_id)
             files['thumbnail'] = thumbnail_path
-            metadata_path = self.config['paths'].get('metadata', False)
+            metadata_path = self.config.get('metadata', False)
             if metadata_path:
                 metadata_path = metadata_path.format(id=image_id)
             files['metadata'] = metadata_path
@@ -180,19 +191,18 @@ class Project:
             return imread(filename)
 
     def get_metadata(self, image_id):
-        filename = self['files'][image_id]['metadata']
+        filename = self['files'][image_id].get('metadata', False)
+        if not filename:
+            return None
+
         with open(filename, 'r') as stream:
             if filename.endswith('json'):
                 metadata = json.load(stream)
             elif filename.endswith('yaml'):
                 metadata = yaml.safe_load(stream)
             else:
-                return stream.read()
+                return {"__body__": stream.read()}
 
-        metadata = {
-            k: flask.Markup(str(v))
-            for k, v in metadata.items()
-        }
         return metadata
 
     def get_thumbnail(self, image_id):

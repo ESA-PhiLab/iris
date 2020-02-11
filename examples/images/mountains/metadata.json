@@ -1,1 +1,6 @@
-{"spacecraft_id": "Sentinel2", "scene_id": "Hollstein\\scene_02", "bands": ["B01", "B02", "B03", "B04", "B05", "B06", "B07", "B08", "B8A", "B09", "B10", "B11", "B12"], "band_types": ["TOA Reflectance", "TOA Reflectance", "TOA Reflectance", "TOA Reflectance", "TOA Reflectance", "TOA Reflectance", "TOA Reflectance", "TOA Reflectance", "TOA Reflectance", "TOA Reflectance", "TOA Reflectance", "TOA Reflectance", "TOA Reflectance"], "band_centres": [443, 494, 560, 665, 704, 740, 781, 834, 864, 944, 1375, 1612, 2194], "band_widths": [36, 96, 45, 39, 20, 18, 28, 141, 33, 27, 76, 142, 240], "classes": ["no_data", "not_used", "low_clouds", "high_clouds", "shadows", "land", "water", "snow"], "named_bands": {"Aerosol": 0, "Blue": 1, "Green": 2, "Red": 3, "Red Edge 1": 4, "Red Edge 2": 5, "Red Edge 3": 6, "NIR": 7, "Red Edge 4": 8, "Water Vapour": 9, "Cirrus": 10, "SWIR1": 11, "SWIR2": 12}, "resolution": 20.0}
+{
+    "spacecraft_id": "Sentinel2",
+    "scene_id": "Hollstein\\scene_02",
+    "resolution": 20.0,
+    "location": [45.9253, 8.0602]
+}
