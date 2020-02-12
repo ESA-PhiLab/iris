@@ -3,10 +3,11 @@ import json
 import random
 
 import flask
+from sqlalchemy import func
 from validate_email import validate_email
 
 from iris import db
-from iris.models import User, Mask
+from iris.models import Action, User
 from iris.project import project
 
 user_app = flask.Blueprint(
@@ -62,9 +63,6 @@ def get(user_id):
 
     json_user = user.to_json()
 
-    if project.segmentation:
-        json_user['segmentation'] = user.get_segmentation_details()
-
     current_user_id = flask.session['user_id']
     if current_user_id == user_id or User.query.get(current_user_id).admin:
         # Only an admin or the user themselves can see other's user data:
@@ -82,8 +80,19 @@ def show(user_id):
     user = User.query.get(user_id)
     if user is None:
         return flask.make_response('Unknown user id!', 404)
-
     user_json = user.to_json()
+
+    total_score = func.sum(Action.score).label("total_score")
+    top_users = (db.session.query(User.name, total_score)
+        .join(User.actions)
+        .filter(Action.type=="segmentation")
+        .group_by(User.name)
+        .order_by(total_score.desc())
+    ).all()
+
+    usernames, scores = zip(*top_users)
+
+    user_json['segmentation']['rank'] = usernames.index(user.name) + 1
 
     current_user_id = flask.session['user_id']
     if current_user_id == user_id:

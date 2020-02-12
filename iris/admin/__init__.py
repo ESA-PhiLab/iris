@@ -1,7 +1,8 @@
 import flask
+from sqlalchemy import func
 
 from iris.user import requires_admin
-from iris.models import db, Image, Mask, User
+from iris.models import db, Image, Action, User
 from iris.project import project
 
 admin_app = flask.Blueprint(
@@ -26,24 +27,37 @@ def index():
 @admin_app.route('/users', methods=['GET'])
 @requires_admin
 def users():
-    users = User.query.all()
-    users_json = [
-        {**user.to_json(), 'segmentation': user.get_segmentation_details()}
-        for user in users
-    ]
+    order_by = flask.request.args.get('order_by', 'id')
+    ascending = flask.request.args.get('ascending', True)
+
+    users = User.query
+    if ascending:
+        users = users.order_by(getattr(User, order_by)).all()
+    else:
+        users = users.order_by(getattr(User, order_by).desc()).all()
+
+    users_json = [user.to_json() for user in users]
 
     return flask.render_template('admin/users.html', users=users_json)
 
-@admin_app.route('/segmentation', methods=['GET'])
+@admin_app.route('/actions/<type>', methods=['GET'])
 @requires_admin
-def masks():
-    masks = Mask.query.all()
-    masks_json = [
-        {**mask.to_json(), 'username': mask.creator.name}
-        for mask in masks
+def actions(type):
+    order_by = flask.request.args.get('order_by', 'user_id')
+    ascending = flask.request.args.get('ascending', True)
+
+    actions = Action.query.filter_by(type=type)
+    if ascending:
+        actions = actions.order_by(getattr(Action, order_by)).all()
+    else:
+        actions = actions.order_by(getattr(Action, order_by).desc()).all()
+
+    actions_json = [
+        {**action.to_json(), 'username': action.user.name}
+        for action in actions
     ]
 
-    return flask.render_template('admin/segmentation.html', masks=masks_json)
+    return flask.render_template('admin/actions.html', actions=actions_json)
 
 @admin_app.route('/images', methods=['GET'])
 @requires_admin

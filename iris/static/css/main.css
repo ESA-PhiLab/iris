@@ -1,5 +1,5 @@
 body {
-    font-size: 16px;
+    font-size: 1em;
     margin: 15px;
     font-family: Arial, Helvetica, sans-serif;
 }
@@ -91,12 +91,13 @@ img {
     margin: 0;
     padding: 0;
     /* padding: 4px; */
-    overflow: auto;
+    overflow: visible;
     font-size: 18px;
 }
 
 .statusbutton,.inactive-statusbutton {
   padding: 10px;
+  overflow: visible;
 }
 
 .statusbar_separator {
@@ -111,7 +112,7 @@ button:hover,.button:hover,.toolbutton:hover,.statusbutton:hover{
     background-color: #dddddd;
 }
 
-button.checked,.button.checked,.toolbutton.checked,.statusbutton.checked {
+.checked {
     background-color: #ababab;
 }
 
@@ -122,7 +123,7 @@ button.checked,.button.checked,.toolbutton.checked,.statusbutton.checked {
     display: inline-block;
 }
 
-.info-box{transition: 0.3s;
+.info-box{
     display: flex;
     justify-content: center;
     border: 2px;
@@ -148,12 +149,9 @@ button.checked,.button.checked,.toolbutton.checked,.statusbutton.checked {
 }
 
 table {
-  border-collapse: collapse;
   width: 100%;
-  border: 2px;
-  border-style: solid;
-  border-radius: 6px;
-  border-color: black;
+  border-collapse: collapse;
+  border-style: hidden;
   margin: 2px 2px;
 }
 
@@ -214,11 +212,94 @@ td.upper-left {
   overflow: auto;
 }
 
-.tag-valid{
-    background-color: #00bb00;
+.tag{
+    background-color: #000000;
     color: white;
     border: none;
     border-radius: 4px;
     font-size: 14px;
     padding: 4px;
+}
+
+.green{
+    background-color: #11b811;
+}
+.red{
+    background-color: #bb0000;
+}
+
+/* Style the buttons that are used to open and close the accordion panel */
+.accordion {
+ /* background-color: #fff; */
+ color: #000;
+ font-weight: bold;
+ cursor: pointer;
+ padding: 14px 16px;
+ font-size: 16px;
+ /* width: 95%; */
+ text-align: left;
+ border: 2px solid black;
+ /* border-radius: 4px;
+ border-bottom-left-radius: 0px;
+ border-bottom-right-radius: 0px; */
+ outline: none;
+ overflow: hidden;
+ transition: 0.4s;
+ margin: 2px 0px;
+}
+
+/* Add a background color to the button if it is clicked on (add the .active class with JS), and when you move the mouse over it (hover) */
+.accordion:hover {
+ background-color: #ccc;
+}
+
+.accordion:after {
+  content: '\002B';
+  color: #000;
+  font-weight: bold;
+  float: right;
+  margin-left: 5px;
+}
+
+.accordion.checked:after {
+  content: "\2212";
+}
+
+/* Style the accordion panel. Note: hidden by default */
+.panel {
+ padding: 0 18px;
+ background-color: white;
+ display: none;
+ overflow: hidden;
+ border: 2px solid black;
+ border-top: none;
+ margin-top: -2px;
+ font-size: 16px;
+ font-weight: normal;
+}
+
+.tooltip {
+  position: relative;
+  display: inline-block;
+  border-bottom: 1px dotted black;
+}
+
+.tooltip .tooltiptext {
+  visibility: hidden;
+  overflow: visible;
+  width: 120px;
+  background-color: black;
+  color: #fff;
+  text-align: center;
+  border-radius: 6px;
+  padding: 5px 0;
+  position: absolute;
+  z-index: 1;
+  bottom: 150%;
+  left: 50%;
+  margin-left: -60px;
+}
+
+.tooltip:hover .tooltiptext {
+  visibility: visible;
 }

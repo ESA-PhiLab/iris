@@ -3,7 +3,7 @@ from random import randint
 
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from iris import db
+from iris import db, project
 
 class JsonSerializable:
     def to_json(self):
@@ -19,10 +19,6 @@ class JsonSerializable:
                 json[k] = str(v)
 
         return json
-    #
-    # def from_json(self, data):
-    #     for k, v in data.items():
-    #         setattr(self, k, v)
 
 class User(JsonSerializable, db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -42,7 +38,7 @@ class User(JsonSerializable, db.Model):
                       index=False,
                       unique=False,
                       nullable=False, default=False)
-    masks = db.relationship('Mask', backref='creator', lazy='dynamic')
+    actions = db.relationship('Action', backref='user', lazy='dynamic')
 
     def __repr__(self):
         return '<User {}>'.format(self.name)
@@ -53,47 +49,42 @@ class User(JsonSerializable, db.Model):
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
-    def get_segmentation_details(self,):
-        masks = Mask.query.filter_by(creator=self).all()
-        details = {
+    def to_json(self, full=False):
+        data = super().to_json()
+        del data['password_hash']
+
+        masks = Action.query.filter_by(user=self, type="segmentation").all()
+        data['segmentation'] = {
             'score': 0,
             'score_pending': 0,
             'n_masks': len(masks)
         }
         for mask in masks:
             if mask.score_pending:
-                details['score_pending'] += mask.score
+                data['segmentation']['score_pending'] += mask.score
             else:
-                details['score'] += mask.score
+                data['segmentation']['score'] += mask.score
 
-        return details
-
-    def to_json(self):
-        data = super().to_json()
-        del data['password_hash']
         return data
 
 class Image(JsonSerializable, db.Model):
     id = db.Column(db.String(256), primary_key=True)
-    segmentation_agreement = db.Column(db.Float, default=0)
-    segmentation_masks = db.relationship(
-        'Mask', backref='image', lazy='dynamic'
+    actions = db.relationship(
+        'Action', backref='image', lazy='dynamic'
     )
-    classification_agreement = db.Column(db.Float, default=0)
 
-class Mask(JsonSerializable, db.Model):
+class Action(JsonSerializable, db.Model):
     id = db.Column(db.Integer, primary_key=True)
+    # Can be segmentation, classification or detection:
+    type = db.Column(db.String(256), index=True)
     image_id = db.Column(db.String(256), db.ForeignKey('image.id'))
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     last_modification = db.Column(
         db.DateTime, index=True, default=datetime.utcnow
     )
     time_spent = db.Column(db.Interval, default=timedelta())
-
-    # How do we evaluate the score of a mask?
-    # a_score: Agreement with 1 other user
     score = db.Column(db.Integer, default=0)
     score_pending = db.Column(db.Boolean, default=True)
 
     def __repr__(self):
-        return f'<Mask creator={self.user_id}, image={self.image_id}, score={self.score}>'
+        return f'<Action user={self.user_id}, image={self.image_id}, score={self.score}>'

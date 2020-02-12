@@ -237,6 +237,10 @@ function login_finished(){
     fetch_user_info();
 }
 
+function logout_finished(){
+    dialogue_login();
+}
+
 async function fetch_user_info(){
     let response = await fetch(vars.url.user+"get/current");
 
@@ -245,17 +249,40 @@ async function fetch_user_info(){
         return;
     }
 
-    vars.user = await response.json();
-    let info_box = '<div class="info-box-top">'
-    info_box += nice_number(vars.user.segmentation.score)+'</div>';
-    info_box += '<div class="info-box-bottom">'+clip_string(vars.user.name, 25)+'</div>';
+    user = await response.json();
+
+    let info_box = '';
+    info_box += '<div class="info-box-top" style="position: relative;">';
+    info_box += nice_number(user.segmentation.score);
+
+    if (vars.user !== null && vars.user.id == user.id){
+        // Check how much the score changed in comparison to the last time:
+        let score_change = nice_number(user.segmentation.score - vars.user.segmentation.score);
+
+        if (score_change){
+            score_change = nice_number(score_change);
+            let colour = "red";
+
+            if (user.segmentation.score > vars.user.segmentation.score){
+                score_change = "+" + score_change;
+                colour = "green";
+            }
+
+            info_box += '<span style="position: absolute; right: -10px; top: -25px;" class="tag '+colour+'">'+score_change+'</span>';
+        }
+    }
+
+    info_box += '</div>';
+    info_box += '<div class="info-box-bottom">'+clip_string(user.name, 25)+'</div>';
     get_object('user-info').innerHTML = info_box;
 
-    if (vars.user.admin){
+    if (user.admin){
         get_object('admin-button').style.display = "block";
     } else {
         get_object('admin-button').style.display = "none";
     }
+
+    vars.user = user;
 
     if (vars.next_action !== null){
         vars.next_action();

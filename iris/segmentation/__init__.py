@@ -18,7 +18,7 @@ from sklearn.model_selection import train_test_split
 import yaml
 
 from iris.user import requires_auth
-from iris.models import db, Image, User, Mask
+from iris.models import db, Image, User, Action
 from iris.project import project
 
 segmentation_app = flask.Blueprint(
@@ -128,15 +128,15 @@ def merge_masks(image_id):
         if user is None:
             continue
 
-        mask = Mask.query.filter_by(creator=user, image=image).first()
-        if not mask:
-            mask = Mask(creator=user, image=image)
-        mask.score = int((final_masks[..., u]==final_mask).sum())
-        mask.score_pending = len(users) < 3
+        action = Action.query.filter_by(user=user, image=image, type="segmentation").first()
+        if not action:
+            action = Action(creator=user, image=image, type="segmentation")
+        action.score = int((final_masks[..., u]==final_mask).sum())
+        action.score_pending = len(users) < 3
 
-    total_agreement = \
-        np.take_along_axis(class_votes, winner_indices[..., np.newaxis], axis=-1).sum()
-    image.segmentation_agreement = total_agreement / class_votes.sum()
+    # total_agreement = \
+    #     np.take_along_axis(class_votes, winner_indices[..., np.newaxis], axis=-1).sum()
+    # image.segmentation_agreement = total_agreement / class_votes.sum()
     db.session.commit()
 
     final_mask = encode_mask(
@@ -205,11 +205,11 @@ def save_masks(image_id, final_mask, user_mask):
         db.session.add(image)
 
     user = User.query.get(project.user_id)
-    mask = Mask.query.filter_by(creator=user, image=image).first()
-    if not mask:
-        mask = Mask(creator=user, image=image)
-    mask.last_modification = datetime.utcnow()
-    db.session.add(mask)
+    action = Action.query.filter_by(user=user, image=image, type="segmentation").first()
+    if not action:
+        action = Action(user=user, image=image, type="segmentation")
+    action.last_modification = datetime.utcnow()
+    db.session.add(action)
     db.session.commit()
 
 @segmentation_app.route('/load_mask/<image_id>')

@@ -114,6 +114,8 @@ async function logout(next=null){
 
     if (next !== null){
         next();
+    } else {
+        logout_finished();
     }
 }
 
