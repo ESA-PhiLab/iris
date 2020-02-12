@@ -72,6 +72,15 @@ class Image(JsonSerializable, db.Model):
     actions = db.relationship(
         'Action', backref='image', lazy='dynamic'
     )
+    def to_json(self):
+        data = super().to_json()
+        data['n_segmentations'] = \
+            Action.query.filter_by(image=self, type='segmentation').count()
+        data['n_classifications'] = \
+            Action.query.filter_by(image=self, type='classification').count()
+        data['n_detections'] = \
+            Action.query.filter_by(image=self, type='detection').count()
+        return data
 
 class Action(JsonSerializable, db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -85,6 +94,7 @@ class Action(JsonSerializable, db.Model):
     time_spent = db.Column(db.Interval, default=timedelta())
     score = db.Column(db.Integer, default=0)
     score_pending = db.Column(db.Boolean, default=True)
+    active = db.Column(db.Boolean, default=True)
 
     def __repr__(self):
         return f'<Action user={self.user_id}, image={self.image_id}, score={self.score}>'

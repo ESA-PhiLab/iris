@@ -9,7 +9,7 @@
 </head>
 
 <body>
-    <h2 style="margin-bottom: -20px;">User: {{user.name}}<h2>
+    <h2 style="margin-bottom: -20px;">{{user.name}}<h2>
     {% if user.id == current_user.id %}
         <span class="tag">this is you</span>
     {% endif %}

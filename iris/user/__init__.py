@@ -1,6 +1,7 @@
 from functools import wraps
 import json
 import random
+from os.path import dirname, join
 
 import flask
 from sqlalchemy import func
@@ -65,7 +66,9 @@ def get(user_id):
 
     current_user_id = flask.session['user_id']
     if current_user_id == user_id or User.query.get(current_user_id).admin:
-        # Only an admin or the user themselves can see other's user data:
+        # Only an admin or the user themselves can see the full data:
+        json_user['config'] = project.get_user_config()
+
         return json_user
     else:
         del json_user['email']
@@ -107,6 +110,34 @@ def show(user_id):
             'user/show.html', user=user_json,
             current_user=current_user.to_json()
         )
+
+@user_app.route('/config', methods=['GET'])
+@requires_auth
+def config():
+    user_config = project.get_user_config()
+
+    try:
+        return flask.render_template(
+            'user/config.html', project=project.config,
+            config=user_config
+        )
+    except:
+        print('User config failed so fall back to default config!')
+
+    user_config = project.get_user_config(default=True)
+
+    return flask.render_template(
+        'user/config.html', project=project.config, config=user_config,
+        error=True,
+    )
+
+@user_app.route('/save_config', methods=['POST'])
+@requires_auth
+def save_config():
+    user_config = json.loads(flask.request.data)
+    project.save_user_config(user_config)
+    return flask.make_response('Saved user config successfully!')
+
 
 @user_app.route('/register', methods=['POST'])
 def register():

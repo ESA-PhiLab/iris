@@ -90,6 +90,9 @@ class Project:
             view['description'] = flask.Markup(view.get('description', view['name']))
             view['type'] = view.get('type', 'rgb')
 
+        for klass in self.config['classes']:
+            klass['css_colour'] = f'rgba({str(klass["colour"])[1:-1]})'
+
     def __getitem__(self, key):
         return self.config[key]
 
@@ -108,8 +111,9 @@ class Project:
                     self['path'], 'segmentation', '{id}', 'mask.npy'
                 )
 
-        # create the project path
+        # create the project path and the user configuration path
         os.makedirs(self['path'], exist_ok=True)
+        os.makedirs(join(self['path'], 'user_config'), exist_ok=True)
 
         # Make all paths absolute:
         self['images']['path'] = self.make_absolute(self['images']['path'])
@@ -208,6 +212,20 @@ class Project:
     def get_thumbnail(self, image_id):
         filename = self['files'][image_id]['thumbnail']
         return imread(filename)
+
+    def get_user_config(self, default=False):
+        filename = join(self['path'], 'user_config', f'{self.user_id}.json')
+        if not exists(filename) or default:
+            filename = join(dirname(__file__), 'user/default_config.json')
+
+        with open(filename, 'r') as stream:
+            return json.load(stream)
+
+    def save_user_config(self, user_config):
+        filename = join(self['path'], 'user_config', f'{self.user_id}.json')
+
+        with open(filename, 'w') as stream:
+            json.dump(user_config, stream)
 
     def get_next_image(self, image_id):
         original_index = self.config['file_ids'].index(image_id);

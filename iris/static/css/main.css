@@ -6,6 +6,7 @@ body {
 
 button,.button {
   background-color: #ffffff;
+  outline: none;
   border: 2px;
   border-style: solid;
   border-radius: 4px;
@@ -39,6 +40,7 @@ button,.button {
 
 .toolbutton,.inactive-toolbutton,.statusbutton,.inactive-statusbutton {
   background-color: #ffffff;
+  outline: none;
   border: 2px;
   border-style: solid;
   border-radius: 4px;
@@ -112,6 +114,10 @@ button:hover,.button:hover,.toolbutton:hover,.statusbutton:hover{
     background-color: #dddddd;
 }
 
+.checked:hover{
+    background-color: #dddddd;
+}
+
 .checked {
     background-color: #ababab;
 }
@@ -148,8 +154,49 @@ button:hover,.button:hover,.toolbutton:hover,.statusbutton:hover{
     font-weight: normal;
 }
 
+.slider {
+    /* width: 200px; */
+    font-size: 15px;
+}
+
+.slider-value{
+    font-size: 20px;
+    font-weight: bold;
+    text-align: center;
+}
+
+.slider-widget{
+  -webkit-appearance: none;  /* Override default CSS styles */
+  appearance: none;
+  width: 100%; /* Full-width */
+  height: 12px; /* Specified height */
+  background: #fff; /* Grey background */
+  outline: none; /* Remove outline */
+  border: 1px solid black;
+  /* margin-left: 2px;
+  margin-right: 2px; */
+}
+
+/* The slider handle (use -webkit- (Chrome, Opera, Safari, Edge) and -moz- (Firefox) to override default look) */
+.slider-widget::-webkit-slider-thumb {
+  -webkit-appearance: none; /* Override default look */
+  appearance: none;
+  width: 12px; /* Set a specific slider handle width */
+  height: 12px; /* Slider handle height */
+  background: #000; /* Green background */
+  cursor: pointer; /* Cursor on hover */
+}
+
+.slider-widget::-moz-range-thumb {
+  width: 12px; /* Set a specific slider handle width */
+  height: 12px; /* Slider handle height */
+  background: #000; /* Green background */
+  cursor: pointer; /* Cursor on hover */
+}
+
+
 table {
-  width: 100%;
+  /* width: 100%; */
   border-collapse: collapse;
   border-style: hidden;
   margin: 2px 2px;
@@ -206,7 +253,7 @@ td.upper-left {
 /* Style the tab content */
 .tabcontent {
   display: none;
-  padding: 6px 12px;
+  padding: 12px 12px;
   border: 1px solid #000;
   border-top: none;
   overflow: auto;
@@ -234,7 +281,7 @@ td.upper-left {
  color: #000;
  font-weight: bold;
  cursor: pointer;
- padding: 14px 16px;
+ padding: 14px 18px;
  font-size: 16px;
  /* width: 95%; */
  text-align: left;
@@ -267,7 +314,7 @@ td.upper-left {
 
 /* Style the accordion panel. Note: hidden by default */
 .panel {
- padding: 0 18px;
+ padding: 18px;
  background-color: white;
  display: none;
  overflow: hidden;
@@ -302,4 +349,18 @@ td.upper-left {
 
 .tooltip:hover .tooltiptext {
   visibility: visible;
+}
+
+.progress-bar {
+  background-color: #fff;
+  border: 2px solid black;
+}
+
+.progress {
+  text-align: right;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  padding-right: 10px;
+  background-color: black;
+  color: white;
 }

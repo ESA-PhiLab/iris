@@ -56,17 +56,22 @@ def actions(type):
         {**action.to_json(), 'username': action.user.name}
         for action in actions
     ]
+    image_stats = {
+        "processed": len(set(action.image_id for action in actions)),
+        "total": len(project['files'])
+    }
 
-    return flask.render_template('admin/actions.html', actions=actions_json)
+    return flask.render_template(
+        'admin/actions.html', actions=actions_json,
+        image_stats=image_stats
+    )
 
 @admin_app.route('/images', methods=['GET'])
 @requires_admin
 def images():
     images = Image.query.all()
-    images_json = [
-        {**image.to_json(),
-        'n_segmentation_masks': Mask.query.filter_by(image=image).count()}
-        for image in images
-    ]
+    images_json = [image.to_json() for image in images]
 
-    return flask.render_template('admin/images.html', images=images_json)
+    return flask.render_template(
+        'admin/images.html', images=images_json,
+    )

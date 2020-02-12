@@ -11,6 +11,37 @@ async function dialogue_user(label_mode){
     show_dialogue("info", content, false, title="User information");
 }
 
+async function dialogue_config(){
+    let response = await fetch(vars.url.user+'config');
+    let content = await response.text();
+
+    show_dialogue("info", content, false, title="Preferences");
+}
+
+async function dialogue_config_save(){
+    user_config = {
+        "segmentation": {
+            "n_estimators": parseInt(get_object('dcs-n_estimators').value),
+            "max_depth": parseInt(get_object('dcs-max_depth').value),
+            "n_leaves": parseInt(get_object('dcs-n_leaves').value),
+            "train_ratio": get_object('dcs-train_ratio').value / 100,
+            "max_train_pixels": parseInt(get_object('dcs-max_train_pixels').value),
+            "include_context": get_object('dcs-include_context').checked,
+            "detect_edges": get_object('dcs-detect_edges').checked,
+            "suppression_filter_size": parseInt(get_object('dcs-suppression_filter_size').value),
+            "suppression_threshold": parseInt(get_object('dcs-suppression_threshold').value),
+            "suppression_default_class": parseInt(get_object('dcs-suppression_default_class').value)
+        }
+    }
+
+    vars.config = user_config;
+
+    fetch(vars.url.user+'save_config', {
+        method: "POST",
+        body: JSON.stringify(user_config)
+    })
+}
+
 function dialogue_login(){
     let content = `
     <table style="border: 0px;">
@@ -25,7 +56,7 @@ function dialogue_login(){
     </table>
     <p style="color: red; font-weight: bold;" id="login-error"></p>
     <button onclick="login();">Login</button>
-    <button onclick="dialogue_register();">Register</button>
+    <button onclick="dialogue_register();">I have no account yet</button>
 `;
     show_dialogue("info", content, true, title="Login");
 }
@@ -74,7 +105,7 @@ function dialogue_register(){
     </table>
     <p style="color: red; font-weight: bold;" id="register-error"></p>
     <button onclick="register();">Register</button>
-    <button onclick="dialogue_login();">Login</button>
+    <button onclick="dialogue_login();">I have already an account</button>
 `;
     show_dialogue("info", content, true, title="Register");
 }

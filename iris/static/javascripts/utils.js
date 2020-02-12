@@ -22,9 +22,33 @@ function createUint8Array(length) {
     return arr;
 }
 
-function shuffleArray(array) {
+function RNG(seed) {
+  // LCG using GCC's constants
+  this.m = 0x80000000; // 2**31;
+  this.a = 1103515245;
+  this.c = 12345;
+
+  this.state = seed ? seed : Math.floor(Math.random() * (this.m - 1));
+}
+RNG.prototype.nextInt = function() {
+  this.state = (this.a * this.state + this.c) % this.m;
+  return this.state;
+}
+RNG.prototype.random = function() {
+  // returns in range [0,1]
+  return this.nextInt() / (this.m - 1);
+}
+RNG.prototype.nextRange = function(start, end) {
+  // returns in range [start, end): including start, excluding end
+  // can't modulu nextInt because of weak randomness in lower bits
+  var rangeSize = end - start;
+  var randomUnder1 = this.nextInt() / this.m;
+  return start + Math.floor(randomUnder1 * rangeSize);
+}
+
+RNG.prototype.shuffle = function shuffle(array) {
     for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
+        const j = Math.floor(this.random() * (i + 1));
         [array[i], array[j]] = [array[j], array[i]];
     }
 }
@@ -81,13 +105,13 @@ function clip_string(string, max_length){
 
 function nice_number(number){
     var suffix = "";
-    if (number > 1000000000){
+    if (Math.abs(number) > 1000000000){
         number /= 1000000000;
         suffix = "g";
-    } else if (number > 1000000){
+    } else if (Math.abs(number) > 1000000){
         number /= 1000000;
         suffix = "m";
-    } else if (number > 1000){
+    } else if (Math.abs(number) > 1000){
         number /= 1000;
         suffix = "k";
     } else {

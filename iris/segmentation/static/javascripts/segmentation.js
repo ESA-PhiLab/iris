@@ -257,7 +257,7 @@ async function fetch_user_info(){
 
     if (vars.user !== null && vars.user.id == user.id){
         // Check how much the score changed in comparison to the last time:
-        let score_change = nice_number(user.segmentation.score - vars.user.segmentation.score);
+        let score_change = user.segmentation.score - vars.user.segmentation.score;
 
         if (score_change){
             score_change = nice_number(score_change);
@@ -268,7 +268,7 @@ async function fetch_user_info(){
                 colour = "green";
             }
 
-            info_box += '<span style="position: absolute; right: -10px; top: -25px;" class="tag '+colour+'">'+score_change+'</span>';
+            info_box += '<span style="position: absolute; right: -10px; top: -25px; align-text: right;" class="tag '+colour+'">'+score_change+'</span>';
         }
     }
 
@@ -283,6 +283,7 @@ async function fetch_user_info(){
     }
 
     vars.user = user;
+    vars.config = user.config;
 
     if (vars.next_action !== null){
         vars.next_action();
@@ -1157,78 +1158,6 @@ async function dialogue_help(){
     show_dialogue("info", content, false, title="Help");
 }
 
-function dialogue_config(){
-    let content = `
-    <div class="tab">
-      <button class="tablinks checked" onclick="open_tab(this, 'config', 'config-ai')">AI</button>
-    </div>
-`;
-
-    content += `
-    <div id='config-ai' class='iris-tabs-config tabcontent' style='display: block;'>
-    <table style='border: none;'>
-        <tr>
-            <td>Number of estimators:</td>
-            <td><span id="dca_out_1">${vars.ai.n_estimators}</span>
-            <td>
-
-                50<input id="dca-n_estimators" type="range" min="50" max="200" value="${vars.ai.n_estimators}" oninput="dca_out_1.innerHTML = this.value">200
-            </td>
-        </tr><tr>
-            <td>Maximal depth:</td>
-            <td><span id="dca_out_2">${vars.ai.max_depth}</span></td>
-            <td>
-
-                10<input id="dca-max_depth" type="range" min="10" max="100" value="${vars.ai.max_depth}" oninput="dca_out_2.innerHTML = this.value">100
-            </td>
-        </tr><tr>
-            <td>Number of leaves:</td>
-            <td><span id="dca_out_3">${vars.ai.n_leaves}</span></td>
-            <td>
-                10<input id="dca-n_leaves" type="range" min="10" max="100" value="${vars.ai.n_leaves}" oninput="dca_out_3.innerHTML = this.value">100
-        </td>
-        </tr>
-        </tr><tr>
-            <td>Train ratio:</td>
-            <td><span id="dca_out_4">${vars.ai.train_ratio*100}</span>%</td>
-            <td>
-                10<input id="dca-train_ratio" type="range" min="10" max="100" value="${vars.ai.train_ratio*100}" oninput="dca_out_4.innerHTML = this.value">100
-            </td>
-        </tr>
-        </tr><tr>
-            <td>Max. number of training pixels per class:</td>
-            <td><span id="dca_out_5">${vars.ai.max_train_pixels}</span></td>
-            <td>
-                100<input id="dca-max_train_pixels" type="range" min="100" max="50000" value="${vars.ai.max_train_pixels}" oninput="dca_out_5.innerHTML = nice_number(this.value);">50000
-            </td>
-        </tr><tr>
-            <td>Include context?</td>
-            <td><input id="dca-include_context" type="checkbox" ${vars.ai.include_context ? "checked" : ""}></td>
-            <td></td>
-        </tr>
-    </table>
-    </div>
-`;
-
-    content += `
-    <p>
-        <button onclick="dialogue_config_save();">Save</button>
-        <button onclick="hide_dialogue();">Close</button>
-    </p>
-`;
-
-    show_dialogue("info", content, false, title="Preferences");
-}
-
-function dialogue_config_save(){
-    vars.ai.n_estimators = parseInt(get_object('dca-n_estimators').value);
-    vars.ai.max_depth = parseInt(get_object('dca-max_depth').value);
-    vars.ai.n_leaves = parseInt(get_object('dca-n_leaves').value);
-    vars.ai.train_ratio = get_object('dca-train_ratio').value / 100;
-    vars.ai.max_train_pixels = parseInt(get_object('dca-max_train_pixels').value);
-    vars.ai.include_context = get_object('dca-include_context').checked;
-}
-
 async function load_mask(){
     show_loader("Loading masks...");
 
@@ -1280,6 +1209,9 @@ async function download(url, init=null, html_object=null){
     }
 
     if (response.status >= 400){
+        if (results.response.status == 403) {
+            dialogue_login();
+        }
         return {
             "response": response,
             "data": null
@@ -1320,8 +1252,19 @@ async function download(url, init=null, html_object=null){
     };
 }
 
+function activate_mask(){
+    /*If the user thinks this mask is not yet good enough*/
+
+}
+
+function deactivate_mask(){
+    /*If the user thinks this mask is not yet good enough*/
+
+}
+
 function save_mask(call_afterwards=null){
     // Do not save any masks if they have not been loaded yet
+    let abort_save = false;
     if (vars.mask === null || vars.user_mask === null){
         if(call_afterwards !== null){
           call_afterwards();
@@ -1399,7 +1342,8 @@ async function predict_mask(){
 
     // Sample training points (we do not want to train the model on all points):
     let all_indices = Array(all_user_pixels.length).fill().map((_, i) => i);
-    shuffleArray(all_indices);
+    var rng = new RNG(42);
+    rng.shuffle(all_indices);
 
     // We need to keep track of how many pixels we already have sampled.
     // Furthermore, we keep also a ratio of pixels as testing dataset:
@@ -1409,8 +1353,8 @@ async function predict_mask(){
         n_samples[user_class] = {
             "current": 0,
             "max": Math.min(
-                round_number(vars.n_user_pixels[user_class]*vars.ai.train_ratio),
-                vars.ai.max_train_pixels
+                round_number(vars.n_user_pixels[user_class]*vars.config.segmentation.train_ratio),
+                vars.config.segmentation.max_train_pixels
             )
         };
     }
@@ -1432,13 +1376,6 @@ async function predict_mask(){
         }
     }
 
-    let ai_config = {
-        'n_estimators': vars.ai.n_estimators,
-        'max_depth': vars.ai.max_depth,
-        'n_leaves': vars.ai.n_leaves,
-        'include_context': vars.ai.include_context,
-    };
-
     show_loader("Train AI...");
     let results = await download(
             vars.url.segmentation+"predict_mask/" + vars.image_id,
@@ -1447,7 +1384,6 @@ async function predict_mask(){
                 body: JSON.stringify({
                     "user_pixels": train_user_pixels,
                     "user_labels": train_user_labels,
-                    "ai_config": ai_config,
                 })
             }
         );
@@ -1455,7 +1391,7 @@ async function predict_mask(){
     show_loader("Process results...");
     if (results.response.status !== 200) {
         hide_loader();
-        console.log("Could not predict the mask! Code: " + response.status);
+        console.log("Could not predict the mask! Code: " + results.response.status);
         show_dialogue(
             "error",
             "<p>Could not predict the mask due to a server problem!</p>"

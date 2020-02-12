@@ -12,9 +12,11 @@ import flask
 from flask_compress import Compress
 import numpy as np
 from PIL import Image as PILImage
-from scipy.ndimage import minimum_filter, maximum_filter
+from scipy.ndimage import convolve, minimum_filter, maximum_filter
 from skimage.io import imread, imsave
+from skimage.filters import sobel
 from sklearn.model_selection import train_test_split
+from sklearn.metrics import f1_score
 import yaml
 
 from iris.user import requires_auth
@@ -130,8 +132,10 @@ def merge_masks(image_id):
 
         action = Action.query.filter_by(user=user, image=image, type="segmentation").first()
         if not action:
-            action = Action(creator=user, image=image, type="segmentation")
-        action.score = int((final_masks[..., u]==final_mask).sum())
+            action = Action(user=user, image=image, type="segmentation")
+        action.score = round(100 * f1_score(
+            final_mask.ravel(), final_masks[..., u].ravel(), average='macro'
+        ))
         action.score_pending = len(users) < 3
 
     # total_agreement = \
@@ -297,25 +301,30 @@ def predict_mask(image_id):
         ),
         slice(None, None, None)
     )
+    mask_size = \
+        project['segmentation']['mask_shape'][0] \
+        * project['segmentation']['mask_shape'][1]
     image = image[mask_area]
 
     data = json.loads(flask.request.data)
     user_indices = np.array(data['user_pixels'])
     user_labels = np.array(data['user_labels'])
-    ai_config = data['ai_config']
+    config = project.get_user_config()['segmentation']
 
-    print('Fit options:', ai_config)
+    print('Fit options:', config)
 
-    if ai_config['include_context']:
-        # Reshape the image for the filter functions:
-        image_min = minimum_filter(image, 7).reshape(-1, n_channels)
-        image_max = maximum_filter(image, 7).reshape(-1, n_channels)
+    inputs = [image]
+    if config['detect_edges']:
+        edges = np.dstack([
+            sobel(image[..., i])
+            for i in range(n_channels)
+        ])
+        inputs.append(edges)
 
-        inputs = np.concatenate(
-            [image.reshape(-1, n_channels), image_min, image_max], axis=-1
-        )
-    else:
-        inputs = image.reshape(-1, n_channels)
+    if config['include_context']:
+        ...
+
+    inputs = np.dstack(inputs).reshape(mask_size, -1)
 
     train_indices, val_indices, train_labels, val_labels = train_test_split(
         user_indices, user_labels, stratify=user_labels,
@@ -323,33 +332,46 @@ def predict_mask(image_id):
     )
 
     gbm = lgb.LGBMClassifier(
-        num_leaves=ai_config['n_leaves'],
+        num_leaves=config['n_leaves'],
         max_bin=128,
-        max_depth=ai_config['max_depth'],
+        max_depth=config['max_depth'],
         # min_data_in_leaf=1000,
         # bagging_fraction=0.2,
         # boosting_type='dart',
         tree_learner='data',
         learning_rate=0.05,
-        n_estimators=ai_config['n_estimators'],
+        n_estimators=config['n_estimators'],
         silent=True,
         n_jobs=10,
     )
-    t = time.time()
     gbm.fit(
         inputs[train_indices, :], train_labels,
         eval_set=[(inputs[val_indices, :], val_labels)],
         early_stopping_rounds=4, verbose=0
     )
-    print('Fit:', t - time.time())
 
     # predict the mask for the whole image:
-    t = time.time()
     predictions = gbm.predict(
-            inputs, num_iteration=gbm.best_iteration_
-        ).astype(np.uint8)
-    print('Predict:', t - time.time())
+        inputs, num_iteration=gbm.best_iteration_
+    )
+    predictions = predictions.astype(np.uint8)
 
+    # Apply suppression filter:
+    if config['suppression_threshold'] != 0:
+        other_classes = (predictions != config['suppression_default_class']).astype(int)
+        other_classes = other_classes.reshape(
+            *project['segmentation']['mask_shape']
+        )
+        window_size = config['suppression_filter_size']
+        window = np.ones((window_size, window_size))
+        window[window_size//2, window_size//2] = 0
+        neighbourhood_ratio = convolve(
+            other_classes, window, mode='constant', cval=0.5
+        ) / (window_size**2 - 1)
+        suppress = 100 * neighbourhood_ratio.ravel() < config['suppression_threshold']
+        predictions[suppress] = config['suppression_default_class']
+
+    # Return the results:
     response = flask.make_response(
         predictions.tobytes()
     )
