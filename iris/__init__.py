@@ -4,6 +4,7 @@ from getpass import getpass
 from os.path import basename, dirname, exists, isabs, join
 import os
 import sys
+import webbrowser
 
 import flask
 from flask_sqlalchemy import SQLAlchemy
@@ -49,6 +50,7 @@ def parse_cmd_line():
     return vars(args)
 
 def run_app():
+    # webbrowser.open('http://localhost:5000/segmentation')
     app.run(debug=True)
 
 def create_app(project_file):

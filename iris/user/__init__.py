@@ -96,6 +96,11 @@ def show(user_id):
     usernames, scores = zip(*top_users)
 
     user_json['segmentation']['rank'] = usernames.index(user.name) + 1
+    user_json['segmentation']['last_masks'] = Action.query \
+        .filter_by(user=user, type="segmentation") \
+        .order_by(Action.last_modification.desc()) \
+        .limit(10) \
+        .all()
 
     current_user_id = flask.session['user_id']
     if current_user_id == user_id:

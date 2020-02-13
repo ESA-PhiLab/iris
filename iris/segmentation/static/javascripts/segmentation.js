@@ -1074,7 +1074,20 @@ async function dialogue_image(){
             for (const attribute in metadata){
                 content += '<tr>';
                 content += '<td>'+attribute+'</td>';
-                content += '<td>'+metadata[attribute]+'</td>';
+
+                if (attribute == "location"){
+                    let location = metadata[attribute]
+                                    .replace('[', '')
+                                    .replace(']', '')
+                                    .replace(' ', '')
+
+                    content += '<td><a target="_blank" href="https://www.google.com/maps/search/?api=1&query='+location+'">';
+                    content += metadata[attribute]+'</a></td>';
+                } else {
+                    content += '<td>'+metadata[attribute]+'</td>';
+                }
+
+
                 content += '</tr>';
             }
             content += '</table>';
