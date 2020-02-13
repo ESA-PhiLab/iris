@@ -2,7 +2,7 @@
 <sup>1</sup>Yes, it is a <a href="https://en.wikipedia.org/wiki/Backronym">backronym</a>.
 **Work in progress.**
 
-<img src="preview/1.png" />
+<img src="preview/segmentation.png" />
 
 Tool for manual image segmentation and classification of satellite imagery (or images in general). It was designed to accelerate the creation of machine learning training datasets for Earth Observation. This application is a flask app which can be run locally. Special highlights:
 * Support by AI (gradient boosted decision tree) when doing image segmentation
@@ -31,7 +31,7 @@ This should install all necessary python packages automatically.
 ## Usage
 
 You can start IRIS in two different modes:
-1) **label:** This will open a local browser application which helps you to perform manual segmentation of the images in your project. You will need a configuration file for this. Have a look at the example folder for inspiration. After setting up the configuration file, start IRIS like this: `iris label PROJECT_FILE` and open `http://localhost:5000` with your browser (chrome or firefox).
+1) **label:** This will open a local browser application which helps you to perform manual segmentation of the images in your project. You will need a project file for this. Have a look at the demo folder or at the documentation below in this document for inspiration. After setting up the project file, start IRIS like this: `iris label PROJECT_FILE` and open `http://localhost:5000` with your browser (chrome or firefox).
 
 2) **demo:** Keen on trying out iris without any setup? Try `iris demo` and have fun with the demo by open `http://localhost:5000` with your browser (chrome or firefox). 
 
@@ -40,7 +40,7 @@ You can start IRIS in two different modes:
 ### Label interface
 
 ### Project file
-Before you can use IRIS, you have to provide a configurations file for your project (must be in yaml or json format). See [here](examples/example-config.json) for an example.
+Before you can use IRIS, you have to provide a project file for your project (must be in yaml or json format). See [here](demo/cloud-segmentation.json) for an example.
 
 The table below shows different options for the configurations:
 
