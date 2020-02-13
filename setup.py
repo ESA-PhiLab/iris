@@ -25,6 +25,6 @@ setup(
         'lightgbm',
         'scipy',
         'scikit-image',
-        'validation_email'
+        'validate_email'
     ],
 )
