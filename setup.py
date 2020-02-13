@@ -7,7 +7,7 @@ setup(
     package_data={
         "iris": [
             "demo/*", "demo/images/*", "demo/images/coast/*",
-            "demo/images/mountain/*",
+            "demo/images/mountains/*",
             "templates/*", "static/css/*",
             "static/icons/*", "static/javascripts/*",
             "admin/templates/*", "admin/static/css/*",

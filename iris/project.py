@@ -3,7 +3,7 @@
 """
 from glob import glob
 import os
-from os.path import basename, dirname, exists, isabs, join
+from os.path import basename, dirname, exists, isabs, join, normpath
 import re
 
 import flask
@@ -154,11 +154,17 @@ class Project:
             return path
 
         if not isabs(path):
-            return join(dirname(self.file), path)
+            return normpath(join(dirname(self.file), path))
 
     def _get_file_paths(self, image_path):
         try:
-            image_id = self._re_images.match(image_path).groups()[0]
+            match = self._re_images.match(image_path)
+            if match is None:
+                raise Exception(
+                    f'[ERROR] Could not extract id\nfrom path"{image_path}"\nwith regex "{self._re_images}"!'
+                )
+            image_id = match.groups()[0]
+
             files = {
                 'image': image_path,
             }
