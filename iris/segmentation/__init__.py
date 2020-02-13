@@ -394,22 +394,8 @@ def predict_mask(image_id):
 
 @segmentation_app.route('/load_image/<image_id>/<int:view>')
 def load_image(image_id, view):
-    image = project.get_image(image_id)
-    user_image = parse_channels(
-        project['views'][view]['channels'], image
-    )
-    return array_to_png(user_image)
-
-def parse_channels(channels, image):
-    environment = {f"B{i+1}": image[..., i] for i in range(image.shape[-1])}
-    environment['np'] = np
-
-    user_bands = [
-        eval(channel, dict(), environment)
-        for channel in channels
-    ]
-
-    return np.moveaxis(np.stack(user_bands), 0, -1)
+    image = project.get_image(image_id, project['views'][view]['channels'])
+    return array_to_png(image)
 
 @segmentation_app.route('/load_metadata/<image_id>', methods=['GET'])
 def load_metadata(image_id):

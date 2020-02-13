@@ -1185,7 +1185,7 @@ async function load_mask(){
     );
 
     if (results.response.status != 200 && results.response.status != 404) {
-        let error = await response.text();
+        let error = await results.response.text();
         show_dialogue(
             "error",
             "Could not load the mask from the server!" + error
@@ -1228,7 +1228,7 @@ async function download(url, init=null, html_object=null){
     }
 
     if (response.status >= 400){
-        if (results.response.status == 403) {
+        if (response.status == 403) {
             dialogue_login();
         }
         return {

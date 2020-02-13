@@ -192,13 +192,32 @@ class Project:
     def get_start_image(self):
         return self['file_ids'][self.image_indices[0]]
 
-    def get_image(self, image_id):
+    def get_image(self, image_id, channels=None):
         filename = self['files'][image_id]['image']
 
         if filename.endswith('npy'):
-            return np.load(filename)
+            array = np.load(filename)
         else:
-            return imread(filename)
+            array = imread(filename)
+
+        if channels is not None:
+            array = self.parse_channels(array, channels)
+
+        if issubclass(array.dtype.type, np.floating):
+            array = np.clip(array * 255., 0, 255).astype('uint8')
+
+        return array
+
+    def parse_channels(self, image, channels):
+        environment = {f"B{i+1}": image[..., i] for i in range(image.shape[-1])}
+        environment['np'] = np
+
+        user_bands = [
+            eval(channel, {"__builtins__": None}, environment)
+            for channel in channels
+        ]
+
+        return np.moveaxis(np.stack(user_bands), 0, -1)
 
     def get_metadata(self, image_id):
         filename = self['files'][image_id].get('metadata', False)

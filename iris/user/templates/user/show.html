@@ -31,25 +31,27 @@
             <tr><td>Pending score:</td><td>{{user.segmentation.score_pending}}</td></tr>
             <tr><td>Labelled images:</td><td>{{user.segmentation.n_masks}}</td></tr>
         </table>
-        <h3>Last segmentation masks</h3>
-        <table style="width:100%">
-            <tr>
-                <th>Image</th>
-                <th>Score</th>
-                <th>Last modification</th>
-                <th>Time spent</th>
-            </tr>
-            {% for mask in user.segmentation.last_masks %}
-            <tr>
-                <td>{{mask.image_id}}</td>
-                <td>{{mask.score}}
-                    {% if mask.score_pending %}<span class="tag">pending</span>{% endif %}
-                </td>
-                <td>{{mask.last_modification}}</td>
-                <td>{{mask.time_spent}}</td>
-            </tr>
-            {% endfor %}
-        </table>
+        {% if user.segmentation.last_masks %}
+            <h3>Last segmentation masks</h3>
+            <table style="width:100%">
+                <tr>
+                    <th>Image</th>
+                    <th>Score</th>
+                    <th>Last modification</th>
+                    <th>Time spent</th>
+                </tr>
+                {% for mask in user.segmentation.last_masks %}
+                <tr>
+                    <td>{{mask.image_id}}</td>
+                    <td>{{mask.score}}
+                        {% if mask.score_pending %}<span class="tag">pending</span>{% endif %}
+                    </td>
+                    <td>{{mask.last_modification}}</td>
+                    <td>{{mask.time_spent}}</td>
+                </tr>
+                {% endfor %}
+            </table>
+        {% endif %}
     </div>
 
     <div class="accordion" onclick="toogle_display(this);">Classification</div>

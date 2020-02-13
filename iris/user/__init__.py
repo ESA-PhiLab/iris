@@ -92,10 +92,10 @@ def show(user_id):
         .group_by(User.name)
         .order_by(total_score.desc())
     ).all()
+    if top_users:
+        usernames, scores = zip(*top_users)
+        user_json['segmentation']['rank'] = usernames.index(user.name) + 1
 
-    usernames, scores = zip(*top_users)
-
-    user_json['segmentation']['rank'] = usernames.index(user.name) + 1
     user_json['segmentation']['last_masks'] = Action.query \
         .filter_by(user=user, type="segmentation") \
         .order_by(Action.last_modification.desc()) \
