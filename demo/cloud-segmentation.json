@@ -43,11 +43,6 @@
   ],
   "views": [
     {
-    "name": "Cirrus",
-    "description": "High snowy or icy mountain regions and high clouds are <b>white</b>.",
-    "channels": ["B11*100", "B11*100", "B11*100"]
-    },
-    {
       "name": "RGB",
       "description": "Normal RGB image.",
       "channels": ["B5", "B3", "B2"]

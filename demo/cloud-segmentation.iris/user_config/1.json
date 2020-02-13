@@ -1,0 +1,1 @@
+{"segmentation": {"n_estimators": 100, "max_depth": 30, "n_leaves": 30, "train_ratio": 0.8, "max_train_pixels": 20000, "include_context": true, "detect_edges": true, "suppression_filter_size": 5, "suppression_threshold": 36, "suppression_default_class": 0}}

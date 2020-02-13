@@ -31,7 +31,21 @@ segmentation_app = flask.Blueprint(
 
 @segmentation_app.route('/', methods=['GET'])
 def index():
-    image_id = flask.request.args.get('image_id', project.get_start_image())
+    image_id = flask.request.args.get('image_id', None)
+
+    if image_id is None:
+        image_id = project.get_start_image()
+
+        user_id = flask.session.get('user_id', None)
+        if user_id:
+            # Get the mask that the user worked on the last time
+            last_mask = Action.query \
+                .filter_by(user_id=user_id) \
+                .order_by(Action.last_modification.desc()) \
+                .first()
+
+            if last_mask is not None:
+                image_id = last_mask.image_id
 
     return flask.render_template(
         'segmentation.html',

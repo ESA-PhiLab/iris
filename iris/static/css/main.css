@@ -357,10 +357,9 @@ td.upper-left {
 }
 
 .progress {
-  text-align: right;
+  text-align: center;
   padding-top: 10px;
   padding-bottom: 10px;
-  padding-right: 10px;
   background-color: black;
   color: white;
 }

@@ -25,7 +25,7 @@ let commands = {
         "key": "W", "description": "Pan your current view by dragging and moving the cursor",
     },
     'tool_reset_views': {
-        "description": "Reset the view in the canvases",
+        "key": "Z", "description": "Reset the view in the canvases",
     },
     'tool_draw': {
         "key": "D", "description": "Draw pixels on the mask",
@@ -54,9 +54,6 @@ let commands = {
     // "mask_highlight_edges": {
     //     "key": "B", "description": "Highlight edges on the masks",
     // },
-    "zoom": {
-        "key": "Z", "description": "Toggle zoom on/off",
-    },
     "toggle_contrast": {
         "key": "C", "description": "Toggle contrast on/off",
     },
@@ -79,6 +76,12 @@ let commands = {
         "description": "Reset all image filters",
     },
 };
+
+// {
+// "name": "Cirrus",
+// "description": "High snowy or icy mountain regions and high clouds are <b>white</b>.",
+// "channels": ["B11*100", "B11*100", "B11*100"]
+// },
 
 function init_segmentation(){
     // Before we start, we check for the login, etc.
@@ -238,7 +241,8 @@ function login_finished(){
 }
 
 function logout_finished(){
-    dialogue_login();
+    save_mask();
+    goto_url(vars.url.segmentation+'?image_id='+vars.image_id);
 }
 
 async function fetch_user_info(){
@@ -344,6 +348,8 @@ function key_down(event){
         set_tool("move");
     } else if (key == "KeyN"){
         dialogue_reset_mask();
+    } else if (key == "KeyZ"){
+        reset_views();
     }
 }
 
