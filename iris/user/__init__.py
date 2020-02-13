@@ -69,10 +69,10 @@ def get(user_id):
         # Only an admin or the user themselves can see the full data:
         json_user['config'] = project.get_user_config()
 
-        return json_user
+        return flask.jsonify(json_user)
     else:
         del json_user['email']
-        return json_user
+        return flask.jsonify(json_user)
 
 @user_app.route('/show/<user_id>', methods=['GET'])
 @requires_auth

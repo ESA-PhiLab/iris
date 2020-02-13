@@ -10,14 +10,6 @@ setup(
             "demo/images/mountains/*",
             "templates/*", "static/css/*",
             "static/icons/*", "static/javascripts/*",
-            "admin/templates/*", "admin/static/css/*",
-            "admin/static/icons/*", "admin/static/javascripts/*",
-            "help/templates/*", "help/static/css/*",
-            "help/static/icons/*", "help/static/javascripts/*",
-            "segmentation/templates/*", "segmentation/static/css/*",
-            "segmentation/static/icons/*", "segmentation/static/javascripts/*",
-            "user/templates/*", "user/static/css/*",
-            "user/static/icons/*", "user/static/javascripts/*"
         ],
     },
     include_package_data=True,
@@ -33,5 +25,6 @@ setup(
         'lightgbm',
         'scipy',
         'scikit-image',
+        'validation_email'
     ],
 )

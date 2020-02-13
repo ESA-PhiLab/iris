@@ -424,7 +424,7 @@ def load_metadata(image_id):
             for k, v in metadata.items()
         }
 
-    return metadata
+    return flask.jsonify(metadata)
 
 @segmentation_app.route('/load_thumbnail/<image_id>')
 def load_thumbnail(image_id):
