@@ -9,6 +9,7 @@ Tool for manual image segmentation and classification of satellite imagery (or i
 * Multiple and configurable views for multispectral imagery
 * Simple setup with pip and one configuration file
 * Platform independent app (runs on Linux, Windows and Mac OS)
+* Multi-user support: work in a team on your dataset and merge the results
 
 <hr />
 
