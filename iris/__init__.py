@@ -17,7 +17,7 @@ from iris.project import project
 
 def get_demo_file(example=None):
     demo_file = join(
-        dirname(__file__), "demo", "cloud-segmentation.json"
+        dirname(dirname(__file__)), "demo", "cloud-segmentation.json"
     )
 
     return demo_file
