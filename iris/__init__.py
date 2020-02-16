@@ -78,7 +78,7 @@ def create_default_admin(app, db):
     if admin is not None:
         return
 
-    if app['TESTING']:
+    if app.config['TESTING']:
         password = '1234'
     else:
         print('Welcome to IRIS! No admin user was detected so please enter a new admin password.')
