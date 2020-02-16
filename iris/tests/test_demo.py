@@ -5,7 +5,7 @@ import requests
 @pytest.mark.usefixtures('live_server')
 class TestLiveServer:
      def test_public_pages(self):
-        response = requests.get(url_for('main.index'))
+        response = requests.get(url_for('main.index', _external=True))
         assert response.status_code == 200
 
 # class DemoTest(LiveServerTestCase):
