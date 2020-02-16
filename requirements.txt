@@ -1,7 +1,6 @@
 flask
 flask_compress
 flask-sqlalchemy
-flask_testing
 numpy==1.17.4
 pyyaml==5.1.2
 lightgbm
