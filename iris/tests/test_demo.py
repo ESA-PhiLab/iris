@@ -6,7 +6,7 @@ from flask import url_for
 @pytest.mark.usefixtures('live_server')
 class TestLiveServer:
      def test_public_pages(self):
-        response = requests.get(self.get_server_url())
+        response = requests.get(url_for('index'))
         assert response.status_code == 200
 
 # class DemoTest(LiveServerTestCase):
