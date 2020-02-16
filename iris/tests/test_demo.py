@@ -5,7 +5,7 @@ import requests
 @pytest.mark.usefixtures('live_server')
 class TestCore:
     def url(self, url=''):
-        return url_for('main.index') + url
+        return url_for('main.index', _external=True) + url
     
     def test_public_pages(self):
         response = requests.get(self.url())
