@@ -1,22 +1,15 @@
+from flask import url_for
+import pytest
 import requests
 
-from flask import Flask
-from flask_testing import LiveServerTestCase
-
-
-class DemoTest(LiveServerTestCase):
-    def create_app(self):
-        from iris import app
-        app.config['TESTING'] = True
-
-        # Set to 0 to have the OS pick the port.
-        app.config['LIVESERVER_PORT'] = 0
-
-        return app
-
+@pytest.mark.usefixtures('live_server')
+class TestCore:
+    def url(self, url=''):
+        return url_for('main.index', _external=True) + url
+    
     def test_public_pages(self):
-        response = requests.get(self.get_server_url())
-        self.assertEqual(response.status_code, 200)
+        response = requests.get(self.url())
+        assert response.status_code == 200
 
     def test_required_authentication(self):
         addresses = [
@@ -30,9 +23,9 @@ class DemoTest(LiveServerTestCase):
             'segmentation/load_mask/1', 'segmentation/save_mask/1',
             'segmentation/predict_mask/1'
         ]
-        for address in map(lambda x: self.get_server_url()+'/'+x, addresses):
+        for address in map(self.url, addresses):
             print("Check", address)
             response = requests.get(address)
             if response.status_code == 405:
                 response = requests.post(address, {})
-            self.assertEqual(response.status_code, 403)
+            assert response.status_code == 403
