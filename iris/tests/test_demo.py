@@ -4,6 +4,9 @@ import requests
 
 @pytest.mark.usefixtures('live_server')
 class TestCore:
+    def url(self, url=''):
+        return url_for('main.index') + url
+    
     def test_public_pages(self):
         response = requests.get(self.url())
         assert response.status_code == 200
