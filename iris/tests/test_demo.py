@@ -11,8 +11,8 @@ class TestCore:
     def test_required_authentication(self):
         addresses = [
             # admin
-            'admin.users', 'admin.images', 'admin.actions.segmentation',
-            'admin.actions.classification', 'admin.actions.detection',
+            'admin.users', 'admin.images', 'admin.actions/segmentation',
+            'admin.actions/classification', 'admin.actions/detection',
             # user
             'user.get/current', 'user.show/current', 'user.config',
             'user.save_config',
