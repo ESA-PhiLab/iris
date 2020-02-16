@@ -50,6 +50,8 @@ def parse_cmd_line():
     return vars(args)
 
 def run_app():
+    create_default_admin(app, db)
+    
     # webbrowser.open('http://localhost:5000/segmentation')
     app.run(debug=True)
 
@@ -78,14 +80,11 @@ def create_default_admin(app, db):
     if admin is not None:
         return
 
-    if app.config['TESTING']:
-        password = '1234'
-    else:
-        print('Welcome to IRIS! No admin user was detected so please enter a new admin password.')
-        password_again = None
-        password = getpass('New admin password: ')
-        while password != password_again:
-            password_again = getpass('Retype admin password: ')
+    print('Welcome to IRIS! No admin user was detected so please enter a new admin password.')
+    password_again = None
+    password = getpass('New admin password: ')
+    while password != password_again:
+        password_again = getpass('Retype admin password: ')
 
     admin = User(
         name='admin',
@@ -127,7 +126,6 @@ from iris.models import Image, User, Action
 db.create_all()
 db.session.commit()
 
-create_default_admin(app, db)
 register_extensions(app)
 
 
