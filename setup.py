@@ -20,6 +20,7 @@ setup(
         'numpy',
         'pyyaml',
         'lightgbm',
+        'requests',
         'scipy',
         'scikit-image',
         'validate_email'

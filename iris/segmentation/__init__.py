@@ -9,7 +9,6 @@ from pprint import pprint
 
 import lightgbm as lgb
 import flask
-from flask_compress import Compress
 import numpy as np
 from PIL import Image as PILImage
 from scipy.ndimage import convolve, minimum_filter, maximum_filter
@@ -235,10 +234,8 @@ def save_masks(image_id, final_mask, user_mask):
 def load_mask(image_id):
     user_id = flask.session.get('user_id')
 
-    print('LOADING MASK BY', user_id)
     try:
         final_mask, user_mask = read_masks(image_id)
-        print(f"Load {user_id}'s mask")
 
         data = np.concatenate([final_mask.ravel(), user_mask.ravel()])
         data = np.pad(data, 1, constant_values=(254, 254))
@@ -249,7 +246,6 @@ def load_mask(image_id):
         response.headers.set('Content-Type', 'application/octet-stream')
         return response
     except:
-        print("Could not use user's mask, use default mask instead.")
         return flask.make_response("No user mask available!", 404)
 
 @segmentation_app.route('/save_mask/<image_id>', methods=['POST'])

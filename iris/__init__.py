@@ -72,6 +72,29 @@ def create_app(project_file):
 
     return app, db
 
+def create_default_admin(app, db):
+    # Add a default admin account:
+    admin = User.query.filter_by(name='admin').first()
+    if admin is not None:
+        return
+
+    if app['TESTING']:
+        password = '1234'
+    else:
+        print('Welcome to IRIS! No admin user was detected so please enter a new admin password.')
+        password_again = None
+        password = getpass('New admin password: ')
+        while password != password_again:
+            password_again = getpass('Retype admin password: ')
+
+    admin = User(
+        name='admin',
+        admin=True,
+    )
+    admin.set_password(password)
+    db.session.add(admin)
+    db.session.commit()
+
 def register_extensions(app):
     # Reduce the amount of transferred data by compressing it:
     iris.extensions.Compress(app)
@@ -81,6 +104,8 @@ def register_extensions(app):
         'application/javascript'
     ]
 
+    from iris.main import main_app
+    app.register_blueprint(main_app, url_prefix="/")
     from iris.segmentation import segmentation_app
     app.register_blueprint(segmentation_app, url_prefix="/segmentation")
     from iris.admin import admin_app
@@ -89,7 +114,6 @@ def register_extensions(app):
     app.register_blueprint(help_app, url_prefix="/help")
     from iris.user import user_app
     app.register_blueprint(user_app, url_prefix="/user")
-
 
 if len(sys.argv) > 1:
     args = parse_cmd_line()
@@ -103,23 +127,7 @@ from iris.models import Image, User, Action
 db.create_all()
 db.session.commit()
 
-# Add a default admin account:
-admin = User.query.filter_by(name='admin').first()
-if admin is None:
-    print('Welcome to IRIS! No admin user was detected so please enter a new admin password.')
-    password_again = None
-    password = getpass('New admin password: ')
-    while password != password_again:
-        password_again = getpass('Retype admin password: ')
-
-    admin = User(
-        name='admin',
-        admin=True,
-    )
-    admin.set_password(password)
-    db.session.add(admin)
-    db.session.commit()
-
+create_default_admin(app, db)
 register_extensions(app)
 
 
