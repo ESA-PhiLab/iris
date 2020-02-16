@@ -3,7 +3,7 @@ import pytest
 import requests
 
 @pytest.mark.usefixtures('live_server')
-class DemoTest(LiveServerTestCase):
+class DemoTest:
     def test_public_pages(self):
         response = requests.get(url_for('main.index', _external=True))
         assert response.status_code == 200
