@@ -1,7 +1,6 @@
-import requests
-
-from flask import Flask
 from flask import url_for
+import pytest
+import requests
 
 @pytest.mark.usefixtures('live_server')
 class TestLiveServer:
