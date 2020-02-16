@@ -1,0 +1,9 @@
+language: python
+
+install:
+  - pip install -U pip
+script:
+ - python setup.py install
+ - pip install flake8
+ - flake8 --statistics
+ - pytest
