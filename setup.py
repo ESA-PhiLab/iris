@@ -1,5 +1,11 @@
+from os.path import dirname, join
 from setuptools import setup, find_packages
 
+requirements_file = join(dirname(__file__), 'requirements.txt')
+with open(requirements_file, 'r') as stream:
+    requirements = stream.read().split('\n')
+    if not requirements[-1]:
+        del requirements[-1]
 
 setup(
     author="John Mrziglod, Alistair Francis",
@@ -13,16 +19,5 @@ setup(
     entry_points={
         "console_scripts": "iris = iris:run_app",
     },
-    install_requires=[
-        'flask',
-        'flask_compress',
-        'flask-sqlalchemy',
-        'numpy',
-        'pyyaml',
-        'lightgbm',
-        'requests',
-        'scipy',
-        'scikit-image',
-        'validate_email'
-    ],
+    install_requires=requirements,
 )
