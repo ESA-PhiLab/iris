@@ -161,3 +161,12 @@ In case you don't want to allow the user to label the complete image, you can li
 ```
 "mask_area": [100, 100, 400, 400]
 ```
+
+### segmentation : score
+Defines how to measure the score achieved by the user for each mask. Can be
+`f1`, `jaccard` or `accuracy`. Default is `f1`
+
+<i>Example:</i>
+```
+"score": "f1"
+```
