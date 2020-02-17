@@ -1,8 +1,23 @@
-<h1>Project file configurations</h1>
+# Project file configurations
 
 To use iris, you need to define a project file in JSON or YAML format.
 
-<h3>name</h3>
+- [Project file configurations](#project-file-configurations)
+  * [name](#name)
+  * [authentication_required](#authentication-required)
+  * [images](#images)
+    + [images : path](#images---path)
+    + [images : shape](#images---shape)
+    + [images : thumbnails](#images---thumbnails)
+    + [images : metadata](#images---metadata)
+  * [classes](#classes)
+  * [views](#views)
+  * [segmentation](#segmentation)
+    + [segmentation : path](#segmentation---path)
+    + [segmentation : mask_encoding](#segmentation---mask-encoding)
+    + [segmentation : mask_area](#segmentation---mask-area)
+
+## name
 Optional name for this project.
 
 <i>Example:</i>
@@ -10,7 +25,7 @@ Optional name for this project.
 "name": "cloud-segmentation"
 ```
 
-<h3>authentication_required</h3>
+## authentication_required
 Defines whether you want to use IRIS with or without user authentication (latter is not yet implemented).
 
 <i>Example:</i>
@@ -18,10 +33,10 @@ Defines whether you want to use IRIS with or without user authentication (latter
 "authentication_required": true
 ```
 
-<h3>images</h3>
+## images
 A dictionary which defines the inputs.
 
-<h4>images : path</h4>
+### images : path
 The input path to the images. Must be an existing path with the placeholder `{id}`. The placeholder will be replaced by the unique id of the current image. IRIS can load standard image formats (like *png* or *tif*) and numpy files (*npy*). The arrays inside the numpy arrays should have the shape HxWxC.
 
 <i>Example:</i>
@@ -29,13 +44,13 @@ The input path to the images. Must be an existing path with the placeholder `{id
 "path": "images/{id}.tif"
 ```
 
-<h4>images : shape</h4>
+### images : shape
 The shape of the images. Must be a list of width and height.
 ```
 "shape": [512, 512]
 ```
 
-<h4>images : thumbnails</h4>
+### images : thumbnails
 Optional thumbnail files for the images. Path must contain a placeholder `{id}`.
 
 <i>Example:</i>
@@ -43,7 +58,7 @@ Optional thumbnail files for the images. Path must contain a placeholder `{id}`.
 "thumbnails": "thumbnails/{id}.png"
 ```
 
-<h4>images : metadata</h4>
+### images : metadata
 Optional metadata for the images. Path must contain a placeholder `{id}`. Metadata files can be in json, yaml or another text file format. json and yaml files will be parsed and made accessible via the GUI. If the metadata contains the key `location` with a list of two floats (longitude and latitude), it can be used for a bingmap view.
 
 <i>Example:</i>
@@ -51,7 +66,7 @@ Optional metadata for the images. Path must contain a placeholder `{id}`. Metada
 "metadata": "metadata/{id}.json"
 ```
 
-<h3>classes</h3>
+## classes
 This is a list of classes that you want to allow the user to label. Each class is represented as a dictionary with the following keys:
 <ul>
     <li>*name:* Name of the class</li>
@@ -83,7 +98,7 @@ This is a list of classes that you want to allow the user to label. Each class i
 ]
 ```
 
-<h3>views</h3>
+## views
 Since this app was developed for multi-spectral satellite data (i.e. images with more than just three channels), you can decide how to present the images to the user. This option must be a list of dictionaries where each dictionary represents a view and has the following keys:
 <ul>
     <li>*name*: Name of the view</li>
@@ -117,10 +132,10 @@ Iris can display up to 4 views.
 ]
 ```
 
-<h3>segmentation</h3>
+## segmentation
 A dictionary which defines the parameters for the segmentation mode.
 
-<h4>segmentation : path</h4>
+### segmentation : path
 The output directory for your project. This directory will contain the mask files (from the segmentation) and user configurations
 
 <i>Example:</i>
@@ -128,7 +143,7 @@ The output directory for your project. This directory will contain the mask file
 "path": "masks/{id}.png"
 ```
 
-<h4>segmentation : mask_encoding</h4>
+### segmentation : mask_encoding
  The encodings of the final masks. Can be `integer`, `binary`, `rgb` or `rgba`.
 
 <i>Example:</i>
@@ -136,7 +151,7 @@ The output directory for your project. This directory will contain the mask file
 "mask_encoding": "rgb"
 ```
 
-<h4>segmentation : mask_area</h4>
+### segmentation : mask_area
 In case you don't want to allow the user to label the complete image, you can limit the segmentation area.
 
 <i>Example:</i>
