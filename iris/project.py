@@ -87,17 +87,31 @@ class Project:
 
         # Make sure the HTML is understood in the descriptions:
         for view in self.config['views']:
-            view['description'] = flask.Markup(view.get('description', view['name']))
-            view['type'] = view.get('type', 'rgb')
+            view['description'] = flask.Markup(
+                view.get('description', view['name'])
+            )
+            if isinstance(view['content'], list):
+                view['type'] = 'rgb'
+            else:
+                view['type'] = view['content']
 
-        for klass in self.config['classes']:
-            klass['css_colour'] = f'rgba({str(klass["colour"])[1:-1]})'
+        self._normalise_classes(self.config)
+        for mode in ['segmentation', 'classification', 'detection']:
+            if mode in self.config:
+                self._normalise_classes(self[mode])
 
     def __getitem__(self, key):
         return self.config[key]
 
     def __setitem__(self, key, value):
         self.config[key] = value
+
+    def _normalise_classes(self, data):
+        if "classes" not in data:
+            return
+
+        for klass in data['classes']:
+            klass['css_colour'] = f'rgba({str(klass["colour"])[1:-1]})'
 
     def _init_paths_and_files(self, filename):
         if project not in self.config:
@@ -117,10 +131,14 @@ class Project:
 
         # Make all paths absolute:
         self['images']['path'] = self.make_absolute(self['images']['path'])
-        if "thumbnails" in self.config:
-            self['thumbnails'] = self.make_absolute(self['thumbnails'])
-        if "metadata" in self.config:
-            self['metadata'] = self.make_absolute(self['metadata'])
+        if "thumbnails" in self.config['images']:
+            self['images']['thumbnails'] = self.make_absolute(
+                self['images']['thumbnails']
+            )
+        if "metadata" in self.config['images']:
+            self['images']['metadata'] = self.make_absolute(
+                self['images']['metadata']
+            )
         if self.segmentation:
             self['segmentation']['path'] = self.make_absolute(
                 self['segmentation']['path']
@@ -172,11 +190,11 @@ class Project:
             if project.segmentation:
                 files['mask'] = self['segmentation']['path'].format(id=image_id)
 
-            thumbnail_path = self.config.get('thumbnails', False)
+            thumbnail_path = self['images'].get('thumbnails', False)
             if thumbnail_path:
                 thumbnail_path = thumbnail_path.format(id=image_id)
             files['thumbnail'] = thumbnail_path
-            metadata_path = self.config.get('metadata', False)
+            metadata_path = self['images'].get('metadata', False)
             if metadata_path:
                 metadata_path = metadata_path.format(id=image_id)
             files['metadata'] = metadata_path
@@ -200,7 +218,7 @@ class Project:
         else:
             array = imread(filename)
 
-        if channels is not None:
+        if isinstance(channels, list):
             array = self.parse_channels(array, channels)
 
         if issubclass(array.dtype.type, np.floating):

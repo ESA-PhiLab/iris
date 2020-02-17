@@ -3,15 +3,16 @@
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/dialogue.css') }}">
+    <link rel="stylesheet" href="{{ url_for('main.static', filename='css/main.css') }}">
+    <link rel="stylesheet" href="{{ url_for('main.static', filename='css/dialogue.css') }}">
 
-    <script type="text/javascript" src="{{ url_for('static', filename='javascripts/utils.js') }}"></script>
-    <script type="text/javascript" src="{{ url_for('static', filename='javascripts/dialogue.js') }}"></script>
+    <script type="text/javascript" src="{{ url_for('main.static', filename='javascripts/utils.js') }}"></script>
+    <script type="text/javascript" src="{{ url_for('main.static', filename='javascripts/dialogue.js') }}"></script>
     <script type="text/javascript" src="{{ url_for('user.static', filename='javascripts/user.js') }}"></script>
     <script type="text/javascript">
         let vars = {
             'url': {
+                'main': {{url_for('main.index')|tojson}},
                 'segmentation': {{url_for('segmentation.index')|tojson}},
                 'user': {{url_for('user.index')|tojson}},
                 'admin': {{url_for('admin.index')|tojson}},

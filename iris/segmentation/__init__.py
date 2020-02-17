@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta
 from glob import glob
-import io
 import json
 import os
 from os.path import basename, dirname, exists, join
@@ -10,7 +9,6 @@ from pprint import pprint
 import lightgbm as lgb
 import flask
 import numpy as np
-from PIL import Image as PILImage
 from scipy.ndimage import convolve, minimum_filter, maximum_filter
 from skimage.io import imread, imsave
 from skimage.filters import sobel
@@ -387,41 +385,6 @@ def predict_mask(image_id):
     )
     response.headers.set('Content-Type', 'application/octet-stream')
     return response
-
-@segmentation_app.route('/load_image/<image_id>/<int:view>')
-def load_image(image_id, view):
-    image = project.get_image(image_id, project['views'][view]['channels'])
-    return array_to_png(image)
-
-@segmentation_app.route('/load_metadata/<image_id>', methods=['GET'])
-def load_metadata(image_id):
-    metadata = project.get_metadata(image_id)
-
-    if metadata is None:
-        return flask.make_response("No metadata found!", 404)
-
-    if flask.request.args.get('safe_html', False):
-        metadata = {
-            k: flask.Markup(str(v))
-            for k, v in metadata.items()
-        }
-
-    return flask.jsonify(metadata)
-
-@segmentation_app.route('/load_thumbnail/<image_id>')
-def load_thumbnail(image_id):
-    array = project.get_thumbnail(image_id)
-    return array_to_png(array)
-
-def array_to_png(array):
-    if issubclass(array.dtype.type, np.floating):
-        array = np.clip(array * 255., 0, 255).astype('uint8')
-
-    img = PILImage.fromarray(array) # convert arr to image
-    file_object = io.BytesIO()   # create file in memory
-    img.save(file_object, 'PNG') # save PNG in file in memory
-    file_object.seek(0)          # move to beginning of file
-    return flask.send_file(file_object,  mimetype='image/png')
 
 def array_to_json(array):
     return flask.jsonify(array.tolist())

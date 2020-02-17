@@ -51,7 +51,7 @@ def parse_cmd_line():
 
 def run_app():
     create_default_admin(app, db)
-    
+
     # webbrowser.open('http://localhost:5000/segmentation')
     app.run(debug=True)
 
@@ -104,7 +104,7 @@ def register_extensions(app):
     ]
 
     from iris.main import main_app
-    app.register_blueprint(main_app, url_prefix="/")
+    app.register_blueprint(main_app)
     from iris.segmentation import segmentation_app
     app.register_blueprint(segmentation_app, url_prefix="/segmentation")
     from iris.admin import admin_app

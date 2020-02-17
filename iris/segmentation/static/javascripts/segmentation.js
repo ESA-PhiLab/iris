@@ -129,14 +129,14 @@ function init_canvases(){
 
     // Load the images and draw them when ready
     for (var i=0; i < vars.views.length; i++){
-        if (vars.views[i].type == "bingmap"){
+        if (!view_is_image(vars.views[i])){
             set_view_iframe(i);
             continue;
         }
 
         // We will later overwrite vars.images
         vars.images[i] = new Image();
-        vars.images[i].src = vars.url.segmentation+"load_image/" + vars.image_id + "/" + i;
+        vars.images[i].src = vars.url.main+"image/" + vars.image_id + "/" + i;
         vars.images[i].onload = render_image.bind(null, i, true);
     }
 
@@ -155,7 +155,7 @@ function init_canvases(){
 async function set_view_iframe(i){
     let view = vars.views[i];
 
-    if (view.type != "bingmap"){
+    if (view_is_image(view)){
         return;
     }
     // Default location
@@ -163,7 +163,7 @@ async function set_view_iframe(i){
 
     // Check whetherthere was a location given in the metadata:
     let response = await fetch(
-        vars.url.segmentation+'load_metadata/'+vars.image_id
+        vars.url.main+'metadata/'+vars.image_id
     );
     if (response.status < 400){
         let metadata = await response.json();
@@ -189,7 +189,7 @@ function init_events(){
     // Make all preview canvases sensitive to the user"s actions. Why preview?
     // Since they are the canvases on top:
     for (var i=0; i < vars.views.length; i++) {
-        if (vars.views[i].type == "bingmap"){
+        if (!view_is_image(vars.views[i])){
             continue;
         }
 
@@ -229,7 +229,7 @@ function init_toolbar_events(){
 function handle_resize(){
     // Update the views that have external content
     for (var i=0; i < vars.views.length; i++){
-        if (vars.views[i].type == "bingmap"){
+        if (!view_is_image(vars.views[i])){
             set_view_iframe(i);
         }
     }
@@ -904,7 +904,7 @@ function render_mask(bbox=null){
 
     // Render the new mask sprite to all canvases:
     for (var i=0; i < vars.views.length; i++) {
-        if (vars.views[i].type == "bingmap"){
+        if (!view_is_image(vars.views[i])){
             continue;
         }
 
@@ -937,7 +937,7 @@ function render_preview(){
     let offset = get_tool_offset();
 
     for (var i=0; i < vars.views.length; i++) {
-        if (vars.views[i].type == "bingmap"){
+        if (!view_is_image(vars.views[i])){
             continue;
         }
 
@@ -968,8 +968,12 @@ function render_preview(){
     }
 }
 
+function view_is_image(view){
+    return view.type == "rgb"
+}
+
 function render_image(view_number){
-    if (vars.views[view_number].type == "bingmap"){
+    if (!view_is_image(vars.views[view_number])){
         return;
     }
 
@@ -1031,7 +1035,7 @@ function show_mask(visible){
         state = "block";
     }
     for (var i=0; i < vars.views.length; i++){
-        if (vars.views[i].type == "bingmap"){
+        if (!view_is_image(vars.views[i])){
             continue;
         }
         get_object("canvas-"+i+"-mask").style.display = state;
@@ -1055,12 +1059,12 @@ async function dialogue_image(){
     }
     let content = '';
     if (vars.thumbnail_available){
-        content += '<p><img src="'+vars.url.segmentation+'load_thumbnail/'+vars.image_id+'"  style="display: block; margin-left: auto; margin-right: auto;"/></p>';
+        content += '<p><img src="'+vars.url.main+'thumbnail/'+vars.image_id+'"  style="display: block; margin-left: auto; margin-right: auto;"/></p>';
     }
 
     if (vars.metadata_available){
         let response = await fetch(
-            vars.url.segmentation+'load_metadata/'+vars.image_id+'?safe_html=True'
+            vars.url.main+'metadata/'+vars.image_id+'?safe_html=True'
         );
 
         if (response.status >= 400){
@@ -1081,12 +1085,11 @@ async function dialogue_image(){
                                     .replace(']', '')
                                     .replace(' ', '')
 
-                    content += '<td><a target="_blank" href="https://www.google.com/maps/search/?api=1&query='+location+'">';
-                    content += metadata[attribute]+'</a></td>';
+                    content += '<td>' + metadata[attribute];
+                    content += '<a target="_blank" href="https://www.google.com/maps/search/?api=1&query='+location+'">Show on map</a></td>';
                 } else {
                     content += '<td>'+metadata[attribute]+'</td>';
                 }
-
 
                 content += '</tr>';
             }
