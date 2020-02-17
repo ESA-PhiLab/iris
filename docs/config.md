@@ -6,16 +6,9 @@ To use iris, you need to define a project file in JSON or YAML format.
   * [name](#name)
   * [authentication_required](#authentication-required)
   * [images](#images)
-    + [images : path](#images---path)
-    + [images : shape](#images---shape)
-    + [images : thumbnails](#images---thumbnails)
-    + [images : metadata](#images---metadata)
   * [classes](#classes)
   * [views](#views)
   * [segmentation](#segmentation)
-    + [segmentation : path](#segmentation---path)
-    + [segmentation : mask_encoding](#segmentation---mask-encoding)
-    + [segmentation : mask_area](#segmentation---mask-area)
 
 ## name
 Optional name for this project.
