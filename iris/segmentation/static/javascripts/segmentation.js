@@ -182,7 +182,6 @@ async function set_view_iframe(i){
     iframe.src = url;
     iframe.height = canvas.scrollHeight;
     iframe.width = canvas.scrollWidth;
-    console.log(url);
 }
 
 function init_events(){
@@ -461,13 +460,12 @@ function mouse_wheel(event){
 }
 
 function mouse_move(event){
-    // console.log(event.buttons);
-
     update_cursor_coords(this, event);
     if (
         event.buttons == 2
         || event.buttons == 4
         || (event.buttons == 1 && vars.tool.type == 'move')
+        && vars.drag_start !== null
     ){
         move(
             vars.cursor_image[0]-vars.drag_start[0],
@@ -487,19 +485,31 @@ function mouse_move(event){
 function mouse_down(event){
     update_cursor_coords(this, event);
 
-    vars.drag_start = [...vars.cursor_image];
-
     if (event.buttons == 1 && vars.tool.type != 'move'){
         user_draws_on_mask();
+        vars.drag_start = null;
+    } else if (
+        event.buttons == 2
+        || event.buttons == 4
+        || (event.buttons == 1 && vars.tool.type == 'move')
+    ){
+        vars.drag_start = [...vars.cursor_image];
     }
 }
 
 function mouse_up(event){
+    vars.drag_start = null;
 }
 
 function mouse_enter(event){
     update_cursor_coords(this, event);
-    vars.drag_start = [...vars.cursor_image];
+    if (
+        event.buttons == 2
+        || event.buttons == 4
+        || (event.buttons == 1 && vars.tool.type == 'move')
+    ){
+        vars.drag_start = [...vars.cursor_image];
+    }
 }
 
 function zoom(delta){
