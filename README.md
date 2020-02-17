@@ -30,16 +30,16 @@ and install the app with pip
 
 This should install all necessary python packages automatically.
 
-## Usage
+## Quickstart
+### Usage
 
 You can start IRIS in two different modes:
 1) **label:** This will open a local browser application which helps you to perform manual segmentation of the images in your project. You will need a project file for this. Have a look at the demo folder or at the documentation below in this document for inspiration. After setting up the project file, start IRIS like this: `iris label PROJECT_FILE` and open `http://localhost:5000` with your browser (chrome or firefox).
 
 2) **demo:** Keen on trying out iris without any setup? Try `iris demo` and have fun with the demo by open `http://localhost:5000` with your browser (chrome or firefox).
 
-## Documentation
-
 ### Label interface
+Coming soon.
 
 ### Project file
 Before you can use IRIS, you have to provide a project file for your project (must be in yaml or json format). See [here](demo/cloud-segmentation.json) for an example.
@@ -47,6 +47,4 @@ Before you can use IRIS, you have to provide a project file for your project (mu
 Please have a look at the different options for the configurations in the [documentation](docs/config.md).
 
 ### Project structure
-
-
 Coming soon.
