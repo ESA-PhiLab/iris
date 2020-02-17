@@ -36,7 +36,7 @@
             'cursor_canvas': [0, 0],
             'cursor_image': [0, 0],
             'drag_start' : [0, 0],
-            'n_drawn_pixels': {
+            'n_user_pixels': {
                 'total': 0,
             },
             'show_mask': true,
@@ -218,17 +218,14 @@
 
     <!-- <div class="info-box" style="position: fixed; bottom: 10; left: 10; float: left; display: flex; flex-direction: row;"> -->
     <div class='statusbar' style="position: fixed; bottom: 10px; z-index: 10;">
-        <!-- <div class="tooltip"> -->
-            <div class="statusbutton" onclick="dialogue_user();" id="user-info">
-                <div style="float: left;">Login</div>
-            </div>
-            <!-- <span class="tooltiptext">Tooltip text</span> -->
-        <!-- </div> -->
+        <div class="statusbutton" onclick="dialogue_user();" id="user-info">
+            <div style="float: left;">Login</div>
+        </div>
         <div class="statusbutton" id="admin-button" onclick="window.open({{url_for("admin.index")}},'_blank');">
             <div style="font-size: 20px;">Admin</div>
         </div>
-        <div class="statusbutton" onclick="dialogue_image();">
-            <div class="info-box-top" id="image-id">{{image_id}}</div>
+        <div class="statusbutton" style="min-width: 150px;" onclick="dialogue_image();" id="image-info">
+            <div class="info-box-top">{{image_id}}</div>
             <div class="info-box-bottom">image-ID</div>
         </div>
         <div class="inactive-statusbutton">

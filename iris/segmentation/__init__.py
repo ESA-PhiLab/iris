@@ -43,6 +43,8 @@ def index():
 
             if last_mask is not None:
                 image_id = last_mask.image_id
+    elif image_id not in project['file_ids']:
+        return flask.make_response('Unknown image id!', 404)
 
     return flask.render_template(
         'segmentation.html',
@@ -385,6 +387,3 @@ def predict_mask(image_id):
     )
     response.headers.set('Content-Type', 'application/octet-stream')
     return response
-
-def array_to_json(array):
-    return flask.jsonify(array.tolist())

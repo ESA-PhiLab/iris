@@ -86,7 +86,7 @@ let commands = {
 function init_segmentation(){
     // Before we start, we check for the login, etc.
     vars.next_action = init_canvases;
-    fetch_user_info();
+    fetch_server_update();
 }
 
 function init_canvases(){
@@ -147,8 +147,6 @@ function init_canvases(){
     init_toolbar_events();
 
     render_preview();
-
-    get_object('image-id').innerHTML = clip_string(vars.image_id, 20);
     reset_views();
 }
 
@@ -235,8 +233,7 @@ function handle_resize(){
 }
 
 function login_finished(){
-    // Redirect to fetch_user_info
-    fetch_user_info();
+    fetch_server_update();
 }
 
 function logout_finished(){
@@ -244,20 +241,18 @@ function logout_finished(){
     goto_url(vars.url.segmentation+'?image_id='+vars.image_id);
 }
 
-async function fetch_user_info(){
+async function fetch_server_update(){
     let response = await fetch(vars.url.user+"get/current");
 
-    if (response.status >= 400) {
+    if (response.status == 403) {
         dialogue_login();
         return;
     }
 
     user = await response.json();
 
-    let info_box = '';
-    info_box += '<div class="info-box-top" style="position: relative;">';
+    let info_box = '<div class="info-box-top" style="position: relative;">';
     info_box += nice_number(user.segmentation.score);
-
     if (vars.user !== null && vars.user.id == user.id){
         // Check how much the score changed in comparison to the last time:
         let score_change = user.segmentation.score - vars.user.segmentation.score;
@@ -274,10 +269,11 @@ async function fetch_user_info(){
             info_box += '<span style="position: absolute; right: -10px; top: -25px; align-text: right;" class="tag '+colour+'">'+score_change+'</span>';
         }
     }
-
     info_box += '</div>';
     info_box += '<div class="info-box-bottom">'+clip_string(user.name, 25)+'</div>';
     get_object('user-info').innerHTML = info_box;
+    vars.user = user;
+    vars.config = user.config;
 
     if (user.admin){
         get_object('admin-button').style.display = "block";
@@ -285,8 +281,26 @@ async function fetch_user_info(){
         get_object('admin-button').style.display = "none";
     }
 
-    vars.user = user;
-    vars.config = user.config;
+    // Get more information about the current image:
+    response = await fetch(vars.url.main+"image_info/"+vars.image_id);
+    if (response.status != 404) {
+        image = await response.json();
+
+        info_box = '<div class="info-box-top" style="position: relative;">';
+        info_box += clip_string(image.id, 30);
+        if (image.n_segmentations != 0){
+            // Check how much the score changed in comparison to the last time:
+            let text = '1 mask';
+            if (image.n_segmentations > 1){
+                text = image.n_segmentations.toString() + ' masks';
+            }
+
+            info_box += '<span style="position: absolute; right: -10px; top: -25px; align-text: right;" class="tag">'+text+'</span>';
+        }
+        info_box += '</div>';
+        info_box += '<div class="info-box-bottom">image</div>';
+        get_object('image-info').innerHTML = info_box;
+    }
 
     if (vars.next_action !== null){
         vars.next_action();
@@ -634,7 +648,7 @@ function update_drawn_pixels(){
     vars.n_user_pixels = {
         "total": 0
     };
-    for(var i=0; i < vars.classes.length; i++){
+    for (var i=0; i < vars.classes.length; i++){
         vars.n_user_pixels[i] = 0;
     }
 
@@ -700,6 +714,7 @@ function undo(){
     vars.mask = vars.history.mask[vars.history.current_epoch].slice();
     vars.user_mask = vars.history.user_mask[vars.history.current_epoch].slice();
 
+    update_drawn_pixels();
     reload_hidden_mask();
     render_mask();
 }
@@ -718,6 +733,7 @@ function redo(){
     vars.mask = vars.history.mask[vars.history.current_epoch].slice();
     vars.user_mask = vars.history.user_mask[vars.history.current_epoch].slice();
 
+    update_drawn_pixels();
     reload_hidden_mask();
     render_mask();
 }
@@ -813,15 +829,6 @@ function user_draws_on_mask(){
     discard_future();
     update_history();
 }
-
-// function draw_on_masks(rect, colour){
-//     for (var i=0; i < vars.views.length; i++) {
-//         var ctx = get_ctx("canvas-"+i+"-mask");
-//         ctx.clearRect(...rect);
-//         ctx.fillStyle = rgba2css(colour);
-//         ctx.fillRect(...rect);
-//     }
-// }
 
 function reload_hidden_mask(){
     /*Update hidden mask on a offscreen canvas*/
@@ -1104,7 +1111,7 @@ async function dialogue_image(){
                                     .replace(' ', '')
 
                     content += '<td>' + metadata[attribute];
-                    content += '<a target="_blank" href="https://www.google.com/maps/search/?api=1&query='+location+'">Show on map</a></td>';
+                    content += ' <a target="_blank" href="https://www.google.com/maps/search/?api=1&query='+location+'">Show on map</a></td>';
                 } else {
                     content += '<td>'+metadata[attribute]+'</td>';
                 }
@@ -1206,10 +1213,12 @@ async function load_mask(){
     );
 
     if (results.response.status != 200 && results.response.status != 404) {
+        hide_loader();
+
         let error = await results.response.text();
         show_dialogue(
             "error",
-            "Could not load the mask from the server!" + error
+            "Could not load the mask from the server!\n" + error
         );
         return;
     }
@@ -1305,7 +1314,10 @@ function deactivate_mask(){
 function save_mask(call_afterwards=null){
     // Do not save any masks if they have not been loaded yet
     let abort_save = false;
-    if (vars.mask === null || vars.user_mask === null){
+    if (vars.mask === null
+        || vars.user_mask === null
+        || vars.n_user_pixels.total == 0
+    ){
         if(call_afterwards !== null){
           call_afterwards();
         }
@@ -1336,7 +1348,7 @@ function save_mask(call_afterwards=null){
 }
 
 async function save_mask_finished(response, call_afterwards){
-    fetch_user_info();
+    fetch_server_update();
 
     if (response.status === 200) {
         show_message('Mask saved', 1000);
@@ -1429,7 +1441,7 @@ async function predict_mask(){
         );
 
     show_loader("Process results...");
-    if (results.response.status !== 200) {
+    if (results.response.status >= 500) {
         hide_loader();
         console.log("Could not predict the mask! Code: " + results.response.status);
         show_dialogue(

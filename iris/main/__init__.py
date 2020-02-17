@@ -4,6 +4,7 @@ import flask
 import numpy as np
 from PIL import Image as PILImage
 
+from iris.models import db, Image
 from iris.project import project
 
 main_app = flask.Blueprint(
@@ -22,6 +23,11 @@ def index():
 def load_image(image_id, view):
     image = project.get_image(image_id, project['views'][view]['content'])
     return array_to_png(image)
+
+@main_app.route('/image_info/<image_id>')
+def image_info(image_id):
+    image = Image.query.get_or_404(image_id)
+    return image.to_json()
 
 @main_app.route('/metadata/<image_id>', methods=['GET'])
 def load_metadata(image_id):
