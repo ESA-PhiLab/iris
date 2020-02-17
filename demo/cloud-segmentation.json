@@ -10,7 +10,10 @@
   "segmentation": {
       "path": "images/{id}/mask.png",
       "mask_encoding": "rgb",
-      "mask_area": [64, 64, 448, 448]
+      "mask_area": [64, 64, 448, 448],
+      "test_images": [
+
+      ]
   },
   "classes": [
     {

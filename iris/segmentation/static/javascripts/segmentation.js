@@ -73,7 +73,7 @@ let commands = {
         "key": "Arrow-Left", "description": "Decrease saturation (-50%)",
     },
     "reset_filters": {
-        "description": "Reset all image filters",
+        "key": "X", "description": "Reset all image filters",
     },
 };
 
@@ -324,6 +324,8 @@ function key_down(event){
         change_saturation(up=true);
     } else if (key == "ArrowLeft"){
         change_saturation(up=false);
+    } else if (key == "KeyX"){
+        reset_filters();
     } else if (key == "KeyA"){
         predict_mask();
     } else if (key == "KeyF"){
@@ -355,7 +357,7 @@ function key_down(event){
 function change_brightness(up){
     if (up){
         vars.brightness += 10;
-        vars.brightness = Math.min(200, vars.brightness);
+        vars.brightness = Math.min(800, vars.brightness);
     } else {
         vars.brightness -= 10;
         vars.brightness = Math.max(0, vars.brightness);
@@ -364,10 +366,10 @@ function change_brightness(up){
 }
 function change_saturation(up){
     if (up){
-        vars.saturation += 50;
+        vars.saturation += 20;
         vars.saturation = Math.min(800, vars.saturation);
     } else {
-        vars.saturation -= 50;
+        vars.saturation -= 20;
         vars.saturation = Math.max(0, vars.saturation);
     }
     render_images();
@@ -462,9 +464,9 @@ function mouse_wheel(event){
 function mouse_move(event){
     update_cursor_coords(this, event);
     if (
-        event.buttons == 2
+        (event.buttons == 2
         || event.buttons == 4
-        || (event.buttons == 1 && vars.tool.type == 'move')
+        || (event.buttons == 1 && vars.tool.type == 'move'))
         && vars.drag_start !== null
     ){
         move(
@@ -594,6 +596,12 @@ function update_views(){
 }
 
 function reset_views(){
+    for (var i=0; i < vars.views.length; i++){
+        if (!view_is_image(vars.views[i])){
+            set_view_iframe(i);
+        }
+    }
+
     for (let canvas of document.getElementsByClassName('view-canvas')){
         let ctx = canvas.getContext('2d');
         ctx.setTransform(

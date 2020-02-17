@@ -13,7 +13,7 @@ from scipy.ndimage import convolve, minimum_filter, maximum_filter
 from skimage.io import imread, imsave
 from skimage.filters import sobel
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import f1_score
+from sklearn.metrics import f1_score, jaccard_similarity_score
 import yaml
 
 from iris.user import requires_auth
@@ -128,7 +128,7 @@ def merge_masks(image_id):
 
     # Retranslate to original classes (we initialised class_votes not with the
     # original class indices):
-    final_mask = np.vectorize(classes.__getitem__, otypes=[np.uint8])(winner_indices)
+    merged_mask = np.vectorize(classes.__getitem__, otypes=[np.uint8])(winner_indices)
 
     # Update the database for all users
     image = Image.query.get(image_id)
@@ -144,8 +144,8 @@ def merge_masks(image_id):
         action = Action.query.filter_by(user=user, image=image, type="segmentation").first()
         if not action:
             action = Action(user=user, image=image, type="segmentation")
-        action.score = round(100 * f1_score(
-            final_mask.ravel(), final_masks[..., u].ravel(), average='macro'
+        action.score = round(100 * jaccard_similarity_score(
+            merged_mask.ravel(), final_masks[..., u].ravel()
         ))
         action.score_pending = len(users) < 3
 
@@ -154,14 +154,14 @@ def merge_masks(image_id):
     # image.segmentation_agreement = total_agreement / class_votes.sum()
     db.session.commit()
 
-    final_mask = encode_mask(
-        final_mask, mode=project['segmentation']['mask_encoding']
+    merged_mask = encode_mask(
+        merged_mask, mode=project['segmentation']['mask_encoding']
     )
     filename = project['files'][image_id]['mask']
     if filename.endswith('npy'):
-        np.save(filename, final_mask, allow_pickle=False)
+        np.save(filename, merged_mask, allow_pickle=False)
     else:
-        imsave(filename, final_mask, check_contrast=False)
+        imsave(filename, merged_mask, check_contrast=False)
 
 def encode_mask(mask, mode='binary'):
     """Encode the mask to save it on disk
