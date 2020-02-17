@@ -1,4 +1,8 @@
-<h5>name</h5> 
+<h1>Project file configurations</h1>
+
+To use iris, you need to define a project file in JSON or YAML format.
+
+<h3>name</h3> 
 Optional name for this project.
 ```
 "name": "cloud-segmentation"
