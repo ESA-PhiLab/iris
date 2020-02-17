@@ -85,6 +85,12 @@ class Project:
                     + ",".join(encodings[format])
                 )
 
+            self['segmentation']['score'] = self['segmentation'].get(
+                self['segmentation']['score'], "f1"
+            )
+            if self['segmentation']['score'] not in ['f1', 'jaccard', 'accuracy']:
+                raise Exception('Unknown segmentation score!', self['segmentation']['score'])
+
         # Make sure the HTML is understood in the descriptions:
         for view in self.config['views']:
             view['description'] = flask.Markup(

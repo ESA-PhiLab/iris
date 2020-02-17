@@ -11,6 +11,7 @@
       "path": "images/{id}/mask.png",
       "mask_encoding": "rgb",
       "mask_area": [64, 64, 448, 448],
+      "score": "f1",
       "test_images": [
 
       ]

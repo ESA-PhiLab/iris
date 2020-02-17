@@ -13,7 +13,7 @@ from scipy.ndimage import convolve, minimum_filter, maximum_filter
 from skimage.io import imread, imsave
 from skimage.filters import sobel
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import f1_score, jaccard_similarity_score
+from sklearn.metrics import accuracy_score, f1_score, jaccard_similarity_score
 import yaml
 
 from iris.user import requires_auth
@@ -146,9 +146,19 @@ def merge_masks(image_id):
         action = Action.query.filter_by(user=user, image=image, type="segmentation").first()
         if not action:
             action = Action(user=user, image=image, type="segmentation")
-        action.score = round(100 * jaccard_similarity_score(
-            merged_mask.ravel(), final_masks[..., u].ravel()
-        ))
+
+        if project['segmentation']['score'] == 'jaccard':
+            action.score = round(100 * jaccard_similarity_score(
+                merged_mask.ravel(), final_masks[..., u].ravel()
+            ))
+        elif project['segmentation']['score'] == 'f1':
+            action.score = round(100 * f1_score(
+                merged_mask.ravel(), final_masks[..., u].ravel(), average='macro'
+            ))
+        elif project['segmentation']['score'] == 'accuracy':
+            action.score = round(100 * accuracy_score(
+                merged_mask.ravel(), final_masks[..., u].ravel()
+            ))
         action.score_pending = len(users) < 3
 
     # total_agreement = \
