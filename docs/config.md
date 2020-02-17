@@ -6,16 +6,9 @@ To use iris, you need to define a project file in JSON or YAML format.
   * [name](#name)
   * [authentication_required](#authentication-required)
   * [images](#images)
-    + [images : path](#images---path)
-    + [images : shape](#images---shape)
-    + [images : thumbnails](#images---thumbnails)
-    + [images : metadata](#images---metadata)
   * [classes](#classes)
   * [views](#views)
   * [segmentation](#segmentation)
-    + [segmentation : path](#segmentation---path)
-    + [segmentation : mask_encoding](#segmentation---mask-encoding)
-    + [segmentation : mask_area](#segmentation---mask-area)
 
 ## name
 Optional name for this project.
@@ -35,6 +28,16 @@ Defines whether you want to use IRIS with or without user authentication (latter
 
 ## images
 A dictionary which defines the inputs.
+
+<i>Example:</i>
+```
+"images": {
+      "path": "images/{id}/image.tif",
+      "shape": [512, 512],
+      "thumbnails": "images/{id}/thumbnail.png",
+      "metadata": "images/{id}/metadata.json"
+  }
+```
 
 ### images : path
 The input path to the images. Must be an existing path with the placeholder `{id}`. The placeholder will be replaced by the unique id of the current image. IRIS can load standard image formats (like *png* or *tif*) and numpy files (*npy*). The arrays inside the numpy arrays should have the shape HxWxC.
