@@ -44,12 +44,13 @@ You can start IRIS in two different modes:
 ### Project file
 Before you can use IRIS, you have to provide a project file for your project (must be in yaml or json format). See [here](demo/cloud-segmentation.json) for an example.
 
-The table below shows different options for the configurations:
+Please have a look at the different options for the configurations:
 
-Field | Description | JSON Example
---- | --- | ---
-**name** | Optional name for this project | `"name": "cloud-segmentation"`
-Test text
+
+<h6>name</h6> 
+Optional name for this project.
+`"name": "cloud-segmentation"`
+
 **authentication_required** | Defines whether you want to use IRIS with or without user authentication (latter is not yet implemented). | <sub><sup>`"authentication_required": true`</sub></sup>
 **images** | A dictionary which defines the inputs. |
 **images:path** | The input path to the images. Must be an existing path with the placeholder `{id}`. The placeholder will be replaced by the unique id of the current image. IRIS can load standard image formats (like *png* or *tif*) and numpy files (*npy*). The arrays inside the numpy arrays should have the shape HxWxC. | <sub><sup>`"path": "images/{id}.tif"`</sub></sup>
