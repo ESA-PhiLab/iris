@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}admin{% endblock %}
+{% block head %}
+    {% if not user %}
+        <script type="text/javascript">
+            function login_finished(){
+                goto_url(vars.url.admin);
+            }
+
+            window.onload = dialogue_login;
+        </script>
+    {% elif not user.admin %}
+        <script type="text/javascript">
+            function login_finished(){
+                goto_url(vars.url.admin);
+            }
+
+            function dialogue_not_authenticated(){
+                let content = '<p>Only <b>admin</b> users can see this page. You, <i>{{user.name|tojson}}</i>, are not an admin.</p>';
+                content += '<button onclick="logout(dialogue_login);">Login as admin</button>';
+                show_dialogue('error', content, true);
+            }
+
+            window.onload = dialogue_not_authenticated;
+        </script>
+    {% else %}
+            <script type="text/javascript" src="{{ url_for('admin.static', filename='javascripts/admin.js') }}"></script>
+            <script>
+                window.onload = function (){open_page('users');}
+            </script>
+    {% endif %}
+{% endblock %}
+{% block content %}
+    {% if user and user.admin %}
+    <div class="tab">
+        <button id="page-users" class="tablinks" onclick="open_page('users');">Users</button>
+        <button id="page-images" class="tablinks" onclick="open_page('images');">Images</button>
+        <button id="page-actions/segmentation" class="tablinks" onclick="open_page('actions/segmentation');">Segmentation</button>
+        <button id="page-actions/classification" class="tablinks" onclick="open_page('actions/classification');">Classification</button>
+        <button id="page-actions/detection" class="tablinks" onclick="open_page('actions/detection');">Detection</button>
+    </div>
+
+    <div id="admin-page-content">
+    </div>
+    {% endif %}
+{% endblock %}

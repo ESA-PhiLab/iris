@@ -1,0 +1,17 @@
+<html>
+<head>
+<title>Iris - Label AI4EO Imagery</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+
+</head>
+<body>
+    {% if user %}
+        <a href="{{url_for('segmentation')}}" class="button">START</a>
+    {% else %}
+    <form method="post" action="{{url_for('login')}}">
+      <p><input type=text name=username>
+      <p><input type=submit value=Login class="button">
+    </form>
+    {% endif %}
+</body>
+</html>

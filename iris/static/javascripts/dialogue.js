@@ -33,7 +33,6 @@ function show_dialogue(type, content, blocking=false, title=null){
         header_title.innerHTML = title;
     }
 
-
     // show the dialogue
     dialogue.style.display = "block";
 }
@@ -41,6 +40,8 @@ function show_dialogue(type, content, blocking=false, title=null){
 function hide_dialogue(){
     var dialogue = document.getElementById("dialogue");
     dialogue.style.display = "none";
+    var body = document.getElementById("dialogue-body");
+    body.innerHTML = "";
 }
 
 function show_loader(text=null){

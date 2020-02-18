@@ -22,9 +22,33 @@ function createUint8Array(length) {
     return arr;
 }
 
-function shuffleArray(array) {
+function RNG(seed) {
+  // LCG using GCC's constants
+  this.m = 0x80000000; // 2**31;
+  this.a = 1103515245;
+  this.c = 12345;
+
+  this.state = seed ? seed : Math.floor(Math.random() * (this.m - 1));
+}
+RNG.prototype.nextInt = function() {
+  this.state = (this.a * this.state + this.c) % this.m;
+  return this.state;
+}
+RNG.prototype.random = function() {
+  // returns in range [0,1]
+  return this.nextInt() / (this.m - 1);
+}
+RNG.prototype.nextRange = function(start, end) {
+  // returns in range [start, end): including start, excluding end
+  // can't modulu nextInt because of weak randomness in lower bits
+  var rangeSize = end - start;
+  var randomUnder1 = this.nextInt() / this.m;
+  return start + Math.floor(randomUnder1 * rangeSize);
+}
+
+RNG.prototype.shuffle = function shuffle(array) {
     for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
+        const j = Math.floor(this.random() * (i + 1));
         [array[i], array[j]] = [array[j], array[i]];
     }
 }
@@ -57,15 +81,37 @@ function to_2d(array_1d, array_2d){
     }
 }
 
+function escape_html(unsafe) {
+    console.log(unsafe);
+    return unsafe
+         .replace(/&/g, "&amp;")
+         .replace(/</g, "&lt;")
+         .replace(/>/g, "&gt;")
+         .replace(/"/g, "&quot;")
+         .replace(/'/g, "&#039;");
+ }
+
+function clip_string(string, max_length){
+    if (string.length <= max_length){
+        return string
+    }
+
+    let split_length = round_number((max_length-3) / 2);
+    let new_string = string.substring(0, split_length) + "...";
+    new_string += string.substring(string.length-split_length, string.length);
+
+    return new_string;
+}
+
 function nice_number(number){
     var suffix = "";
-    if (number > 1000000000){
+    if (Math.abs(number) > 1000000000){
         number /= 1000000000;
         suffix = "g";
-    } else if (number > 1000000){
+    } else if (Math.abs(number) > 1000000){
         number /= 1000000;
         suffix = "m";
-    } else if (number > 1000){
+    } else if (Math.abs(number) > 1000){
         number /= 1000;
         suffix = "k";
     } else {
@@ -160,4 +206,30 @@ function get_object(canvas_id){
 
 function rgba2css(colour){
     return "rgba("+colour[0]+","+colour[1]+","+colour[2]+","+colour[3]/255+")"
+}
+
+function open_tab(tab_button, tabs_class, tab_id) {
+    var tabs = document.getElementsByClassName('iris-tabs-'+tabs_class);
+    for (let tab of tabs) {
+        tab.style.display = "none";
+    }
+    for (let button of tab_button.parentElement.children){
+        button.classList.remove("checked");
+    }
+    get_object(tab_id).style.display = "block";
+    tab_button.classList.add("checked");
+}
+
+function toogle_display(button) {
+    /* Toggle between adding and removing the "active" class,
+    to highlight the button that controls the panel */
+    button.classList.toggle("checked");
+
+    /* Toggle between hiding and showing the active panel */
+    var panel = button.nextElementSibling;
+    if (panel.style.display === "block") {
+      panel.style.display = "none";
+    } else {
+      panel.style.display = "block";
+    }
 }

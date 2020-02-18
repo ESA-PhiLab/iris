@@ -1,0 +1,6 @@
+{
+    "spacecraft_id": "Sentinel2",
+    "scene_id": "Hollstein\\scene_01",
+    "location": [-26.3981, 113.3077],
+    "resolution": 20.0
+}

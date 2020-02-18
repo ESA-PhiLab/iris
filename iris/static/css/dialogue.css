@@ -36,7 +36,7 @@
   border-style: solid;
   border-radius: 4px;
   border-color: black;
-  width: 50%;
+  width: 60%;
   box-shadow: 0 8px 16px 0 rgba(0,0,0,0.25),0 8px 24px 0 rgba(0,0,0,0.2);
   -webkit-animation-name: dialogue-animatetop;
   -webkit-animation-duration: 0.4s;
@@ -124,16 +124,24 @@
 .message {
     visibility: hidden;
     position: fixed;
-    bottom: 10;
-    right: 10;
-    max-width: 250px;
+    bottom: 10px;
+    right: 10px;
+    max-width: 320px;
     word-wrap: break-word;
-    background-color: black;
-    color: #fff;
-    text-align: center;
-    border-radius: 6px;
-    padding: 5px 5px;
+    color: black;
     z-index: 50;
+    /* display: flex;
+    justify-content: center;
+    align-items: center; */
+    border: 2px;
+    border-style: solid;
+    border-radius: 4px;
+    border-color: black;
+    background-color: white;
+    text-align: center;
+    text-decoration: none;
+    margin: 2px 2px;
+    padding: 5px 10px;
     /* Fade in tooltip - takes 1 second to go from 0% to 100% opac: */
     /* opacity: 0;
     transition: opacity 1s; */

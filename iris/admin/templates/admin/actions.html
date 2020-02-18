@@ -1,0 +1,33 @@
+
+<p>
+    {% if image_stats.processed > 0 %}
+        <div class="progress-bar">
+          <div class="progress" style="width: {{(100*image_stats.processed/image_stats.total)|int}}%">
+              {{(100*image_stats.processed/image_stats.total)|round|int}}% done!
+          </div>
+        </div>
+    {% endif %}
+</p>
+
+<table style="width: 80%;">
+    <tr style="font-weight: bold;">
+        <td>ID</td>
+        <td>Image</td>
+        <td>User (ID)</td>
+        <td>Score</td>
+        <td>Score pending?</td>
+        <td>Last modification</td>
+        <td>Time spent</td>
+    </tr>
+    {% for action in actions %}
+        <tr>
+            <td>{{action.id}}</td>
+            <td>{{action.image_id}}</td>
+            <td>{{action.username}} ({{action.user_id}})</td>
+            <td>{{action.score}}</td>
+            <td>{{action.score_pending}}</td>
+            <td>{{action.last_modification}}</td>
+            <td>{{action.time_spent}}</td>
+        </tr>
+    {% endfor %}
+</table>

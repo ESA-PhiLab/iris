@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='javascripts/utils.js') }}">
+    <link rel="stylesheet" href="{{ url_for('user.static', filename='javascripts/user.js') }}">
+</head>
+
+<body>
+    <h2 style="margin-bottom: -20px;">{{user.name}}<h2>
+    {% if user.id == current_user.id %}
+        <span class="tag">this is you</span>
+    {% endif %}
+    {% if user.admin %}
+        <span class="tag green">admin</span>
+    {% endif %}
+    {% if user.tested %}
+        <span class="tag green">tested</span>
+    {% else %}
+        <span class="tag red">not tested</span>
+    {% endif %}
+    <p></p>
+    <div class="accordion checked" onclick="toogle_display(this);">Segmentation</div>
+    <div class="panel" style="display: block;">
+        <h3>Stats</h3>
+        <table style="width:40%">
+            <tr><td>Rank:</td><td>{{user.segmentation.rank}}</td></tr>
+            <tr><td>Score:</td><td>{{user.segmentation.score}}</td></tr>
+            <tr><td>Pending score:</td><td>{{user.segmentation.score_pending}}</td></tr>
+            <tr><td>Labelled images:</td><td>{{user.segmentation.n_masks}}</td></tr>
+        </table>
+        {% if user.segmentation.last_masks %}
+            <h3>Last segmentation masks</h3>
+            <table style="width:100%">
+                <tr>
+                    <th>Image</th>
+                    <th>Score</th>
+                    <th>Last modification</th>
+                    <th>Time spent</th>
+                </tr>
+                {% for mask in user.segmentation.last_masks %}
+                <tr>
+                    <td>{{mask.image_id}}</td>
+                    <td>{{mask.score}}
+                        {% if mask.score_pending %}<span class="tag">pending</span>{% endif %}
+                    </td>
+                    <td>{{mask.last_modification}}</td>
+                    <td>{{mask.time_spent}}</td>
+                </tr>
+                {% endfor %}
+            </table>
+        {% endif %}
+    </div>
+
+    <div class="accordion" onclick="toogle_display(this);">Classification</div>
+    <div class="panel">
+     <p>Not yet implemented...</p>
+    </div>
+    {% if user.id == current_user.id %}
+        <p>
+            <button onclick="logout();">Logout</button>
+        </p>
+    {% endif %}
+</body>
+
+</html>

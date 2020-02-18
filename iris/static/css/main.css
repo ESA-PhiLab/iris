@@ -1,11 +1,12 @@
 body {
-    font-size: 16px;
+    font-size: 1em;
     margin: 15px;
     font-family: Arial, Helvetica, sans-serif;
 }
 
 button,.button {
   background-color: #ffffff;
+  outline: none;
   border: 2px;
   border-style: solid;
   border-radius: 4px;
@@ -25,21 +26,30 @@ button,.button {
       -ms-user-select: none; /* Internet Explorer/Edge */
           user-select: none; /* Non-prefixed version, currently
                                 supported by Chrome, Opera and Firefox */
+   transition: 0.3s;
 }
 
-.toolbutton {
-  float: left;
+.toolbar {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    display: flex;
+    align-items: stretch;
+}
+
+.toolbutton,.inactive-toolbutton,.statusbutton,.inactive-statusbutton {
   background-color: #ffffff;
+  outline: none;
   border: 2px;
   border-style: solid;
   border-radius: 4px;
   border-color: black;
   color: black;
   text-align: center;
-  /* display: block; */
   font-weight: bold;
   margin: 2px 2px;
-  padding: 9px 10px 10px 10px;
+  padding: 0px;
   cursor: pointer;
   font-size: 18px;
   -webkit-touch-callout: none; /* iOS Safari */
@@ -49,6 +59,21 @@ button,.button {
       -ms-user-select: none; /* Internet Explorer/Edge */
           user-select: none; /* Non-prefixed version, currently
                                 supported by Chrome, Opera and Firefox */
+   transition: 0.3s;
+}
+
+.icon_button{
+    line-height: 0;
+    padding: 2px;
+}
+
+img {
+    margin: 0px;
+    padding: 0px;
+}
+
+.inactive-toolbutton,.inactive-statusbutton{
+    cursor: default;
 }
 
 .toolbar_separator {
@@ -56,26 +81,45 @@ button,.button {
     background-color: #000;
     margin: 2px 6px;
     width: 2px;
-    height: 44px;
 }
 
-button:hover,.button:hover,.toolbutton:hover{
+.statusbar {
+    display: flex;
+    align-items: stretch;
+    /* list-style-type: none; */
+    /* border: 2px solid black;
+    border-radius: 4px; */
+    width: 98%;
+    margin: 0;
+    padding: 0;
+    /* padding: 4px; */
+    overflow: visible;
+    font-size: 18px;
+}
+
+.statusbutton,.inactive-statusbutton {
+  padding: 10px;
+  overflow: visible;
+}
+
+.statusbar_separator {
+    float: left;
+    background-color: #000;
+    margin: 0px 6px;
+    width: 2px;
+    height: 22px;
+}
+
+button:hover,.button:hover,.toolbutton:hover,.statusbutton:hover{
     background-color: #dddddd;
 }
 
-button.checked,.button.checked,.toolbutton.checked {
+.checked:hover{
+    background-color: #dddddd;
+}
+
+.checked {
     background-color: #ababab;
-}
-
-.icon_button {
-  padding: 2px 2px 1px 2px;
-}
-
-.toolbar {
-    list-style-type: none;
-    margin: 0;
-    padding: 0;
-    overflow: hidden;
 }
 
 .vl {
@@ -86,14 +130,18 @@ button.checked,.button.checked,.toolbutton.checked {
 }
 
 .info-box{
+    display: flex;
+    justify-content: center;
     border: 2px;
     border-style: solid;
     border-radius: 4px;
     border-color: black;
-    text-align: center;
+    background-color: white;
     text-decoration: none;
-    margin: 4px 2px;
+    align-items: center;
+    margin: 2px 2px;
     padding: 5px 10px;
+    float: left;
 }
 
 .info-box-top{
@@ -106,13 +154,51 @@ button.checked,.button.checked,.toolbutton.checked {
     font-weight: normal;
 }
 
+.slider {
+    /* width: 200px; */
+    font-size: 15px;
+}
+
+.slider-value{
+    font-size: 20px;
+    font-weight: bold;
+    text-align: center;
+}
+
+.slider-widget{
+  -webkit-appearance: none;  /* Override default CSS styles */
+  appearance: none;
+  width: 100%; /* Full-width */
+  height: 12px; /* Specified height */
+  background: #fff; /* Grey background */
+  outline: none; /* Remove outline */
+  border: 1px solid black;
+  /* margin-left: 2px;
+  margin-right: 2px; */
+}
+
+/* The slider handle (use -webkit- (Chrome, Opera, Safari, Edge) and -moz- (Firefox) to override default look) */
+.slider-widget::-webkit-slider-thumb {
+  -webkit-appearance: none; /* Override default look */
+  appearance: none;
+  width: 12px; /* Set a specific slider handle width */
+  height: 12px; /* Slider handle height */
+  background: #000; /* Green background */
+  cursor: pointer; /* Cursor on hover */
+}
+
+.slider-widget::-moz-range-thumb {
+  width: 12px; /* Set a specific slider handle width */
+  height: 12px; /* Slider handle height */
+  background: #000; /* Green background */
+  cursor: pointer; /* Cursor on hover */
+}
+
+
 table {
+  /* width: 100%; */
   border-collapse: collapse;
-  width: 100%;
-  border: 2px;
-  border-style: solid;
-  border-radius: 6px;
-  border-color: black;
+  border-style: hidden;
   margin: 2px 2px;
 }
 
@@ -133,6 +219,7 @@ td.upper-left {
 
 .icon {
     filter: blur(0.1px);
+    margin: 2px;
 }
 
 .key{
@@ -144,4 +231,135 @@ td.upper-left {
 }
 .key::after{
     content: ">";
+}
+
+/* Style the tab */
+.tab {
+  overflow: hidden;
+  border: 1px solid #000;
+}
+
+.tab button,.button {
+  float: left;
+  border: none;
+  border-radius: 0px;
+  outline: none;
+  cursor: pointer;
+  margin: 0px;
+  padding: 14px 16px;
+  font-size: 1em;
+}
+
+/* Style the tab content */
+.tabcontent {
+  display: none;
+  padding: 12px 12px;
+  border: 1px solid #000;
+  border-top: none;
+  overflow: auto;
+}
+
+.tag{
+    background-color: #000000;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    padding: 4px;
+}
+
+.green{
+    background-color: #11b811;
+}
+.red{
+    background-color: #bb0000;
+}
+
+/* Style the buttons that are used to open and close the accordion panel */
+.accordion {
+ /* background-color: #fff; */
+ color: #000;
+ font-weight: bold;
+ cursor: pointer;
+ padding: 14px 18px;
+ font-size: 16px;
+ /* width: 95%; */
+ text-align: left;
+ border: 2px solid black;
+ /* border-radius: 4px;
+ border-bottom-left-radius: 0px;
+ border-bottom-right-radius: 0px; */
+ outline: none;
+ overflow: hidden;
+ transition: 0.4s;
+ margin: 2px 0px;
+}
+
+/* Add a background color to the button if it is clicked on (add the .active class with JS), and when you move the mouse over it (hover) */
+.accordion:hover {
+ background-color: #ccc;
+}
+
+.accordion:after {
+  content: '\002B';
+  color: #000;
+  font-weight: bold;
+  float: right;
+  margin-left: 5px;
+}
+
+.accordion.checked:after {
+  content: "\2212";
+}
+
+/* Style the accordion panel. Note: hidden by default */
+.panel {
+ padding: 18px;
+ background-color: white;
+ display: none;
+ overflow: hidden;
+ border: 2px solid black;
+ border-top: none;
+ margin-top: -2px;
+ font-size: 16px;
+ font-weight: normal;
+}
+
+.tooltip {
+  position: relative;
+  display: inline-block;
+  border-bottom: 1px dotted black;
+}
+
+.tooltip .tooltiptext {
+  visibility: hidden;
+  overflow: visible;
+  width: 120px;
+  background-color: black;
+  color: #fff;
+  text-align: center;
+  border-radius: 6px;
+  padding: 5px 0;
+  position: absolute;
+  z-index: 1;
+  bottom: 150%;
+  left: 50%;
+  margin-left: -60px;
+}
+
+.tooltip:hover .tooltiptext {
+  visibility: visible;
+}
+
+.progress-bar {
+  background-color: #fff;
+  border: 2px solid black;
+}
+
+.progress {
+  text-align: center;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  background-color: black;
+  color: white;
 }

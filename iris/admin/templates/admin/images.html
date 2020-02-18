@@ -1,0 +1,22 @@
+<table style="width: 80%;">
+    <tr style="font-weight: bold;">
+        <td>ID</td>
+        <td>Segmentation agreement (%)</td>
+        <td>Segmentations</td>
+        <td>Classification agreement (%)</td>
+        <td>Classifications</td>
+        <td>Detection agreement (%)</td>
+        <td>Detections</td>
+    </tr>
+    {% for image in images %}
+        <tr>
+            <td>{{image.id}}</td>
+            <td>-</td>
+            <td>{{image.n_segmentations}}</td>
+            <td>-</td>
+            <td>{{image.n_classifications}}</td>
+            <td>-</td>
+            <td>{{image.n_detections}}</td>
+        </tr>
+    {% endfor %}
+</table>

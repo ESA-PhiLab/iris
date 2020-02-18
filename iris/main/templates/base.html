@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link rel="stylesheet" href="{{ url_for('main.static', filename='css/main.css') }}">
+    <link rel="stylesheet" href="{{ url_for('main.static', filename='css/dialogue.css') }}">
+
+    <script type="text/javascript" src="{{ url_for('main.static', filename='javascripts/utils.js') }}"></script>
+    <script type="text/javascript" src="{{ url_for('main.static', filename='javascripts/dialogue.js') }}"></script>
+    <script type="text/javascript" src="{{ url_for('user.static', filename='javascripts/user.js') }}"></script>
+    <script type="text/javascript">
+        let vars = {
+            'url': {
+                'main': {{url_for('main.index')|tojson}},
+                'segmentation': {{url_for('segmentation.index')|tojson}},
+                'user': {{url_for('user.index')|tojson}},
+                'admin': {{url_for('admin.index')|tojson}},
+                'help': {{url_for('help.index')|tojson}},
+            },
+            'config': null
+        };
+
+        function goto_url(url){
+            window.location = url
+        }
+    </script>
+
+    <title>iris | {% block title %}{% endblock %}</title>
+    {% block head %}
+    {% endblock %}
+</head>
+<body>
+    <div id="block-screen" class="block-screen"></div>
+
+    <div id="dialogue" class="dialogue">
+      <div class="dialogue-content">
+        <div id="dialogue-header" class="dialogue-header">
+          <span id="dialogue-close" class="dialogue-close" onclick="hide_dialogue();">&times;</span>
+          <h2 id="dialogue-title"></h2>
+        </div>
+        <div id="dialogue-body" class="dialogue-body"></div>
+      </div>
+    </div>
+
+    <div id="loader" class="loader">
+        <div style="text-align: center; width: 200px; margin: 0; position: absolute; top: 50%; left: 50%; margin-right: -50%; transform: translate(-50%, -50%)">
+            <div class="loader-spin"></div>
+            <div id="loader-text" style="font-weight: bold; text-align: center; margin: 0px 10px;">
+                Loading text...
+            </div>
+        </div>
+    </div>
+
+    <div id='message' class='message'></div>
+    {% block content %}
+    {% endblock %}
+</body>
+</html>

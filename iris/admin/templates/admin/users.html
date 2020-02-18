@@ -1,0 +1,24 @@
+<table style="width: 80%;">
+    <tr style="font-weight: bold;">
+        <td>ID</td>
+        <td>Username</td>
+        <td>Segmentation score</td>
+        <td>Segmentation masks</td>
+        <td>E-Mail address</td>
+        <td>Creation date</td>
+        <td>Tested</td>
+        <td>Admin</td>
+    </tr>
+    {% for user in users %}
+        <tr>
+            <td>{{user.id}}</td>
+            <td>{{user.name}}</td>
+            <td>{{user.segmentation.score}} ({{user.segmentation.score_pending}})</td>
+            <td>{{user.segmentation.n_masks}}</td>
+            <td>{{user.email}}</td>
+            <td>{{user.created}}</td>
+            <td>{{user.tested}}</td>
+            <td>{{user.admin}}</td>
+        </tr>
+    {% endfor %}
+</table>
