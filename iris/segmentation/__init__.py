@@ -46,6 +46,8 @@ def index():
     elif image_id not in project['file_ids']:
         return flask.make_response('Unknown image id!', 404)
 
+    print(f"Segmentation:", project['files'][image_id])
+
     return flask.render_template(
         'segmentation.html',
         image_id=image_id,
@@ -170,6 +172,7 @@ def merge_masks(image_id):
         merged_mask, mode=project['segmentation']['mask_encoding']
     )
     filename = project['files'][image_id]['mask']
+    os.makedirs(dirname(filename), exist_ok=True)
     if filename.endswith('npy'):
         np.save(filename, merged_mask, allow_pickle=False)
     else:
