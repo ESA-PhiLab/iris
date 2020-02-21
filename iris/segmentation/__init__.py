@@ -12,6 +12,7 @@ import numpy as np
 from scipy.ndimage import convolve, minimum_filter, maximum_filter
 from skimage.io import imread, imsave
 from skimage.filters import sobel
+from skimage.segmentation import felzenszwalb
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, f1_score, jaccard_similarity_score
 import yaml
@@ -338,14 +339,23 @@ def predict_mask(image_id):
 
     inputs = [image]
     if config['detect_edges']:
-        edges = np.dstack([
-            sobel(image[..., i])
-            for i in range(n_channels)
-        ])
-        inputs.append(edges)
+        # edges = np.dstack([
+        #     sobel(image[..., i])
+        #     for i in range(n_channels)
+        # ])
+        # inputs.append(edges)
+        ...
 
     if config['include_context']:
         ...
+
+    # Add meshgrid:
+    # x, y = np.meshgrid(range(image.shape[0]), range(image.shape[1]))
+    # inputs.append(x[..., np.newaxis])
+    # inputs.append(y[..., np.newaxis])
+
+    super_pixels = felzenszwalb(image, scale=200, sigma=4, min_size=100)
+    inputs.append(super_pixels)
 
     inputs = np.dstack(inputs).reshape(mask_size, -1)
 

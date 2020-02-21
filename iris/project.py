@@ -2,6 +2,7 @@
 
 """
 from glob import glob
+from numbers import Number
 import os
 from os.path import basename, dirname, exists, isabs, join, normpath
 import re
@@ -236,12 +237,20 @@ class Project:
         environment = {f"B{i+1}": image[..., i] for i in range(image.shape[-1])}
         environment['np'] = np
 
-        user_bands = [
+        rgb_bands = [
             eval(channel, {"__builtins__": None}, environment)
             for channel in channels
         ]
 
-        return np.moveaxis(np.stack(user_bands), 0, -1)
+        # Broadcast:
+        for i, band in enumerate(rgb_bands):
+            if isinstance(band, Number):
+                array = np.repeat(band, image.shape[0]*image.shape[1])
+                rgb_bands[i] = array.reshape(*image.shape[:-1])
+
+            print(f"B{i} (min, max):",rgb_bands[i].min(), rgb_bands[i].max())
+
+        return np.moveaxis(np.stack(rgb_bands), 0, -1)
 
     def get_metadata(self, image_id):
         filename = self['files'][image_id].get('metadata', False)
