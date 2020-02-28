@@ -45,6 +45,11 @@
     }
 ],
   "views": [
+{
+      "name": "Cirrus",
+      "description": "In this band combination vegetation appears in shades of red, soils vary from dark to light brown and urban areas are cyan blue. Snow, ice, and clouds are <b>light cyan or white</b>.",
+      "content": ["(B11**0.8*5)", "(B11**0.8*5)", "(B11**0.8*5)"]
+    },
     {
         "name": "RGB",
         "description": "Normal RGB image.",
@@ -54,10 +59,6 @@
         "name": "Snow vs. Clouds",
         "description": "Small ice crystals in high-level clouds appear reddish-orange or peach, and thick ice snow looks vivid red (or red-orange). Bare soil appears bright cyan and vegetation seem greenish in the image. Water on the ground is very dark as it absorbs the SWIR and the red, but small (liquid) water drops in the clouds scatter the light equally in both visible and the SWIR, and therefore it appears white. Water Sediments are displayed as dark red.",
         "content": ["B1", "B12", "B13"]
-    },
-    {
-        "name": "Aerial Imagery",
-        "content": "bingmap"
     }
   ]
 }

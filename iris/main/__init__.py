@@ -4,7 +4,7 @@ import flask
 import numpy as np
 from PIL import Image as PILImage
 
-from iris.models import db, Image
+from iris.models import db, Action
 from iris.project import project
 
 main_app = flask.Blueprint(
@@ -26,8 +26,16 @@ def load_image(image_id, view):
 
 @main_app.route('/image_info/<image_id>')
 def image_info(image_id):
-    image = Image.query.get_or_404(image_id)
-    return image.to_json()
+    data = {
+        'id': image_id,
+        'n_segmentations':
+            Action.query.filter_by(image_id=image_id, type='segmentation').count(),
+        'n_classifications':
+            Action.query.filter_by(image_id=image_id, type='classification').count(),
+        'n_detections':
+            Action.query.filter_by(image_id=image_id, type='detection').count(),
+    }
+    return flask.jsonify(data)
 
 @main_app.route('/metadata/<image_id>', methods=['GET'])
 def load_metadata(image_id):

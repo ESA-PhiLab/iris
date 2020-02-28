@@ -287,7 +287,7 @@ async function fetch_server_update(){
         image = await response.json();
 
         info_box = '<div class="info-box-top" style="position: relative;">';
-        info_box += clip_string(image.id, 30);
+        info_box += clip_string(image.id, 20);
         if (image.n_segmentations != 0){
             // Check how much the score changed in comparison to the last time:
             let text = '1 mask';
