@@ -3,6 +3,7 @@
 {% block head %}
     <link rel="stylesheet" href="{{ url_for('segmentation.static', filename='css/segmentation.css') }}">
 
+    <script type="text/javascript" src="{{ url_for('main.static', filename='javascripts/views.js') }}"></script>
     <script type="text/javascript" src="{{ url_for('segmentation.static', filename='javascripts/segmentation.js') }}"></script>
     <script type="text/javascript">
 
@@ -26,12 +27,10 @@
             },
             'classes': {{classes|tojson}},
             'views': {{views|tojson}},
+            'view_groups': {{view_groups|tojson}},
             'image_id': {{image_id|tojson}},
-            'images': new Array({{views|length}}),
             'image_shape': {{image_shape|tojson}},
             'mask_area': {{mask_area|tojson}},
-            'thumbnail_available': {{thumbnail_available|tojson}},
-            'metadata_available': {{metadata_available|tojson}},
             'current_class': 0,
             'cursor_canvas': [0, 0],
             'cursor_image': [0, 0],
@@ -42,10 +41,12 @@
             'show_mask': true,
             'mask_type': 'final',
             'mask_highlight_edges': false,
-            'contrast': false,
-            'invert': false,
-            'brightness': 100,
-            'saturation': 100,
+            'filters': {
+                'contrast': false,
+                'invert': false,
+                'brightness': 100,
+                'saturation': 100,
+            },
             'confusion_matrix': null,
             'tool': {
                 "type": 'draw',
@@ -161,59 +162,8 @@
         </li>
     </ul>
 
-    <!-- Unfortunately, my css is really bad so we have to hardcode the different views here: -->
-    {% if views|length == 1 %}
-        <div style="margin: 10px 0px; width: 100%;">
-            <div style="position: relative;">
-                <div id="view-0">
-                    <canvas id="canvas-0-image" class="view-canvas"
-                        style="z-index: 0; width: 80vh; height: 80vh;"></canvas>
-                    <canvas id="canvas-0-mask" class="view-canvas"
-                        style="z-index: 1; width: 80vh; height: 80vh;"></canvas>
-                    <canvas id="canvas-0-preview" class="view-canvas"
-                        style="z-index: 2; width: 80vh; height: 80vh;"></canvas>
-                </div>
-            </div>
-    {% elif views|length == 2 %}
-        <div style="margin: 10px 0px; width: 100%;">
-        {% for view in views%}
-            <div style="position: relative; left: calc(70vh*{{ loop.index-1 }});">
-                {% if view.type == "bingmap" %}
-                    <iframe id="canvas-{{loop.index-1}}-iframe" style="z-index: 5" frameborder="1" scrolling="no">
-                    </iframe>
-                {% else %}
-                    <div id="view-{{ loop.index-1 }}">
-                        <canvas id="canvas-{{ loop.index-1 }}-image" class="view-canvas"
-                            style="z-index: 0; width: 70vh; height: 70vh;"></canvas>
-                        <canvas id="canvas-{{ loop.index-1 }}-mask" class="view-canvas"
-                            style="z-index: 1; width: 70vh; height: 70vh;"></canvas>
-                        <canvas id="canvas-{{ loop.index-1 }}-preview" class="view-canvas"
-                            style="z-index: 2; width: 70vh; height: 70vh;"></canvas>
-                    </div>
-                {% endif %}
-            </div>
-        {% endfor %}
-    {% else %}
-        <div style="margin: 10px 0px; width: 100%;">
-        {% for view in views%}
-            <div style="position: relative; left: calc(98vw/{{views|length}}*{{ loop.index-1 }});">
-                {% if view.type == "bingmap" %}
-                    <iframe id="canvas-{{loop.index-1}}-iframe" style="z-index: 3;" frameborder="1" scrolling="no">
-                    </iframe>
-                {% else %}
-                    <div id="view-{{ loop.index-1 }}">
-                        <canvas id="canvas-{{ loop.index-1 }}-image" class="view-canvas"
-                            style="z-index: 0; width: calc(98vw/{{views|length}}); height: calc(98vw/{{views|length}});"></canvas>
-                        <canvas id="canvas-{{ loop.index-1 }}-mask" class="view-canvas"
-                            style="z-index: 1; width: calc(98vw/{{views|length}}); height: calc(98vw/{{views|length}});"></canvas>
-                        <canvas id="canvas-{{ loop.index-1 }}-preview" class="view-canvas"
-                            style="z-index: 2; width: calc(98vw/{{views|length}}); height: calc(98vw/{{views|length}});"></canvas>
-                    </div>
-                {% endif %}
-            </div>
-        {% endfor %}
-    {% endif %}
-
+    <div id="container-views" style="margin: 10px 0px; width: 100%;">
+        <!-- This will be filled up by the ViewManager -->
     </div>
 
     <!-- <div class="info-box" style="position: fixed; bottom: 10; left: 10; float: left; display: flex; flex-direction: row;"> -->

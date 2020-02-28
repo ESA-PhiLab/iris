@@ -32,7 +32,7 @@ def index():
     image_id = flask.request.args.get('image_id', None)
 
     if image_id is None:
-        image_id = project.get_start_image()
+        image_id = project.get_start_image_id()
 
         user_id = flask.session.get('user_id', None)
         if user_id:
@@ -44,25 +44,24 @@ def index():
 
             if last_mask is not None:
                 image_id = last_mask.image_id
-    elif image_id not in project['file_ids']:
+    elif image_id not in project.image_ids:
         return flask.make_response('Unknown image id!', 404)
 
-    print(f"Segmentation:", project['files'][image_id])
+    print("Segmentation of", image_id)
 
     return flask.render_template(
         'segmentation.html',
         image_id=image_id,
         image_shape=project['images']['shape'],
         mask_area=project['segmentation']['mask_area'],
-        views=project['views'], classes=project['classes'],
-        thumbnail_available='thumbnail' in project['files'][image_id],
-        metadata_available='metadata' in project['files'][image_id],
+        views=project['views'], view_groups=project['view_groups'], 
+        classes=project['classes'],
     )
 
 @segmentation_app.route('/next_image', methods=['GET'])
 def next_image():
     image_id = project.get_next_image(
-        flask.request.args.get('image_id', project.get_start_image())
+        flask.request.args.get('image_id', project.get_start_image_id())
     )
 
     return flask.redirect(
@@ -72,7 +71,7 @@ def next_image():
 @segmentation_app.route('/previous_image', methods=['GET'])
 def previous_image():
     image_id = project.get_previous_image(
-        flask.request.args.get('image_id', project.get_start_image())
+        flask.request.args.get('image_id', project.get_start_image_id())
     )
 
     return flask.redirect(
@@ -136,11 +135,6 @@ def merge_masks(image_id):
     merged_mask = np.vectorize(classes.__getitem__, otypes=[np.uint8])(winner_indices)
 
     # Update the database for all users
-    image = Image.query.get(image_id)
-    if not image:
-        image = Image(id=image_id)
-        db.session.add(image)
-
     for u, user_id in enumerate(users):
         user = User.query.get(user_id)
         if user is None:
@@ -164,9 +158,6 @@ def merge_masks(image_id):
             ))
         action.score_pending = len(users) < 3
 
-    # total_agreement = \
-    #     np.take_along_axis(class_votes, winner_indices[..., np.newaxis], axis=-1).sum()
-    # image.segmentation_agreement = total_agreement / class_votes.sum()
     db.session.commit()
 
     merged_mask = encode_mask(
@@ -220,28 +211,7 @@ def encode_mask(mask, mode='binary'):
     return encoded_mask.astype(np.uint8)
 
 def save_masks(image_id, final_mask, user_mask):
-    final_mask_file, user_mask_file = get_mask_filenames(image_id)
 
-    os.makedirs(dirname(final_mask_file), exist_ok=True)
-
-    final_mask = encode_mask(final_mask, mode='binary')
-
-    np.save(final_mask_file, final_mask, allow_pickle=False)
-    np.save(user_mask_file, user_mask.astype(bool), allow_pickle=False)
-
-    # Update the database:
-    image = Image.query.get(image_id)
-    if not image:
-        image = Image(id=image_id)
-        db.session.add(image)
-
-    user = User.query.get(project.user_id)
-    action = Action.query.filter_by(user=user, image=image, type="segmentation").first()
-    if not action:
-        action = Action(user=user, image=image, type="segmentation")
-    action.last_modification = datetime.utcnow()
-    db.session.add(action)
-    db.session.commit()
 
 @segmentation_app.route('/load_mask/<image_id>')
 @requires_auth
@@ -301,7 +271,25 @@ def save_mask(image_id):
     user_mask = data[1+mask_length:-1].astype(np.bool)
     user_mask = user_mask.reshape(project['segmentation']['mask_shape'][::-1])
 
-    save_masks(image_id, final_mask, user_mask)
+    final_mask_file, user_mask_file = get_mask_filenames(image_id)
+    os.makedirs(dirname(final_mask_file), exist_ok=True)
+
+    final_mask = encode_mask(final_mask, mode='binary')
+
+    np.save(final_mask_file, final_mask, allow_pickle=False)
+    np.save(user_mask_file, user_mask.astype(bool), allow_pickle=False)
+
+    # Update the database:
+    user = User.query.get(project.user_id)
+    action = Action.query\
+        .filter_by(user=user, image=image_id, type="segmentation")\
+        .first()
+    if not action:
+        action = Action(user=user, image=image_id, type="segmentation")
+    action.last_modification = datetime.utcnow()
+    db.session.add(action)
+    db.session.commit()
+
     merge_masks(image_id)
 
     # We need this to send a successful response to the client
@@ -310,7 +298,9 @@ def save_mask(image_id):
 @segmentation_app.route('/predict_mask/<image_id>', methods=['POST'])
 @requires_auth
 def predict_mask(image_id):
-    image = project.get_image(image_id)
+    # How to exclude certain bands?
+    image = np.dstack(project.get_image(image_id).values())
+
     n_channels = image.shape[-1]
 
     # Select only the masking area:

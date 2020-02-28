@@ -67,26 +67,11 @@ class User(JsonSerializable, db.Model):
 
         return data
 
-class Image(JsonSerializable, db.Model):
-    id = db.Column(db.String(256), primary_key=True)
-    actions = db.relationship(
-        'Action', backref='image', lazy='dynamic'
-    )
-    def to_json(self):
-        data = super().to_json()
-        data['n_segmentations'] = \
-            Action.query.filter_by(image=self, type='segmentation').count()
-        data['n_classifications'] = \
-            Action.query.filter_by(image=self, type='classification').count()
-        data['n_detections'] = \
-            Action.query.filter_by(image=self, type='detection').count()
-        return data
-
 class Action(JsonSerializable, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     # Can be segmentation, classification or detection:
     type = db.Column(db.String(256), index=True)
-    image_id = db.Column(db.String(256), db.ForeignKey('image.id'))
+    image = db.Column(db.String(256), index=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     last_modification = db.Column(
         db.DateTime, index=True, default=datetime.utcnow

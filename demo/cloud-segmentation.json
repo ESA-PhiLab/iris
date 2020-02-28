@@ -2,7 +2,10 @@
   "name": "cloud-segmentation",
   "authentication_required": true,
   "images": {
-      "path": "images/{id}/image.tif",
+      "path": {
+          "Sentinel1": "images/{id}/s1.tif",
+          "Sentinel2": "images/{id}/s2.tif"
+      },
       "shape": [512, 512],
       "thumbnails": "images/{id}/thumbnail.png",
       "metadata": "images/{id}/metadata.json"
@@ -12,9 +15,7 @@
       "mask_encoding": "rgb",
       "mask_area": [64, 64, 448, 448],
       "score": "f1",
-      "test_images": [
-
-      ]
+      "test_images": []
   },
   "classes": [
     {
@@ -43,22 +44,35 @@
       "description": "Reserved for no data pixels, e.g. pixels outside of the satellite's swath.",
       "colour": [50, 50, 255, 70]
     }
-],
-  "views": [
-{
-      "name": "Cirrus",
-      "description": "In this band combination vegetation appears in shades of red, soils vary from dark to light brown and urban areas are cyan blue. Snow, ice, and clouds are <b>light cyan or white</b>.",
-      "content": ["(B11**0.8*5)", "(B11**0.8*5)", "(B11**0.8*5)"]
-    },
-    {
-        "name": "RGB",
-        "description": "Normal RGB image.",
-        "content": ["B5", "B3", "B2"]
-    },
-    {
-        "name": "Snow vs. Clouds",
-        "description": "Small ice crystals in high-level clouds appear reddish-orange or peach, and thick ice snow looks vivid red (or red-orange). Bare soil appears bright cyan and vegetation seem greenish in the image. Water on the ground is very dark as it absorbs the SWIR and the red, but small (liquid) water drops in the clouds scatter the light equally in both visible and the SWIR, and therefore it appears white. Water Sediments are displayed as dark red.",
-        "content": ["B1", "B12", "B13"]
-    }
-  ]
+  ],
+  "views": {
+      "Cirrus": {
+          "description": "Cirrus and high clouds are red.",
+          "type": "image",
+          "data": "print('hello');$Sentinel2.B11**0.8*5",
+          "cmap": "jet"
+      },
+      "RGB": {
+          "description": "Normal RGB image.",
+          "type": "image",
+          "data": ["$Sentinel2.B5", "$Sentinel2.B3", "$Sentinel2.B2"]
+      },
+      "Snow": {
+          "description": "Small ice crystals in high-level clouds appear reddish-orange or peach, and thick ice snow looks vivid red (or red-orange). Bare soil appears bright cyan and vegetation seem greenish in the image. Water on the ground is very dark as it absorbs the SWIR and the red, but small (liquid) water drops in the clouds scatter the light equally in both visible and the SWIR, and therefore it appears white. Water Sediments are displayed as dark red.",
+          "type": "image",
+          "data": ["$Sentinel2.B1", "$Sentinel2.B12", "$Sentinel2.B13"]
+      },
+      "Sentinel-1": {
+          "description": "RGB of VH, VV and VH-VV.",
+          "type": "image",
+          "data": ["$Sentinel1.B1", "$Sentinel1.B2", "$Sentinel1.B1-$Sentinel1.B2"]
+      },
+      "Bing": {
+          "description": "Aerial Imagery",
+          "type": "bingmap"
+      },
+  },
+  "view_groups": {
+      "default": ["Cirrus", "RGB", "Snow"]
+  }
 }

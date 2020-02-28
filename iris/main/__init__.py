@@ -21,7 +21,7 @@ def index():
 
 @main_app.route('/image/<image_id>/<int:view>')
 def load_image(image_id, view):
-    image = project.get_image(image_id, project['views'][view]['content'])
+    image = project.render_image(image_id, project['views'][view])
     return array_to_png(image)
 
 @main_app.route('/image_info/<image_id>')

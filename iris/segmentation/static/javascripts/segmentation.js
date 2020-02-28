@@ -77,39 +77,30 @@ let commands = {
     },
 };
 
-// {
-// "name": "Cirrus",
-// "description": "High snowy or icy mountain regions and high clouds are <b>white</b>.",
-// "channels": ["B11*100", "B11*100", "B11*100"]
-// },
-
 function init_segmentation(){
     // Before we start, we check for the login, etc.
-    vars.next_action = init_canvases;
+    vars.next_action = init_views;
     fetch_server_update();
 }
 
-function init_canvases(){
-    // Make some performance optimisations and add transformation tracker
-    for (let canvas of document.getElementsByClassName("view-canvas")){
-        // Here we set the resolution of the canvas in pixels. By setting
-        // it to the actual size of the canvas (apparently .scrollWidth gives
-        // the actual screen size in pixels) we make sure there are no blurring
-        // effects.
-        canvas.width = 300;
-        canvas.height = 300;
+function init_views(){
+    vars.view_manager = new ViewManager(
+        get_object('views-container'),
+        vars.views, vars.view_groups,
+        vars.url.main+"image/"
+    );
 
-        // To avoid any blurring of the images or masks, we disable smoothing
-        var context = canvas.getContext("2d");
-        context.shadowOffsetX = 0;
-        context.shadowOffsetY = 0;
-        context.shadowBlur = 0;
-        context.shadowColor = null;
-        context.imageSmoothingEnabled = false;
-
-        // Track transformations done to the canvas (like zooming and paning)
-        trackTransforms(context);
-    }
+    // Set the image location if it was given in the metadata:
+    fetch(
+        vars.url.main+'metadata/'+vars.image_id
+    ).then(response => {
+        if (response.status < 400){
+            let metadata = await response.json();
+            if ("location" in metadata){
+                vars.view_manager.setImageLocation(metadata.location);
+            }
+        }
+    });
 
     // It much faster to change some pixel values on a sprite and draw it then
     // to the canvas once than redrawing each pixel to the canvas directly.
@@ -127,19 +118,6 @@ function init_canvases(){
     // Load mask:
     load_mask();
 
-    // Load the images and draw them when ready
-    for (var i=0; i < vars.views.length; i++){
-        if (!view_is_image(vars.views[i])){
-            set_view_iframe(i);
-            continue;
-        }
-
-        // We will later overwrite vars.images
-        vars.images[i] = new Image();
-        vars.images[i].src = vars.url.main+"image/" + vars.image_id + "/" + i;
-        vars.images[i].onload = render_image.bind(null, i, true);
-    }
-
     set_tool(vars.tool.type);
     set_current_class(vars.current_class);
 
@@ -148,6 +126,8 @@ function init_canvases(){
 
     render_preview();
     reset_views();
+    vars.view_manager.setImage(vars.image_id);
+    vars.view_manager.showGroup();
 }
 
 async function set_view_iframe(i){
@@ -159,16 +139,7 @@ async function set_view_iframe(i){
     // Default location
     let location = "0~0";
 
-    // Check whetherthere was a location given in the metadata:
-    let response = await fetch(
-        vars.url.main+'metadata/'+vars.image_id
-    );
-    if (response.status < 400){
-        let metadata = await response.json();
-        if ("location" in metadata){
-            location = metadata.location[0]+"~"+metadata.location[1];
-        }
-    }
+
 
     let canvas = get_object('canvas-0-image');
     let url = "https://www.bing.com/maps/embed?";
@@ -224,6 +195,7 @@ function init_toolbar_events(){
 }
 
 function handle_resize(){
+    vars.view_manager.handleResize();
     // Update the views that have external content
     for (var i=0; i < vars.views.length; i++){
         if (!view_is_image(vars.views[i])){
@@ -327,9 +299,9 @@ function key_down(event){
     } else if (key == "KeyR"){
         redo();
     } else if (key == "KeyC"){
-        set_contrast(!vars.contrast);
+        set_contrast(!vars.filters.contrast);
     } else if (key == "KeyI"){
-        set_invert(!vars.invert);
+        set_invert(!vars.filters.invert);
     } else if (key == "ArrowUp"){
         change_brightness(up=true);
     } else if (key == "ArrowDown"){
@@ -370,23 +342,23 @@ function key_down(event){
 
 function change_brightness(up){
     if (up){
-        vars.brightness += 10;
-        vars.brightness = Math.min(800, vars.brightness);
+        vars.filters.brightness += 10;
+        vars.filters.brightness = Math.min(800, vars.filters.brightness);
     } else {
-        vars.brightness -= 10;
-        vars.brightness = Math.max(0, vars.brightness);
+        vars.filters.brightness -= 10;
+        vars.filters.brightness = Math.max(0, vars.filters.brightness);
     }
-    render_images();
+    vars.view_manager.render();
 }
 function change_saturation(up){
     if (up){
-        vars.saturation += 20;
-        vars.saturation = Math.min(800, vars.saturation);
+        vars.filters.saturation += 20;
+        vars.filters.saturation = Math.min(800, vars.filters.saturation);
     } else {
-        vars.saturation -= 20;
-        vars.saturation = Math.max(0, vars.saturation);
+        vars.filters.saturation -= 20;
+        vars.filters.saturation = Math.max(0, vars.filters.saturation);
     }
-    render_images();
+    vars.view_manager.render();
 }
 
 function set_current_class(class_id){
@@ -414,27 +386,27 @@ function set_mask_highlight_edges(yes){
 }
 
 function set_contrast(visible){
-    vars.contrast = visible;
+    vars.filters.contrast = visible;
 
-    if (vars.contrast){
+    if (vars.filters.contrast){
         get_object("tb_toggle_contrast").classList.add("checked");
     } else {
         get_object("tb_toggle_contrast").classList.remove("checked");
     }
 
-    render_images();
+    vars.view_manager.render();
 }
 
 function set_invert(visible){
-    vars.invert = visible;
+    vars.filters.invert = visible;
 
-    if (vars.invert){
+    if (vars.filters.invert){
         get_object("tb_toggle_invert").classList.add("checked");
     } else {
         get_object("tb_toggle_invert").classList.remove("checked");
     }
 
-    render_images();
+    vars.view_manager.render();
 }
 
 function set_tool(tool){
@@ -604,7 +576,7 @@ function update_views(){
     vars.cursor_image = [image_coords.x, image_coords.y];
 
     // Redraw everything:
-    render_images();
+    vars.view_manager.render();
     render_mask();
     render_preview();
 }
@@ -1009,17 +981,15 @@ function render_image(view_number){
 
     // Apply brightness, contrast and saturation filters:
     let filters = [];
-    if (vars.invert){
+    if (vars.filters.invert){
         filters.push("invert(1)");
     }
-    filters.push("brightness("+vars.brightness+"%)");
-    if (vars.contrast){
+    filters.push("brightness("+vars.filters.brightness+"%)");
+    if (vars.filters.contrast){
         filters.push("contrast(200%)");
     }
-    filters.push("saturate("+vars.saturation+"%)");
+    filters.push("saturate("+vars.filters.saturation+"%)");
     canvas.style.filter = filters.join(" ");
-
-    let transform = ctx.getTransform();
 
     ctx.drawImage(
         image, 0, 0, ...vars.image_shape
@@ -1046,11 +1016,11 @@ function reset_mask(){
 }
 
 function reset_filters(){
-    vars.brightness = 100;
-    vars.saturation = 100;
+    vars.filters.brightness = 100;
+    vars.filters.saturation = 100;
     set_contrast(false);
     set_invert(false);
-    render_images();
+    vars.view_manager.render();
 }
 
 function show_mask(visible){
@@ -1074,54 +1044,38 @@ function show_mask(visible){
 }
 
 async function dialogue_image(){
-    if (!vars.thumbnail_available && !vars.metadata_available){
-        show_dialogue(
-            "info",
-            "No further image information available.",
-            false, "image: "+vars.image_id
-        );
-        return;
-    }
-    let content = '';
-    if (vars.thumbnail_available){
-        content += '<p><img src="'+vars.url.main+'thumbnail/'+vars.image_id+'"  style="display: block; margin-left: auto; margin-right: auto;"/></p>';
-    }
+    let content = '<p><img src="'+vars.url.main+'thumbnail/'+vars.image_id+'" style="display: block; margin-left: auto; margin-right: auto;"/></p>';
+    let response = await fetch(
+        vars.url.main+'metadata/'+vars.image_id+'?safe_html=True'
+    );
 
-    if (vars.metadata_available){
-        let response = await fetch(
-            vars.url.main+'metadata/'+vars.image_id+'?safe_html=True'
-        );
-
-        if (response.status >= 400){
-            content += await response.text();
-        } else {
-            let metadata = await response.json();
-            content += '<table>';
-            content += '<tr><td><b>Attribute</b></td><td><b>Value</b></td></tr>';
-
-            // row and col are at the same the id for the row and column class, respectively
-            for (const attribute in metadata){
-                content += '<tr>';
-                content += '<td>'+attribute+'</td>';
-
-                if (attribute == "location"){
-                    let location = metadata[attribute]
-                                    .replace('[', '')
-                                    .replace(']', '')
-                                    .replace(' ', '')
-
-                    content += '<td>' + metadata[attribute];
-                    content += ' <a target="_blank" href="https://www.google.com/maps/search/?api=1&query='+location+'">Show on map</a></td>';
-                } else {
-                    content += '<td>'+metadata[attribute]+'</td>';
-                }
-
-                content += '</tr>';
-            }
-            content += '</table>';
-        }
+    if (response.status >= 400){
+        content += await response.text();
     } else {
-        content += 'No metadata information available!';
+        let metadata = await response.json();
+        content += '<table>';
+        content += '<tr><td><b>Attribute</b></td><td><b>Value</b></td></tr>';
+
+        // row and col are at the same the id for the row and column class, respectively
+        for (const attribute in metadata){
+            content += '<tr>';
+            content += '<td>'+attribute+'</td>';
+
+            if (attribute == "location"){
+                let location = metadata[attribute]
+                                .replace('[', '')
+                                .replace(']', '')
+                                .replace(' ', '')
+
+                content += '<td>' + metadata[attribute];
+                content += ' <a target="_blank" href="https://www.google.com/maps/search/?api=1&query='+location+'">Show on map</a></td>';
+            } else {
+                content += '<td>'+metadata[attribute]+'</td>';
+            }
+
+            content += '</tr>';
+        }
+        content += '</table>';
     }
 
     show_dialogue(
@@ -1529,10 +1483,4 @@ function update_ai_box(score, cm, tp, user_classes){
     }
 
     get_object("ai-recommendation").innerHTML = recommendation;
-}
-
-function render_images(){
-    for (var i=0; i < vars.views.length; i++){
-        render_image(i);
-    }
 }

@@ -57,8 +57,8 @@ def actions(type):
         for action in actions
     ]
     image_stats = {
-        "processed": len(set(action.image_id for action in actions)),
-        "total": len(project['files'])
+        "processed": len(set(action.image for action in actions)),
+        "total": len(project.image_ids)
     }
 
     return flask.render_template(
@@ -69,9 +69,16 @@ def actions(type):
 @admin_app.route('/images', methods=['GET'])
 @requires_admin
 def images():
-    images = Image.query.all()
-    images_json = [image.to_json() for image in images]
-
-    return flask.render_template(
-        'admin/images.html', images=images_json,
-    )
+    pass
+    # images = Image.query.all()
+    # data['n_segmentations'] = \
+    #     Action.query.filter_by(image=self, type='segmentation').count()
+    # data['n_classifications'] = \
+    #     Action.query.filter_by(image=self, type='classification').count()
+    # data['n_detections'] = \
+    #     Action.query.filter_by(image=self, type='detection').count()
+    # images_json = [image.to_json() for image in images]
+    #
+    # return flask.render_template(
+    #     'admin/images.html', images=images_json,
+    # )
