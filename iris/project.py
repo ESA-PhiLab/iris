@@ -178,21 +178,18 @@ class Project:
             )
 
 
-    def make_absolute(self, path_or_paths):
+    def make_absolute(self, path):
         """Make path absolute relatively from project path"""
-        if not path_or_paths:
-            return path_or_paths
-
-        if isinstance(path_or_paths, dict):
+        if isinstance(path, dict):
             return {
                 k: self.make_absolute(v)
-                for k, v in path_or_paths.items()
+                for k, v in path.items()
             }
-        elif isinstance(path_or_paths, list):
-            return list(map(self.make_absolute, path_or_paths))
+        elif isinstance(path, list):
+            return list(map(self.make_absolute, path))
 
-        if isabs(path_or_paths):
-            return path_or_paths
+        if not path or isabs(path):
+            return path
         else:
             return normpath(join(dirname(self.file), path))
 
@@ -365,11 +362,9 @@ class Project:
         if not filename:
             return None
 
-        filename = filename.format(id=image_id)
-        return imread(filename)
+        return imread(filename.format(id=image_id))
 
     def get_user_config(self, user_id, default=False):
-
         default_filename = join(dirname(__file__), 'user/default_config.json')
         with open(default_filename, 'r') as stream:
             user_config = json.load(stream)
@@ -377,10 +372,7 @@ class Project:
         filename = join(self['path'], 'user_config', f'{user_id}.json')
         if exists(filename) and not default:
             with open(filename, 'r') as stream:
-                user_config = {
-                    **user_config,
-                    json.load(stream)
-                }
+                user_config.update(json.load(stream))
 
         return user_config
 

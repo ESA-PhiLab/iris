@@ -15,7 +15,7 @@
       "mask_encoding": "rgb",
       "mask_area": [64, 64, 448, 448],
       "score": "f1",
-      "test_images": []
+      "test_images": null
   },
   "classes": [
     {
@@ -70,7 +70,7 @@
       "Bing": {
           "description": "Aerial Imagery",
           "type": "bingmap"
-      },
+      }
   },
   "view_groups": {
       "default": ["Cirrus", "RGB", "Snow"]

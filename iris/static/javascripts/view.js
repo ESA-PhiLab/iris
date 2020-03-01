@@ -14,10 +14,12 @@ class ViewManager{
         this.clear();
         this.image_id = image_id;
         this.image_location = [0, 0];
-        this.rgb = {};
+        this.source = {};
     }
     setImageLocation(location){
         this.image_location = image_location;
+
+        this.updateIFrames();
     }
     showGroup(group='default'){
         this.clear();
@@ -33,13 +35,14 @@ class ViewManager{
         );
         let id = 0;
         for (view of views){
-            this.loadRGB(view);
-
             let view_port = ViewPort(
                 id.toString(), this, view,
                 [size, size], [size*id, 0]
             );
             this.view_ports.push(view_port);
+
+
+
             id += 1;
         }
         this.render();
@@ -63,20 +66,6 @@ class ViewManager{
             child = this.container.lastElementChild;
         }
         this.view_ports = [];
-    }
-    loadRGB(view){
-        /*Load an image source if it was not loaded already*/
-        if (view.type == "bingmap"){
-            return;
-        }
-
-        if (view.name in this.rgb){
-            return;
-        }
-
-        this.rgb[view.name] = new Image();
-        this.rgb[view.name].src = this.view_url+this.image_id+"/"+view.name;
-        // this.image[name].onload = render_image.bind(null, i, true);
     }
     addView(name, position=-1){
         this.views_group.splice(position, 0, name);
@@ -109,7 +98,7 @@ class ViewPort{
         this.id = id;
         this.parent = parent;
         this.view = view;
-        this.layer = {};
+        this.layers = [];
 
         this.container = document.createElement('div');
         this.container.style.position = "relative";
@@ -145,30 +134,20 @@ class ViewPort{
             if (canvas.tagName == "iframe"){
                 updateIframe(iframe, width, height);
             } else {
-                this.layer[canvas].width = width;
-                this.layer[canvas].height = height;
+
             }
+        }
+        for (let layer of this.layers){
+          layer.sizeChanged(width, height);
         }
     }
     setPosition(x, y){
         this.container.style.left = x;
         this.container.style.top = y;
-    }
-    updateIframe(iframe, width, height){
-        // Default location
-        let location =
-            this.parent.image_location[0]
-            +"~"
-            +this.parent.image_location[1];
 
-        let url = "https://www.bing.com/maps/embed?";
-        url += "h="+height;
-        url += "&w="+width;
-        url += "&cp="+location;
-        url += "&lvl=12&typ=d&sty=a&src=SHELL&FORM=MBEDV8";
-        iframe.src = url;
-        iframe.height = height;
-        iframe.width = width;
+        for (let layer of this.layers){
+          layer.positionChanged(x, y);
+        }
     }
     addLayer(canvas, id){
         this.container.appendChild(canvas);
@@ -196,28 +175,39 @@ class ViewPort{
         trackTransforms(context);
     }
     render(){
-        if (this.type != "image"){
-            return;
+        for (let layer of this.layers){
+          layer.render();
         }
-
-
     }
 }
 
 class ViewLayer{
-    constructor(parent, element){
-        this.parent = parent;
-        this.element = element;
+    /*Base class for view layers*/
+    constructor(vm, port, container, view){
+        this.vm = vm;
+        this.port = port;
+        this.container = container;
+        this.view = view;
     }
+
+    // empty method:
+    render(){}
+    sizeChanged(new_width, new_height){}
+    positionChanged(new_x, new_y){}
+}
+
+class RGBLayer extends ViewLayer{
     render(){
         // Check whether the image has been loaded already
-        let image = this.parent.rgb[this.view.name];
+        this.loadRGB();
+
+        let image = this.vm.source[this.view.name];
         if (!image.complete){
             setTimeout(this.render, 200);
             return;
         }
 
-        let canvas = this.layer.image;
+        let canvas = this.container;
         let ctx = canvas.getContext('2d');
 
         let filters = this.parent.filters;
@@ -238,5 +228,46 @@ class ViewLayer{
         ctx.drawImage(
             image, 0, 0, image.width, image.height
         );
+    }
+    loadRGB(){
+        /*Load an image source if it was not loaded already*/
+        if (this.vm.source.hasOwnProperty(this.view.name)){
+          return;
+        }
+
+        this.vm.source[this.view.name] = new Image();
+        this.vm.source[this.view.name].src =
+          this.vm.view_url+this.vm.image_id+"/"+this.view.name;
+        // this.image[name].onload = render_image.bind(null, i, true);
+    }
+    sizeChanged(width, height){
+      this.container.style.width = width;
+      this.container.style.height = height;
+    }
+}
+
+class BingLayer extends ViewLayer{
+    constructor(){
+
+    }
+    updateSource(){
+        // Default location
+        let location =
+            this.vm.image_location[0]
+            +"~"
+            +this.vm.image_location[1];
+
+        let url = "https://www.bing.com/maps/embed?";
+        url += "h="+this.container.height;
+        url += "&w="+this.container.width;
+        url += "&cp="+location;
+        url += "&lvl=12&typ=d&sty=a&src=SHELL&FORM=MBEDV8";
+        this.container.src = url;
+    }
+    sizeChanged(width, height){
+      this.container.width = width;
+      this.container.height = height;
+
+      this.updateSource();
     }
 }

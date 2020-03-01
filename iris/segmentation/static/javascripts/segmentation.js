@@ -84,7 +84,7 @@ function init_segmentation(){
 }
 
 function init_views(){
-    vars.view_manager = new ViewManager(
+    vars.vm = new ViewManager(
         get_object('views-container'),
         vars.views, vars.view_groups,
         vars.url.main+"image/"
@@ -97,7 +97,7 @@ function init_views(){
         if (response.status < 400){
             let metadata = await response.json();
             if ("location" in metadata){
-                vars.view_manager.setImageLocation(metadata.location);
+                vars.vm.setImageLocation(metadata.location);
             }
         }
     });
@@ -126,8 +126,8 @@ function init_views(){
 
     render_preview();
     reset_views();
-    vars.view_manager.setImage(vars.image_id);
-    vars.view_manager.showGroup();
+    vars.vm.setImage(vars.image_id);
+    vars.vm.showGroup();
 }
 
 async function set_view_iframe(i){
@@ -195,7 +195,7 @@ function init_toolbar_events(){
 }
 
 function handle_resize(){
-    vars.view_manager.handleResize();
+    vars.vm.handleResize();
     // Update the views that have external content
     for (var i=0; i < vars.views.length; i++){
         if (!view_is_image(vars.views[i])){
@@ -348,7 +348,7 @@ function change_brightness(up){
         vars.filters.brightness -= 10;
         vars.filters.brightness = Math.max(0, vars.filters.brightness);
     }
-    vars.view_manager.render();
+    vars.vm.render();
 }
 function change_saturation(up){
     if (up){
@@ -358,7 +358,7 @@ function change_saturation(up){
         vars.filters.saturation -= 20;
         vars.filters.saturation = Math.max(0, vars.filters.saturation);
     }
-    vars.view_manager.render();
+    vars.vm.render();
 }
 
 function set_current_class(class_id){
@@ -394,7 +394,7 @@ function set_contrast(visible){
         get_object("tb_toggle_contrast").classList.remove("checked");
     }
 
-    vars.view_manager.render();
+    vars.vm.render();
 }
 
 function set_invert(visible){
@@ -406,7 +406,7 @@ function set_invert(visible){
         get_object("tb_toggle_invert").classList.remove("checked");
     }
 
-    vars.view_manager.render();
+    vars.vm.render();
 }
 
 function set_tool(tool){
@@ -576,7 +576,7 @@ function update_views(){
     vars.cursor_image = [image_coords.x, image_coords.y];
 
     // Redraw everything:
-    vars.view_manager.render();
+    vars.vm.render();
     render_mask();
     render_preview();
 }
@@ -1020,7 +1020,7 @@ function reset_filters(){
     vars.filters.saturation = 100;
     set_contrast(false);
     set_invert(false);
-    vars.view_manager.render();
+    vars.vm.render();
 }
 
 function show_mask(visible){
