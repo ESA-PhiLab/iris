@@ -129,7 +129,10 @@ def config():
     except:
         print('User config failed so fall back to default config!')
 
-    user_config = project.get_user_config(default=True)
+    user_config = project.get_user_config(
+        flask.session['user_id'],
+        default=True
+    )
 
     return flask.render_template(
         'user/config.html', project=project.config, config=user_config,
@@ -140,7 +143,10 @@ def config():
 @requires_auth
 def save_config():
     user_config = json.loads(flask.request.data)
-    project.save_user_config(user_config)
+    project.save_user_config(
+        flask.session['user_id'],
+        user_config
+    )
     return flask.make_response('Saved user config successfully!')
 
 
@@ -203,8 +209,3 @@ def logout():
 
 def set_current_user(user):
     flask.session['user_id'] = user.id
-
-    project.set_user_id(user.id)
-
-    # Each user gets their personal random image selection:
-    project.set_image_seed(user.image_seed)

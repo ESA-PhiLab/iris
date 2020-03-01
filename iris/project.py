@@ -21,7 +21,6 @@ class Project:
         self.image_order = None
         self.image_ids = None
         self.name = None
-        self.user_id = None
         self.file = None
 
     def load_from(self, filename):
@@ -190,7 +189,7 @@ class Project:
                 for k, v in path_or_paths.items()
             }
         elif isinstance(path_or_paths, list):
-            return list(map(self.make_absolute, path_or_paths)
+            return list(map(self.make_absolute, path_or_paths))
 
         if isabs(path_or_paths):
             return path_or_paths
@@ -369,13 +368,13 @@ class Project:
         filename = filename.format(id=image_id)
         return imread(filename)
 
-    def get_user_config(self, default=False):
+    def get_user_config(self, user_id, default=False):
 
         default_filename = join(dirname(__file__), 'user/default_config.json')
         with open(default_filename, 'r') as stream:
             user_config = json.load(stream)
 
-        filename = join(self['path'], 'user_config', f'{self.user_id}.json')
+        filename = join(self['path'], 'user_config', f'{user_id}.json')
         if exists(filename) and not default:
             with open(filename, 'r') as stream:
                 user_config = {
@@ -385,8 +384,8 @@ class Project:
 
         return user_config
 
-    def save_user_config(self, user_config):
-        filename = join(self['path'], 'user_config', f'{self.user_id}.json')
+    def save_user_config(self, user_id, user_config):
+        filename = join(self['path'], 'user_config', f'{user_id}.json')
 
         with open(filename, 'w') as stream:
             json.dump(user_config, stream)
@@ -410,9 +409,6 @@ class Project:
             index = len(self.image_order)-1
 
         return self.image_ids[self.image_order[index]]
-
-    def set_user_id(self, user_id):
-        self.user_id = user_id
 
     def set_image_seed(self, seed):
         self.random_state = np.random.RandomState(seed=seed)
