@@ -15,6 +15,7 @@
       "mask_encoding": "rgb",
       "mask_area": [64, 64, 448, 448],
       "score": "f1",
+      "pending_threshold": 3,
       "test_images": null
   },
   "classes": [
@@ -49,7 +50,7 @@
       "Cirrus": {
           "description": "Cirrus and high clouds are red.",
           "type": "image",
-          "data": "print('hello');$Sentinel2.B11**0.8*5",
+          "data": "$Sentinel2.B11**0.8*5",
           "cmap": "jet"
       },
       "RGB": {

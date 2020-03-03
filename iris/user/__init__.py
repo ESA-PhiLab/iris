@@ -58,16 +58,14 @@ def get(user_id):
     if user_id == 'current':
         user_id = flask.session['user_id']
 
-    user = User.query.get(user_id)
-    if user is None:
-        flask.make_response('Unknown user!', 404)
+    user = User.query.get_or_404(user_id, "Unknown user!")
 
     json_user = user.to_json()
 
     current_user_id = flask.session['user_id']
     if current_user_id == user_id or User.query.get(current_user_id).admin:
         # Only an admin or the user themselves can see the full data:
-        json_user['config'] = project.get_user_config()
+        json_user['config'] = project.get_user_config(user_id)
 
         return flask.jsonify(json_user)
     else:
@@ -119,7 +117,7 @@ def show(user_id):
 @user_app.route('/config', methods=['GET'])
 @requires_auth
 def config():
-    user_config = project.get_user_config()
+    user_config = project.get_user_config(flask.session['user_id'])
 
     try:
         return flask.render_template(

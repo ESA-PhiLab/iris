@@ -18,7 +18,7 @@ from sklearn.metrics import accuracy_score, f1_score, jaccard_similarity_score
 import yaml
 
 from iris.user import requires_auth
-from iris.models import db, Image, User, Action
+from iris.models import db, User, Action
 from iris.project import project
 
 segmentation_app = flask.Blueprint(
@@ -47,14 +47,17 @@ def index():
     elif image_id not in project.image_ids:
         return flask.make_response('Unknown image id!', 404)
 
+    metadata = project.get_metadata(image_id)
+
     print("Segmentation of", image_id)
 
     return flask.render_template(
         'segmentation.html',
         image_id=image_id,
         image_shape=project['images']['shape'],
+        image_location=metadata.get("location", None),
         mask_area=project['segmentation']['mask_area'],
-        views=project['views'], view_groups=project['view_groups'], 
+        views=project['views'], view_groups=project['view_groups'],
         classes=project['classes'],
     )
 
@@ -80,9 +83,6 @@ def previous_image():
 
 def get_mask_filenames(image_id, user_id=None):
     """Get final and user mask filenames"""
-    if user_id is None:
-        user_id = project.user_id
-
     final_mask = join(
         project['path'], 'segmentation', image_id,
         f'{user_id}_final.npy'
@@ -95,9 +95,9 @@ def get_mask_filenames(image_id, user_id=None):
 
     return final_mask, user_mask
 
-def read_masks(image_id):
+def read_masks(image_id, user_id):
     """Read the final and user mask"""
-    final_mask_file, user_mask_file = get_mask_filenames(image_id)
+    final_mask_file, user_mask_file = get_mask_filenames(image_id, user_id)
 
     final_mask = np.load(final_mask_file)
     final_mask = np.argmax(final_mask, axis=-1)
@@ -140,9 +140,11 @@ def merge_masks(image_id):
         if user is None:
             continue
 
-        action = Action.query.filter_by(user=user, image=image, type="segmentation").first()
+        action = Action.query.filter_by(
+                user=user, image_id=image_id, type="segmentation"
+            ).first()
         if not action:
-            action = Action(user=user, image=image, type="segmentation")
+            action = Action(user=user, image_id=image_id, type="segmentation")
 
         if project['segmentation']['score'] == 'jaccard':
             action.score = round(100 * jaccard_similarity_score(
@@ -156,14 +158,14 @@ def merge_masks(image_id):
             action.score = round(100 * accuracy_score(
                 merged_mask.ravel(), final_masks[..., u].ravel()
             ))
-        action.score_pending = len(users) < 3
+        action.pending = len(users) < project['segmentation']['pending_threshold']
 
     db.session.commit()
 
     merged_mask = encode_mask(
         merged_mask, mode=project['segmentation']['mask_encoding']
     )
-    filename = project['files'][image_id]['mask']
+    filename = project['segmentation']['path'].format(id=image_id)
     os.makedirs(dirname(filename), exist_ok=True)
     if filename.endswith('npy'):
         np.save(filename, merged_mask, allow_pickle=False)
@@ -210,16 +212,13 @@ def encode_mask(mask, mode='binary'):
 
     return encoded_mask.astype(np.uint8)
 
-def save_masks(image_id, final_mask, user_mask):
-
-
 @segmentation_app.route('/load_mask/<image_id>')
 @requires_auth
 def load_mask(image_id):
     user_id = flask.session.get('user_id')
 
     try:
-        final_mask, user_mask = read_masks(image_id)
+        final_mask, user_mask = read_masks(image_id, user_id)
 
         data = np.concatenate([final_mask.ravel(), user_mask.ravel()])
         data = np.pad(data, 1, constant_values=(254, 254))
@@ -271,7 +270,7 @@ def save_mask(image_id):
     user_mask = data[1+mask_length:-1].astype(np.bool)
     user_mask = user_mask.reshape(project['segmentation']['mask_shape'][::-1])
 
-    final_mask_file, user_mask_file = get_mask_filenames(image_id)
+    final_mask_file, user_mask_file = get_mask_filenames(image_id, user_id)
     os.makedirs(dirname(final_mask_file), exist_ok=True)
 
     final_mask = encode_mask(final_mask, mode='binary')
@@ -280,12 +279,12 @@ def save_mask(image_id):
     np.save(user_mask_file, user_mask.astype(bool), allow_pickle=False)
 
     # Update the database:
-    user = User.query.get(project.user_id)
+    user = User.query.get(user_id)
     action = Action.query\
-        .filter_by(user=user, image=image_id, type="segmentation")\
+        .filter_by(user=user, image_id=image_id, type="segmentation")\
         .first()
     if not action:
-        action = Action(user=user, image=image_id, type="segmentation")
+        action = Action(user=user, image_id=image_id, type="segmentation")
     action.last_modification = datetime.utcnow()
     db.session.add(action)
     db.session.commit()
@@ -295,11 +294,25 @@ def save_mask(image_id):
     # We need this to send a successful response to the client
     return flask.make_response('Masks successfully saved!')
 
+def image_dict_to_array(image_dict):
+    if isinstance(image_dict, np.ndarray):
+        return image_dict
+
+    return np.dstack(
+        [image_dict_to_array(v) for v in image_dict.values()]
+    )
+
 @segmentation_app.route('/predict_mask/<image_id>', methods=['POST'])
 @requires_auth
 def predict_mask(image_id):
+    config = project.get_user_config(flask.session['user_id'])
+    config = config['segmentation']
+
+    print('Fit options:', config)
+
     # How to exclude certain bands?
-    image = np.dstack(project.get_image(image_id).values())
+    image_dict = project.get_image(image_id)
+    image = image_dict_to_array(image_dict)
 
     n_channels = image.shape[-1]
 
@@ -323,9 +336,6 @@ def predict_mask(image_id):
     data = json.loads(flask.request.data)
     user_indices = np.array(data['user_pixels'])
     user_labels = np.array(data['user_labels'])
-    config = project.get_user_config()['segmentation']
-
-    print('Fit options:', config)
 
     inputs = [image]
     if config['detect_edges']:
@@ -344,8 +354,9 @@ def predict_mask(image_id):
     # inputs.append(x[..., np.newaxis])
     # inputs.append(y[..., np.newaxis])
 
-    super_pixels = felzenszwalb(image, scale=200, sigma=4, min_size=100)
-    inputs.append(super_pixels)
+    if config['use_superpixels']:
+        super_pixels = felzenszwalb(image, scale=200, sigma=4, min_size=100)
+        inputs.append(super_pixels)
 
     inputs = np.dstack(inputs).reshape(mask_size, -1)
 

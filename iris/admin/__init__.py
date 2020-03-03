@@ -1,8 +1,11 @@
+from collections import defaultdict
+from datetime import timedelta
+
 import flask
 from sqlalchemy import func
 
 from iris.user import requires_admin
-from iris.models import db, Image, Action, User
+from iris.models import db, Action, User
 from iris.project import project
 
 admin_app = flask.Blueprint(
@@ -57,7 +60,7 @@ def actions(type):
         for action in actions
     ]
     image_stats = {
-        "processed": len(set(action.image for action in actions)),
+        "processed": len(set(action.image_id for action in actions)),
         "total": len(project.image_ids)
     }
 
@@ -69,16 +72,36 @@ def actions(type):
 @admin_app.route('/images', methods=['GET'])
 @requires_admin
 def images():
-    pass
-    # images = Image.query.all()
-    # data['n_segmentations'] = \
-    #     Action.query.filter_by(image=self, type='segmentation').count()
-    # data['n_classifications'] = \
-    #     Action.query.filter_by(image=self, type='classification').count()
-    # data['n_detections'] = \
-    #     Action.query.filter_by(image=self, type='detection').count()
-    # images_json = [image.to_json() for image in images]
-    #
-    # return flask.render_template(
-    #     'admin/images.html', images=images_json,
-    # )
+    # TODO: make this more performant by using less database calls
+
+    images = defaultdict(dict)
+    actions = Action.query.all();
+    default_stats = {
+        'score': 0,
+        'count': 0,
+        'difficulty': 0,
+        'time_spent': timedelta(),
+    }
+    for image_id in project.image_ids:
+        for action in actions:
+            if action.image_id != image_id:
+                continue
+
+            if action.type not in images[image_id]:
+                images[image_id][action.type] = default_stats.copy()
+
+            images[image_id][action.type]['count'] += 1
+            images[image_id][action.type]['score'] += action.score
+            images[image_id][action.type]['difficulty'] += action.difficulty
+            images[image_id][action.type]['time_spent'] += action.time_spent
+
+        # Calculate the average values:
+        for stats in images[image_id].values():
+            stats['score'] /= stats['count']
+            stats['difficulty'] /= stats['count']
+            stats['time_spent'] /= stats['count']
+            stats['time_spent'] = stats['time_spent'].total_seconds() / 3600.
+
+    return flask.render_template(
+        'admin/images.html', images=images,
+    )

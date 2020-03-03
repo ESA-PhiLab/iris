@@ -1,11 +1,14 @@
 import io
+import json
 
 import flask
 import numpy as np
 from PIL import Image as PILImage
+from skimage.transform import resize
 
 from iris.models import db, Action
 from iris.project import project
+from iris.user import requires_auth
 
 main_app = flask.Blueprint(
     'main', __name__,
@@ -19,8 +22,8 @@ def index():
         flask.url_for('segmentation.index')
     )
 
-@main_app.route('/image/<image_id>/<int:view>')
-def load_image(image_id, view):
+@main_app.route('/image/<image_id>/<view>')
+def image(image_id, view):
     image = project.render_image(image_id, project['views'][view])
     return array_to_png(image)
 
@@ -37,11 +40,41 @@ def image_info(image_id):
     }
     return flask.jsonify(data)
 
+@main_app.route('/get_action_info/<image_id>/<action_type>')
+@requires_auth
+def get_action_info(image_id, action_type):
+    user_id = flask.session['user_id'];
+
+    print(image_id, user_id, action_type)
+    action = Action.query.filter_by(image_id=image_id, user_id=user_id, type=action_type).first_or_404()
+
+    return flask.jsonify(action.to_json())
+
+@main_app.route('/set_action_info/<action_id>', methods=['POST'])
+@requires_auth
+def set_action_info(action_id):
+    action = Action.query.get_or_404(action_id);
+
+    for k, v in json.loads(flask.request.data).items():
+        if k == "difficulty":
+            action.difficulty = int(v)
+        elif k == "notes":
+            action.notes = v
+        elif k == "active":
+            action.active = bool(v)
+        else:
+            return flask.make_response(f"Unknown parameter <i>{k}</i>!", 400)
+
+    db.session.add(action)
+    db.session.commit()
+
+    return flask.make_response("Saved new action info successfully")
+
 @main_app.route('/metadata/<image_id>', methods=['GET'])
-def load_metadata(image_id):
+def metadata(image_id):
     metadata = project.get_metadata(image_id)
 
-    if metadata is None:
+    if not metadata:
         return flask.make_response("No metadata found!", 404)
 
     if flask.request.args.get('safe_html', False):
@@ -52,9 +85,16 @@ def load_metadata(image_id):
 
     return flask.jsonify(metadata)
 
-@main_app.route('/thumbnail/<image_id>')
-def load_thumbnail(image_id):
+@main_app.route('/thumbnail/<image_id>', methods=['GET'])
+def thumbnail(image_id):
+    size = flask.request.args.get("size", None)
     array = project.get_thumbnail(image_id)
+
+    if size is not None:
+        print(size, tuple(size.split("x")))
+        size = map(int, size.split("x"))
+        array = resize(array, size)
+
     return array_to_png(array)
 
 def array_to_png(array):

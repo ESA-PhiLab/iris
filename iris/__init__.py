@@ -121,7 +121,7 @@ else:
     args['project'] = get_demo_file()
 
 app, db = create_app(args['project'])
-from iris.models import Image, User, Action
+from iris.models import User, Action
 
 db.create_all()
 db.session.commit()

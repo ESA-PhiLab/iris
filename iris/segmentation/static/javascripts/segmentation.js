@@ -75,6 +75,9 @@ let commands = {
     "reset_filters": {
         "key": "X", "description": "Reset all image filters",
     },
+    "show_view_controls": {
+        "key": "V", "description": "Toogle display of view controls on/off"
+    }
 };
 
 function init_segmentation(){
@@ -83,7 +86,7 @@ function init_segmentation(){
     fetch_server_update();
 }
 
-function init_views(){
+async function init_views(){
     vars.vm = new ViewManager(
         get_object('views-container'),
         vars.views, vars.view_groups,
@@ -93,14 +96,24 @@ function init_views(){
     // Set the image location if it was given in the metadata:
     fetch(
         vars.url.main+'metadata/'+vars.image_id
-    ).then(response => {
+    ).then(async (response) => {
         if (response.status < 400){
-            let metadata = await response.json();
+            let metadata = await response.json;
             if ("location" in metadata){
                 vars.vm.setImageLocation(metadata.location);
             }
         }
     });
+
+    // Add standard layers to all view ports if the view type is not "bingmap":
+    vars.vm.addStandardLayer(
+        MaskLayer,
+        (view) => view.type != "bingmap"
+    )
+    vars.vm.addStandardLayer(
+        PreviewLayer,
+        (view) => view.type != "bingmap"
+    )
 
     // It much faster to change some pixel values on a sprite and draw it then
     // to the canvas once than redrawing each pixel to the canvas directly.
@@ -118,60 +131,21 @@ function init_views(){
     // Load mask:
     load_mask();
 
+    vars.vm.setImage(vars.image_id);
+    vars.vm.showGroup();
+
     set_tool(vars.tool.type);
     set_current_class(vars.current_class);
 
     init_events();
     init_toolbar_events();
 
-    render_preview();
     reset_views();
-    vars.vm.setImage(vars.image_id);
-    vars.vm.showGroup();
-}
-
-async function set_view_iframe(i){
-    let view = vars.views[i];
-
-    if (view_is_image(view)){
-        return;
-    }
-    // Default location
-    let location = "0~0";
-
-
-
-    let canvas = get_object('canvas-0-image');
-    let url = "https://www.bing.com/maps/embed?";
-    url += "h="+canvas.scrollHeight;
-    url += "&w="+canvas.scrollWidth;
-    url += "&cp="+location;
-    url += "&lvl=12&typ=d&sty=a&src=SHELL&FORM=MBEDV8";
-    let iframe = get_object('canvas-'+i+'-iframe');
-    iframe.src = url;
-    iframe.height = canvas.scrollHeight;
-    iframe.width = canvas.scrollWidth;
 }
 
 function init_events(){
-    // Make all preview canvases sensitive to the user"s actions. Why preview?
-    // Since they are the canvases on top:
-    for (var i=0; i < vars.views.length; i++) {
-        if (!view_is_image(vars.views[i])){
-            continue;
-        }
-
-        var canvas = document.getElementById("canvas-"+i+"-preview");
-        canvas.addEventListener("mousemove", mouse_move, false);
-        canvas.addEventListener("mousedown", mouse_down, false);
-        canvas.addEventListener("mouseup", mouse_up, false);
-        canvas.addEventListener("mouseenter", mouse_enter, false);
-        canvas.addEventListener("mousewheel", mouse_wheel, false);
-        canvas.addEventListener("DOMMouseScroll", mouse_wheel, false);
-    }
-
     document.body.onkeydown = key_down;
-    document.body.onresize = handle_resize;
+    document.body.onresize = () => vars.vm.updateSize();
 }
 
 function init_toolbar_events(){
@@ -194,92 +168,6 @@ function init_toolbar_events(){
     }
 }
 
-function handle_resize(){
-    vars.vm.handleResize();
-    // Update the views that have external content
-    for (var i=0; i < vars.views.length; i++){
-        if (!view_is_image(vars.views[i])){
-            set_view_iframe(i);
-        }
-    }
-}
-
-function login_finished(){
-    fetch_server_update();
-}
-
-function logout_finished(){
-    save_mask();
-    goto_url(vars.url.segmentation+'?image_id='+vars.image_id);
-}
-
-async function fetch_server_update(){
-    let response = await fetch(vars.url.user+"get/current");
-
-    if (response.status == 403) {
-        dialogue_login();
-        return;
-    }
-
-    user = await response.json();
-
-    let info_box = '<div class="info-box-top" style="position: relative;">';
-    info_box += nice_number(user.segmentation.score);
-    if (vars.user !== null && vars.user.id == user.id){
-        // Check how much the score changed in comparison to the last time:
-        let score_change = user.segmentation.score - vars.user.segmentation.score;
-
-        if (score_change){
-            score_change = nice_number(score_change);
-            let colour = "red";
-
-            if (user.segmentation.score > vars.user.segmentation.score){
-                score_change = "+" + score_change;
-                colour = "green";
-            }
-
-            info_box += '<span style="position: absolute; right: -10px; top: -25px; align-text: right;" class="tag '+colour+'">'+score_change+'</span>';
-        }
-    }
-    info_box += '</div>';
-    info_box += '<div class="info-box-bottom">'+clip_string(user.name, 25)+'</div>';
-    get_object('user-info').innerHTML = info_box;
-    vars.user = user;
-    vars.config = user.config;
-
-    if (user.admin){
-        get_object('admin-button').style.display = "block";
-    } else {
-        get_object('admin-button').style.display = "none";
-    }
-
-    // Get more information about the current image:
-    response = await fetch(vars.url.main+"image_info/"+vars.image_id);
-    if (response.status != 404) {
-        image = await response.json();
-
-        info_box = '<div class="info-box-top" style="position: relative;">';
-        info_box += clip_string(image.id, 20);
-        if (image.n_segmentations != 0){
-            // Check how much the score changed in comparison to the last time:
-            let text = '1 mask';
-            if (image.n_segmentations > 1){
-                text = image.n_segmentations.toString() + ' masks';
-            }
-
-            info_box += '<span style="position: absolute; right: -10px; top: -25px; align-text: right;" class="tag">'+text+'</span>';
-        }
-        info_box += '</div>';
-        info_box += '<div class="info-box-bottom">image</div>';
-        get_object('image-info').innerHTML = info_box;
-    }
-
-    if (vars.next_action !== null){
-        vars.next_action();
-        vars.next_action = null;
-    }
-}
-
 function key_down(event){
     let key = event.code;
 
@@ -291,17 +179,17 @@ function key_down(event){
     } else if (key == "KeyS"){
         save_mask();
     } else if (key == "Enter"){
-        save_mask(next_patch);
+        save_mask(next_image);
     } else if (key == "Backspace"){
-        save_mask(prev_patch);
+        save_mask(prev_image);
     } else if (key == "KeyU"){
         undo();
     } else if (key == "KeyR"){
         redo();
     } else if (key == "KeyC"){
-        set_contrast(!vars.filters.contrast);
+        set_contrast(!vars.vm.filters.contrast);
     } else if (key == "KeyI"){
-        set_invert(!vars.filters.invert);
+        set_invert(!vars.vm.filters.invert);
     } else if (key == "ArrowUp"){
         change_brightness(up=true);
     } else if (key == "ArrowDown"){
@@ -337,26 +225,29 @@ function key_down(event){
         dialogue_reset_mask();
     } else if (key == "KeyZ"){
         reset_views();
+    } else if (key == "KeyV"){
+        vars.vm.toogleControls();
     }
+
 }
 
 function change_brightness(up){
     if (up){
-        vars.filters.brightness += 10;
-        vars.filters.brightness = Math.min(800, vars.filters.brightness);
+        vars.vm.filters.brightness += 10;
+        vars.vm.filters.brightness = Math.min(800, vars.vm.filters.brightness);
     } else {
-        vars.filters.brightness -= 10;
-        vars.filters.brightness = Math.max(0, vars.filters.brightness);
+        vars.vm.filters.brightness -= 10;
+        vars.vm.filters.brightness = Math.max(0, vars.vm.filters.brightness);
     }
     vars.vm.render();
 }
 function change_saturation(up){
     if (up){
-        vars.filters.saturation += 20;
-        vars.filters.saturation = Math.min(800, vars.filters.saturation);
+        vars.vm.filters.saturation += 20;
+        vars.vm.filters.saturation = Math.min(800, vars.vm.filters.saturation);
     } else {
-        vars.filters.saturation -= 20;
-        vars.filters.saturation = Math.max(0, vars.filters.saturation);
+        vars.vm.filters.saturation -= 20;
+        vars.vm.filters.saturation = Math.max(0, vars.vm.filters.saturation);
     }
     vars.vm.render();
 }
@@ -372,23 +263,10 @@ function set_current_class(class_id){
     set_tool("draw");
 }
 
-function set_mask_highlight_edges(yes){
-    vars.mask_highlight_edges = yes;
-
-    if (vars.mask_highlight_edges){
-        get_object("tb_mask_highlight_edges").classList.add("checked");
-    } else {
-        get_object("tb_mask_highlight_edges").classList.remove("checked");
-    }
-
-    render_mask();
-    show_mask(true);
-}
-
 function set_contrast(visible){
-    vars.filters.contrast = visible;
+    vars.vm.filters.contrast = visible;
 
-    if (vars.filters.contrast){
+    if (vars.vm.filters.contrast){
         get_object("tb_toggle_contrast").classList.add("checked");
     } else {
         get_object("tb_toggle_contrast").classList.remove("checked");
@@ -398,9 +276,9 @@ function set_contrast(visible){
 }
 
 function set_invert(visible){
-    vars.filters.invert = visible;
+    vars.vm.filters.invert = visible;
 
-    if (vars.filters.invert){
+    if (vars.vm.filters.invert){
         get_object("tb_toggle_invert").classList.add("checked");
     } else {
         get_object("tb_toggle_invert").classList.remove("checked");
@@ -433,9 +311,8 @@ function get_tool_offset(){
 function mouse_wheel(event){
     var delta = Math.max(-1, Math.min(1, (event.wheelDelta || -event.detail)));
     if (event.shiftKey){
-        let canvas = get_object('canvas-0-image');
         // Change size of tool:
-        vars.tool.size += delta * 0.5 * vars.tool.size;
+        vars.tool.size += delta * 0.1 * vars.tool.size;
         vars.tool.size = round_number(Math.max(
             1, Math.min(
                 vars.tool.size, Math.max(...vars.mask_shape)
@@ -570,24 +447,17 @@ function update_views(){
     translation action.*/
 
     // The coordinate system has changed:
-    let image_coords = get_ctx('canvas-0-image').getWorldCoords(
+    let one_canvas = document.getElementsByClassName("view-canvas")[0];
+    let image_coords = one_canvas.getContext("2d").getWorldCoords(
         ...vars.cursor_canvas
     );
     vars.cursor_image = [image_coords.x, image_coords.y];
 
     // Redraw everything:
     vars.vm.render();
-    render_mask();
-    render_preview();
 }
 
 function reset_views(){
-    for (var i=0; i < vars.views.length; i++){
-        if (!view_is_image(vars.views[i])){
-            set_view_iframe(i);
-        }
-    }
-
     for (let canvas of document.getElementsByClassName('view-canvas')){
         let ctx = canvas.getContext('2d');
         ctx.setTransform(
@@ -610,7 +480,8 @@ function update_cursor_coords(obj, event){
     );
 
     vars.cursor_canvas = [x, y];
-    let image_coords = get_ctx('canvas-0-image').getWorldCoords(x, y);
+    let canvas = document.getElementsByClassName('view-canvas')[0];
+    let image_coords = canvas.getContext("2d").getWorldCoords(x, y);
     vars.cursor_image = [
         round_number(image_coords.x), round_number(image_coords.y)
     ];
@@ -717,7 +588,9 @@ function user_draws_on_mask(){
         * list([x0, y0, xn, yn]) - bounding_box in canvas coordinates
 
     */
-    let canvas = get_object('canvas-0-image');
+
+    // Just get one canvas
+    let canvas = document.getElementsByClassName("view-canvas")[0];
     let ctx = canvas.getContext('2d');
 
     // Get the area we finally have to render (update) in canvas coordinates.
@@ -800,6 +673,8 @@ function user_draws_on_mask(){
     // current masks to the history
     discard_future();
     update_history();
+
+    vars.show_dialogue_before_next_image = true;
 }
 
 function reload_hidden_mask(){
@@ -900,100 +775,15 @@ function render_mask(bbox=null){
     */
 
     // Render the new mask sprite to all canvases:
-    for (var i=0; i < vars.views.length; i++) {
-        if (!view_is_image(vars.views[i])){
-            continue;
-        }
-
-        var ctx = get_ctx("canvas-"+i+"-mask");
-        if (bbox === null){
-            // No specific coordinates are given, i.e. we redraw the whole mask:
-            ctx.clearRect(0, 0, ...vars.image_shape);
-            ctx.drawImage(
-                vars.hidden_mask,
-                vars.mask_area[0], vars.mask_area[1]
-            );
-        } else {
-            ctx.clearRect(
-                bbox[0]+vars.mask_area[0],
-                bbox[1]+vars.mask_area[1],
-                bbox[2], bbox[3]
-            );
-            //(image, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight):
-            ctx.drawImage(
-                vars.hidden_mask,
-                ...bbox,
-                bbox[0]+vars.mask_area[0], bbox[1]+vars.mask_area[1],
-                bbox[2], bbox[3]
-            );
-        }
+    for (let layer of vars.vm.getLayers("mask")) {
+        layer.render(bbox);
     }
 }
 
 function render_preview(){
-    let offset = get_tool_offset();
-
-    for (var i=0; i < vars.views.length; i++) {
-        if (!view_is_image(vars.views[i])){
-            continue;
-        }
-
-        var ctx = get_ctx("canvas-"+i+"-preview");
-        ctx.clearRect(0, 0, ...vars.image_shape);
-        ctx.fillStyle = "rgba(150, 150, 150, 0.5)";
-        ctx.fillRect(
-            vars.cursor_image[0]+offset.x,
-            vars.cursor_image[1]+offset.y,
-            vars.tool.size, vars.tool.size
-        );
-
-        // Draw the boundaries of the masking area
-        ctx.beginPath();
-        if (vars.views.length < 2){
-            ctx.lineWidth = "3";
-        } else {
-            ctx.lineWidth = "2";
-        }
-
-        ctx.strokeStyle = "red";
-        ctx.setLineDash([5, 15]);
-        ctx.rect(
-            vars.mask_area[0], vars.mask_area[1],
-            ...vars.mask_shape
-        );
-        ctx.stroke();
+    for (let layer of vars.vm.getLayers("preview")) {
+        layer.render();
     }
-}
-
-function view_is_image(view){
-    return view.type == "rgb"
-}
-
-function render_image(view_number){
-    if (!view_is_image(vars.views[view_number])){
-        return;
-    }
-
-    let image = vars.images[view_number];
-    let canvas_id = "canvas-" + view_number;
-    let canvas = get_object(canvas_id+"-image");
-    let ctx = canvas.getContext('2d');
-
-    // Apply brightness, contrast and saturation filters:
-    let filters = [];
-    if (vars.filters.invert){
-        filters.push("invert(1)");
-    }
-    filters.push("brightness("+vars.filters.brightness+"%)");
-    if (vars.filters.contrast){
-        filters.push("contrast(200%)");
-    }
-    filters.push("saturate("+vars.filters.saturation+"%)");
-    canvas.style.filter = filters.join(" ");
-
-    ctx.drawImage(
-        image, 0, 0, ...vars.image_shape
-    );
 }
 
 function dialogue_reset_mask(){
@@ -1016,8 +806,8 @@ function reset_mask(){
 }
 
 function reset_filters(){
-    vars.filters.brightness = 100;
-    vars.filters.saturation = 100;
+    vars.vm.filters.brightness = 100;
+    vars.vm.filters.saturation = 100;
     set_contrast(false);
     set_invert(false);
     vars.vm.render();
@@ -1029,11 +819,8 @@ function show_mask(visible){
     if (vars.show_mask){
         state = "block";
     }
-    for (var i=0; i < vars.views.length; i++){
-        if (!view_is_image(vars.views[i])){
-            continue;
-        }
-        get_object("canvas-"+i+"-mask").style.display = state;
+    for (let layer of vars.vm.getLayers("mask")){
+        layer.container.style.display = state;
     }
 
     if (vars.show_mask){
@@ -1043,23 +830,99 @@ function show_mask(visible){
     }
 }
 
+function login_finished(){
+    fetch_server_update();
+}
+
+function logout_finished(){
+    save_mask();
+    goto_url(vars.url.segmentation+'?image_id='+vars.image_id);
+}
+
+async function fetch_server_update(){
+    let response = await fetch(vars.url.user+"get/current");
+
+    if (response.status == 403) {
+        dialogue_login();
+        return;
+    }
+
+    user = await response.json();
+
+    let info_box = '<div class="info-box-top" style="position: relative;">';
+    info_box += nice_number(user.segmentation.score);
+    if (vars.user !== null && vars.user.id == user.id){
+        // Check how much the score changed in comparison to the last time:
+        let score_change = user.segmentation.score - vars.user.segmentation.score;
+
+        if (score_change){
+            score_change = nice_number(score_change);
+            let colour = "red";
+
+            if (user.segmentation.score > vars.user.segmentation.score){
+                score_change = "+" + score_change;
+                colour = "green";
+            }
+
+            info_box += '<span style="position: absolute; right: -10px; top: -25px; align-text: right;" class="tag '+colour+'">'+score_change+'</span>';
+        }
+    }
+    info_box += '</div>';
+    info_box += '<div class="info-box-bottom">'+clip_string(user.name, 25)+'</div>';
+    get_object('user-info').innerHTML = info_box;
+    vars.user = user;
+    vars.config = user.config;
+
+    if (user.admin){
+        get_object('admin-button').style.display = "block";
+    } else {
+        get_object('admin-button').style.display = "none";
+    }
+
+    // Get more information about the current image:
+    response = await fetch(vars.url.main+"image_info/"+vars.image_id);
+    if (response.status != 404) {
+        image = await response.json();
+
+        info_box = '<div class="info-box-top" style="position: relative;">';
+        info_box += clip_string(image.id, 20);
+        if (image.n_segmentations != 0){
+            // Check how much the score changed in comparison to the last time:
+            let text = '1 mask';
+            if (image.n_segmentations > 1){
+                text = image.n_segmentations.toString() + ' masks';
+            }
+
+            info_box += '<span style="position: absolute; right: -10px; top: -25px; align-text: right;" class="tag">'+text+'</span>';
+        }
+        info_box += '</div>';
+        info_box += '<div class="info-box-bottom">image</div>';
+        get_object('image-info').innerHTML = info_box;
+    }
+
+    if (vars.next_action !== null){
+        vars.next_action();
+        vars.next_action = null;
+    }
+}
+
 async function dialogue_image(){
-    let content = '<p><img src="'+vars.url.main+'thumbnail/'+vars.image_id+'" style="display: block; margin-left: auto; margin-right: auto;"/></p>';
+    let content = '<p><img src="'+vars.url.main+'thumbnail/'+vars.image_id+'?size=256x256" style="display: block; margin-left: auto; margin-right: auto;"/></p>';
     let response = await fetch(
         vars.url.main+'metadata/'+vars.image_id+'?safe_html=True'
     );
 
+    content += '<div style="float: left;">';
     if (response.status >= 400){
         content += await response.text();
     } else {
         let metadata = await response.json();
         content += '<table>';
-        content += '<tr><td><b>Attribute</b></td><td><b>Value</b></td></tr>';
 
         // row and col are at the same the id for the row and column class, respectively
         for (const attribute in metadata){
             content += '<tr>';
-            content += '<td>'+attribute+'</td>';
+            content += '<td><b>'+attribute+'</b></td>';
 
             if (attribute == "location"){
                 let location = metadata[attribute]
@@ -1077,6 +940,7 @@ async function dialogue_image(){
         }
         content += '</table>';
     }
+    content += '</div>';
 
     show_dialogue(
         "info", content, false, "image: "+vars.image_id
@@ -1263,6 +1127,57 @@ function activate_mask(){
 function deactivate_mask(){
     /*If the user thinks this mask is not yet good enough*/
 
+}
+
+async function dialogue_before_next_image(){
+    let response = await fetch(`${vars.url.main}get_action_info/${vars.image_id}/segmentation`);
+
+    if (response.status >= 400){
+        // Continue without any dialogue
+        vars.show_dialogue_before_next_image=false;
+        next_image();
+        return;
+    }
+    var action = await response.json();
+    var difficulty_labels=['very easy', 'easy', 'okay', 'difficult', 'very difficult'];
+
+    var content = `
+    <p>How difficult was it to create this mask?</p>
+    <div class="slider">
+        <div class="slider-value">${difficulty_labels[action.difficulty-1]}</div>
+        <input
+            class="slider-widget"
+            id="dbni-difficulty"
+            type="range" min="1" max="5"
+            value="${action.difficulty}"
+            oninput="let difficulty_labels=['very easy', 'easy', 'okay', 'difficult', 'very difficult']; this.previousElementSibling.innerHTML = difficulty_labels[parseInt(this.value)-1];">
+    </div>
+    <p>Do you have any comments about this segmentation (max. 256 characters)?</p>
+    <textarea id="dbni-notes" style="width: 100%">${action.notes}</textarea>
+    <p><input id="dbni-activate_action" type="checkbox" ${((action.active) ? 'checked' : '')}> I think this mask is complete and ready for evaluation.</p>
+    <p>
+    <button onclick='dialogue_before_next_image_save_and_continue(${action.id});'>Save and continue</button>
+    <button onclick='hide_dialogue();'>Go back to the mask</button>
+    </p>
+`;
+    show_dialogue("info", content, true, "Before you continue...");
+}
+
+function dialogue_before_next_image_save_and_continue(action_id){
+    vars.show_dialogue_before_next_image=false;
+
+    action_info = {
+        "active": get_object('dbni-activate_action').checked,
+        "difficulty": parseInt(get_object('dbni-difficulty').value),
+        "notes": get_object('dbni-notes').value
+    }
+
+    fetch(`${vars.url.main}set_action_info/${action_id}`, {
+        method: "POST",
+        body: JSON.stringify(action_info)
+    })
+
+    next_image();
 }
 
 function save_mask(call_afterwards=null){

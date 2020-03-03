@@ -9,7 +9,8 @@
         "suppression_filter_size": 5,
         "suppression_default_class": 0,
         "detect_edges": true,
-        "include_context": true
+        "include_context": true,
+        "use_superpixels": false
     },
     "views": {
 

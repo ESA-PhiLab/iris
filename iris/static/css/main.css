@@ -5,28 +5,29 @@ body {
 }
 
 button,.button {
-  background-color: #ffffff;
-  outline: none;
-  border: 2px;
-  border-style: solid;
-  border-radius: 4px;
-  border-color: black;
-  color: black;
-  text-align: center;
-  text-decoration: none;
-  display: inline-block;
-  font-weight: bold;
-  margin: 2px 2px;
-  padding: 8px 10px;
-  cursor: pointer;
-  -webkit-touch-callout: none; /* iOS Safari */
-  -webkit-user-select: none; /* Safari */
-   -khtml-user-select: none; /* Konqueror HTML */
+    background-color: #ffffff;
+    outline: none;
+    border: 2px;
+    border-style: solid;
+    border-radius: 4px;
+    border-color: black;
+    color: black;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-weight: bold;
+    margin: 2px 2px;
+    padding: 8px 10px;
+    cursor: pointer;
+    -webkit-touch-callout: none; /* iOS Safari */
+    -webkit-user-select: none; /* Safari */
+    -khtml-user-select: none; /* Konqueror HTML */
      -moz-user-select: none; /* Old versions of Firefox */
       -ms-user-select: none; /* Internet Explorer/Edge */
           user-select: none; /* Non-prefixed version, currently
                                 supported by Chrome, Opera and Firefox */
-   transition: 0.3s;
+    transition-property: background-color;
+    transition-duration: 0.5s;
 }
 
 .toolbar {
@@ -100,6 +101,7 @@ img {
 .statusbutton,.inactive-statusbutton {
   padding: 10px;
   overflow: visible;
+  z-index: 30;
 }
 
 .statusbar_separator {
@@ -218,8 +220,9 @@ td.upper-left {
 }
 
 .icon {
-    filter: blur(0.1px);
     margin: 2px;
+    width: 24px;
+    height: 24px;
 }
 
 .key{
@@ -291,7 +294,7 @@ td.upper-left {
  border-bottom-right-radius: 0px; */
  outline: none;
  overflow: hidden;
- transition: 0.4s;
+ transition: 1s;
  margin: 2px 0px;
 }
 
@@ -354,6 +357,7 @@ td.upper-left {
 .progress-bar {
   background-color: #fff;
   border: 2px solid black;
+  transition: 2s;
 }
 
 .progress {
@@ -362,4 +366,36 @@ td.upper-left {
   padding-bottom: 10px;
   background-color: black;
   color: white;
+}
+
+.view-canvas {
+    border: 1px solid black;
+    background-color: transparent;
+    cursor: crosshair;
+    position: absolute; left: 0; top: 0;
+    -webkit-touch-callout: none; /* iOS Safari */
+    -webkit-user-select: none; /* Safari */
+     -khtml-user-select: none; /* Konqueror HTML */
+       -moz-user-select: none; /* Old versions of Firefox */
+        -ms-user-select: none; /* Internet Explorer/Edge */
+            user-select: none; /* Non-prefixed version, currently
+                                  supported by Chrome, Opera and Firefox */
+}
+
+.view-description {
+    overflow: auto; /* Enable scroll if needed */
+    color: black;
+    z-index: 20; /* Sit on top */
+    left: 10px;
+    top: 40px;
+    text-align: center;
+    word-wrap: break-word;
+    font-size: 18px;
+    padding: auto;
+}
+
+.view-controls {
+    position: absolute;
+    z-index: 20;
+    visibility: hidden;
 }

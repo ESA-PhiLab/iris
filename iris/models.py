@@ -60,7 +60,7 @@ class User(JsonSerializable, db.Model):
             'n_masks': len(masks)
         }
         for mask in masks:
-            if mask.score_pending:
+            if mask.pending:
                 data['segmentation']['score_pending'] += mask.score
             else:
                 data['segmentation']['score'] += mask.score
@@ -70,16 +70,19 @@ class User(JsonSerializable, db.Model):
 class Action(JsonSerializable, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     # Can be segmentation, classification or detection:
-    type = db.Column(db.String(256), index=True)
-    image = db.Column(db.String(256), index=True)
+    type = db.Column(db.String(64), index=True)
+    image_id = db.Column(db.String(256), index=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     last_modification = db.Column(
         db.DateTime, index=True, default=datetime.utcnow
     )
     time_spent = db.Column(db.Interval, default=timedelta())
     score = db.Column(db.Integer, default=0)
-    score_pending = db.Column(db.Boolean, default=True)
+    pending = db.Column(db.Boolean, default=True)
     active = db.Column(db.Boolean, default=True)
+    notes = db.Column(db.String(256), nullable=True)
+    # Difficulty goes from 1 to 5, 3 is average
+    difficulty = db.Column(db.Integer, index=True, default=3)
 
     def __repr__(self):
-        return f'<Action user={self.user_id}, image={self.image_id}, score={self.score}>'
+        return f'<Action user={self.user_id}, image_id={self.image_id}, score={self.score}>'

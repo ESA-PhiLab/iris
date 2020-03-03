@@ -5,10 +5,12 @@ from glob import glob
 from numbers import Number
 import os
 from os.path import basename, dirname, exists, isabs, join, normpath
+from pprint import pprint
 import re
 
 import flask
 import json
+from matplotlib import cm
 import numpy as np
 from skimage.io import imread
 import yaml
@@ -164,7 +166,7 @@ class Project:
         images = glob(image_paths.format(id="*"))
         if not images:
             raise Exception(
-                f"[CONFIG] No images found in '{self['images']['path']}'.\n"
+                f"[CONFIG] No images found in '{image_paths.format(id='*')}'.\n"
                 "Did you set images:path to a valid, existing path?")
 
         try:
@@ -200,11 +202,11 @@ class Project:
     def get_start_image_id(self):
         return self.image_ids[self.image_order[0]]
 
-    def load_image(self, filename, group="", bands=None):
+    def load_image(self, filename, bands=None):
         # The user uses band identifiers (like 'B1', etc):
         if bands is not None:
             bands = list(map(
-                lambda s: int(s.replace("$B", "")),
+                lambda s: int(s.replace("B", ""))-1,
                 bands
             ))
 
@@ -215,19 +217,18 @@ class Project:
         elif filename.lower().endswith('vrt'):
             with rio.open(filename) as file:
                 array = file.read(bands)
+                array = np.moveaxis(array, 0, -1)
         else:
             array = imread(filename)
             if bands is not None:
                 array = array[..., bands]
 
-        if group:
-            group += "."
-
+        if bands is None:
+            bands = list(range(1, array.shape[-1]+1))
         data = {
-            f"{group}B{i+1}": array[..., i]
-            for i in range(array.shape[-1])
+            f"B{b+1}": array[..., i]
+            for i, b in enumerate(bands)
         }
-
         return data
 
     def get_image(self, image_id, bands=None):
@@ -236,6 +237,10 @@ class Project:
         Args:
             image_id: Id of the image as string.
             bands: Bands of the image file (or files) to select.
+
+        Returns:
+            A dict with bands. The keys are either "B1"..."Bn" or
+            "FileIdentifier.B1".
         """
 
         if isinstance(self['images']['path'], dict):
@@ -253,10 +258,9 @@ class Project:
                         continue
 
                 image = self.load_image(
-                    filename.format(id=image_id),
-                    group=file_id, bands=file_bands
+                    filename.format(id=image_id), bands=file_bands
                 )
-                data.update(image)
+                data[file_id] = image
         else:
             data = self.load_image(
                 self['images']['path'].format(id=image_id),
@@ -278,13 +282,15 @@ class Project:
         # Find all required variables
         bands = \
             re.findall('\$(?:\w+\.{0,1}\w+)', ";".join(view['data']))
+        bands = list(map(lambda s: s.strip("$"), bands))
 
         image = self.get_image(image_id, bands=bands)
         environment = self._get_render_environment(image)
 
-        rgb_bands = [0] * len(view['data'])
+        rgb_bands = []
         for i, expression_raw in enumerate(view['data']):
-            expression = re.sub(r'\$(\w+\.{0,1}\w+)', r'\1', expression_raw)
+            expression = re.sub(r'\$(\w+)\.(\w+)', r'\1["\2"]', expression_raw)
+            expression = re.sub(r'\$(\w+)', r'\1', expression)
             try:
                 # Since one should never rely on evaluating an expression from
                 # untrusted sources, we will have to find a different solution
@@ -294,14 +300,22 @@ class Project:
                     eval(expression, {"__builtins__": None}, environment)
                 )
             except Exception as error:
-                print(f"Could not parse '{expression_raw}' of {view['name']}:", error)
+                print(
+                    f"Could not parse {i}th expression of {view['name']}\n",
+                    f"Raw expression: {expression_raw}\n",
+                    f"Python expression: {expression}\n",
+                    f"Error: {error}",
+                    "Environment:"
+                )
+                pprint(environment)
 
         # Broadcast (single numbers are converted to an array with the size of
         # image)
+        image_size = project['images']['shape'][0] * project['images']['shape'][1]
         for i, band in enumerate(rgb_bands):
             if isinstance(band, Number):
-                band = np.repeat(band, image.shape[0]*image.shape[1])
-                band = band.reshape(*image.shape[:-1])
+                band = np.repeat(band, image_size)
+                band = band.reshape(*project['images']['shape'])
 
             rgb_bands[i] = band
 
@@ -343,7 +357,7 @@ class Project:
     def get_metadata(self, image_id):
         filename = self['images'].get('metadata', False)
         if not filename:
-            return None
+            return {}
 
         filename = filename.format(id=image_id)
 

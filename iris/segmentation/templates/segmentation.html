@@ -4,6 +4,7 @@
     <link rel="stylesheet" href="{{ url_for('segmentation.static', filename='css/segmentation.css') }}">
 
     <script type="text/javascript" src="{{ url_for('main.static', filename='javascripts/views.js') }}"></script>
+    <script type="text/javascript" src="{{ url_for('segmentation.static', filename='javascripts/segmentation/views.js') }}"></script>
     <script type="text/javascript" src="{{ url_for('segmentation.static', filename='javascripts/segmentation.js') }}"></script>
     <script type="text/javascript">
 
@@ -40,13 +41,6 @@
             },
             'show_mask': true,
             'mask_type': 'final',
-            'mask_highlight_edges': false,
-            'filters': {
-                'contrast': false,
-                'invert': false,
-                'brightness': 100,
-                'saturation': 100,
-            },
             'confusion_matrix': null,
             'tool': {
                 "type": 'draw',
@@ -54,6 +48,8 @@
                 'sprite': null,
                 'pixels': null,
             },
+            // Will be set to true if the user changed something on this mask:
+            'show_dialogue_before_next_image': false
         };
 
         // The size (shape) of the mask area:
@@ -62,7 +58,11 @@
         ];
 
         function next_image(){
-            goto_url({{url_for('segmentation.next_image', image_id=image_id)|tojson}});
+            if (vars.show_dialogue_before_next_image){
+                dialogue_before_next_image();
+            } else {
+                goto_url({{url_for('segmentation.next_image', image_id=image_id)|tojson}});
+            }
         }
 
         function prev_image(){
@@ -93,8 +93,12 @@
         </li>
         <li class="toolbar_separator"></li>
         <li class="toolbutton icon_button" id="tb_select_class" onclick='dialogue_class_selection();' style="width: 200px;">
-                <img src={{url_for('segmentation.static', filename='icons/class.png')}} class="icon"  style="float: left;"/>
-                <span id="tb_current_class" style="position: relative; left: -6px; top: 18px;">0</span>
+            <div>
+                <img src={{url_for('segmentation.static', filename='icons/class.png')}} class="icon" style="float: left;"/>
+            </div>
+            <div id="tb_current_class" style="float: left; line-height: 28px; font-size: 18px; font-weight: normal;">
+                No class
+            </div>
         </li>
         <li class="toolbar_separator"></li>
         <li class="toolbutton icon_button" id='tb_tool_move' onclick="set_tool('move');">
@@ -162,7 +166,7 @@
         </li>
     </ul>
 
-    <div id="container-views" style="margin: 10px 0px; width: 100%;">
+    <div id="views-container" style="margin: 10px 0px; width: 100%;">
         <!-- This will be filled up by the ViewManager -->
     </div>
 
@@ -192,7 +196,7 @@
         </div>
         <div class="info-box">
             <img style="float: left;" src={{url_for('segmentation.static', filename='icons/ai.png')}}></img>
-            <div style="float: left; margin-left: 10px;" id="ai-recommendation">AI is loading</div>
+            <div style="font-size: 16px; float: left; margin-left: 10px;" id="ai-recommendation">AI is loading</div>
         </div>
     </div>
 {% endblock %}
