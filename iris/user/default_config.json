@@ -8,11 +8,12 @@
         "suppression_threshold": 0,
         "suppression_filter_size": 5,
         "suppression_default_class": 0,
-        "detect_edges": true,
-        "include_context": true,
-        "use_superpixels": false
+        "use_edge_filter": true,
+        "use_context": true,
+        "use_superpixels": false,
+        "use_meshgrid": false
     },
-    "views": {
+    "view_groups": {
 
     }
 }

@@ -312,12 +312,13 @@ function mouse_wheel(event){
     var delta = Math.max(-1, Math.min(1, (event.wheelDelta || -event.detail)));
     if (event.shiftKey){
         // Change size of tool:
-        vars.tool.size += delta * 0.1 * vars.tool.size;
+        vars.tool.size += delta * 0.5 * vars.tool.size;
         vars.tool.size = round_number(Math.max(
             1, Math.min(
                 vars.tool.size, Math.max(...vars.mask_shape)
             )
         ));
+        console.log(vars.tool.size);
         render_preview();
     } else {
         zoom(delta);
@@ -803,6 +804,8 @@ function reset_mask(){
     reload_hidden_mask();
     render_mask();
     update_drawn_pixels();
+
+    vars.show_dialogue_before_next_image = true;
 }
 
 function reset_filters(){
@@ -1374,6 +1377,8 @@ async function predict_mask(){
     update_history();
 
     hide_loader();
+
+    vars.show_dialogue_before_next_image = true;
 }
 
 

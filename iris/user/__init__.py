@@ -201,7 +201,6 @@ def logout():
     # remove the username from the session if it's there
     if 'user_id' in flask.session:
         flask.session.pop('user_id')
-    project.set_user_id(None)
 
     return flask.make_response("Successful logout!")
 

@@ -26,8 +26,10 @@ async function dialogue_config_save(){
             "n_leaves": parseInt(get_object('dcs-n_leaves').value),
             "train_ratio": get_object('dcs-train_ratio').value / 100,
             "max_train_pixels": parseInt(get_object('dcs-max_train_pixels').value),
-            "include_context": get_object('dcs-include_context').checked,
-            "detect_edges": get_object('dcs-detect_edges').checked,
+            "use_context": get_object('dcs-use_context').checked,
+            "use_edge_filter": get_object('dcs-use_edge_filter').checked,
+            "use_meshgrid": get_object('dcs-use_meshgrid').checked,
+            "use_superpixels": get_object('dcs-use_superpixels').checked,
             "suppression_filter_size": parseInt(get_object('dcs-suppression_filter_size').value),
             "suppression_threshold": parseInt(get_object('dcs-suppression_threshold').value),
             "suppression_default_class": parseInt(get_object('dcs-suppression_default_class').value)

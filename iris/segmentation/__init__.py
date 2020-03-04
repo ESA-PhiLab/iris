@@ -338,24 +338,25 @@ def predict_mask(image_id):
     user_labels = np.array(data['user_labels'])
 
     inputs = [image]
-    if config['detect_edges']:
-        # edges = np.dstack([
-        #     sobel(image[..., i])
-        #     for i in range(n_channels)
-        # ])
-        # inputs.append(edges)
+    if config['use_edge_filter']:
+        edges = np.dstack([
+            sobel(image[..., i])
+            for i in range(n_channels)
+        ])
+        inputs.append(edges)
+
+    if config['use_context']:
         ...
 
-    if config['include_context']:
-        ...
-
-    # Add meshgrid:
-    # x, y = np.meshgrid(range(image.shape[0]), range(image.shape[1]))
-    # inputs.append(x[..., np.newaxis])
-    # inputs.append(y[..., np.newaxis])
+    if config['use_meshgrid']:
+        x, y = np.meshgrid(range(image.shape[0]), range(image.shape[1]))
+        inputs.append(x[..., np.newaxis])
+        inputs.append(y[..., np.newaxis])
 
     if config['use_superpixels']:
-        super_pixels = felzenszwalb(image, scale=200, sigma=4, min_size=100)
+        super_pixels = felzenszwalb(
+            image, scale=image.shape[0]/5, sigma=4, min_size=100
+        )
         inputs.append(super_pixels)
 
     inputs = np.dstack(inputs).reshape(mask_size, -1)

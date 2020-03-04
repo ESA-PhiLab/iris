@@ -8,12 +8,8 @@
     <div class="panel" style="display: block;">
         <table>
             <tr>
-                <th style="width:300px">Field</th>
-                <th style="width:200px">Value</th>
-            </tr>
-            <tr>
-                <td>Number of estimators:</td>
-                <td>
+                <td style="width:300px">Number of estimators:</td>
+                <td style="width:200px">
                     <div class="slider">
                         <div class="slider-value">{{config.segmentation.n_estimators}}</div>
                         <input
@@ -51,7 +47,7 @@
                     </div>
                 </td>
             </tr>
-            </tr><tr>
+            <tr>
                 <td>Train ratio:</td>
                 <td>
                     <div class="slider">
@@ -65,7 +61,7 @@
                     </div>
                 </td>
             </tr>
-            </tr><tr>
+            <tr>
                 <td>Max. number of training pixels per class:</td>
                 <td>
                     <div class="slider">
@@ -85,16 +81,20 @@
     <div class="panel" style="display: block;">
         <table>
             <tr>
-                <th style="width:300px">Field</th>
-                <th style="width:200px">Value</th>
+                <td style="width:300px">Use context metrics?</td>
+                <td style="width:200px"><input id="dcs-use_context" type="checkbox" {% if config.segmentation.use_context %} checked {% endif %}></td>
             </tr>
             <tr>
-                <td>Include context?</td>
-                <td><input id="dcs-include_context" type="checkbox" {% if config.segmentation.include_context %} checked {% endif %}></td>
+                <td>Use edge filter?</td>
+                <td><input id="dcs-use_edge_filter" type="checkbox" {% if config.segmentation.use_edge_filter %} checked {% endif %}></td>
             </tr>
             <tr>
-                <td>Perform edge detection?</td>
-                <td><input id="dcs-detect_edges" type="checkbox" {% if config.segmentation.detect_edges %} checked {% endif %}></td>
+                <td>Use meshgrid?</td>
+                <td><input id="dcs-use_meshgrid" type="checkbox" {% if config.segmentation.use_meshgrid %} checked {% endif %}></td>
+            </tr>
+            <tr>
+                <td>Use superpixels?</td>
+                <td><input id="dcs-use_superpixels" type="checkbox" {% if config.segmentation.use_superpixels %} checked {% endif %}></td>
             </tr>
         </table>
     </div>
@@ -102,12 +102,8 @@
     <div class="panel" style="display: block;">
         <table>
             <tr>
-                <th style="width:300px">Field</th>
-                <th style="width:200px">Value</th>
-            </tr>
-            <tr>
-                <td>Filter size:</td>
-                <td>
+                <td style="width:300px">Filter size:</td>
+                <td style="width:200px">
                     <select id="dcs-suppression_filter_size">
                         <option value="3" {% if config.segmentation.suppression_filter_size == 3 %}selected{% endif %}>3</option>
                         <option value="5" {% if config.segmentation.suppression_filter_size == 5 %}selected{% endif %}>5</option>
