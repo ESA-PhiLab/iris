@@ -53,7 +53,7 @@ def run_app():
     create_default_admin(app, db)
 
     # webbrowser.open('http://localhost:5000/segmentation')
-    app.run(debug=True)
+    app.run(debug=project['debug'], host=project['host'], port=project['port'])
 
 def create_app(project_file):
     project.load_from(project_file)

@@ -106,6 +106,13 @@ class Project:
             if mode in self.config:
                 self._normalise_classes(self[mode])
 
+        if "host" not in self.config:
+            self['host'] = '127.0.0.1'
+        if "port" not in self.config:
+            self['port'] = 5000
+        if "debug" not in self.config:
+            self['debug'] = False
+
     def __getitem__(self, key):
         return self.config[key]
 
