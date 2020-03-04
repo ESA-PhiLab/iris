@@ -146,19 +146,14 @@ def merge_masks(image_id):
         if not action:
             action = Action(user=user, image_id=image_id, type="segmentation")
 
-        if project['segmentation']['score'] == 'jaccard':
-            action.score = round(100 * jaccard_similarity_score(
-                merged_mask.ravel(), final_masks[..., u].ravel()
-            ))
-        elif project['segmentation']['score'] == 'f1':
-            action.score = round(100 * f1_score(
-                merged_mask.ravel(), final_masks[..., u].ravel(), average='macro'
-            ))
-        elif project['segmentation']['score'] == 'accuracy':
-            action.score = round(100 * accuracy_score(
-                merged_mask.ravel(), final_masks[..., u].ravel()
-            ))
-        action.pending = len(users) < project['segmentation']['pending_threshold']
+        if len(users) == 2:
+            # Just check how much the user agrees with the other one:
+            other_user = 0 if u else 1
+            action.score = get_score(final_masks[..., other_user].ravel(), final_masks[..., u].ravel())
+        else:
+            action.score = get_score(merged_mask.ravel(), final_masks[..., u].ravel())
+
+        action.pending = len(users) == 1
 
     db.session.commit()
 
@@ -171,6 +166,14 @@ def merge_masks(image_id):
         np.save(filename, merged_mask, allow_pickle=False)
     else:
         imsave(filename, merged_mask, check_contrast=False)
+
+def get_score(mask1, mask2):
+    if project['segmentation']['score'] == 'jaccard':
+        return round(100 * jaccard_similarity_score(mask1, mask2))
+    elif project['segmentation']['score'] == 'f1':
+        return round(100 * f1_score(mask1, mask2, average='macro'))
+    elif project['segmentation']['score'] == 'accuracy':
+        return round(100 * accuracy_score(mask1, mask2))
 
 def encode_mask(mask, mode='binary'):
     """Encode the mask to save it on disk

@@ -90,6 +90,9 @@ class Project:
             if self['segmentation']['score'] not in ['f1', 'jaccard', 'accuracy']:
                 raise Exception('Unknown segmentation score!', self['segmentation']['score'])
 
+            if 'pending_threshold' not in self['segmentation']:
+                self['segmentation']['pending_threshold'] = 1
+
         # Make sure the HTML is understood in the descriptions:
         for name, view in self.config['views'].items():
             view['name'] = name
