@@ -98,7 +98,7 @@ async function init_views(){
         vars.url.main+'metadata/'+vars.image_id
     ).then(async (response) => {
         if (response.status < 400){
-            let metadata = await response.json;
+            let metadata = await response.json();
             if ("location" in metadata){
                 vars.vm.setImageLocation(metadata.location);
             }

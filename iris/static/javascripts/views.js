@@ -27,10 +27,10 @@ class ViewManager{
         this.source = {};
     }
     setImageLocation(location){
-        this.image_location = image_location;
+        this.image_location = location;
 
         for (let port of this.ports){
-            port.imageLocationChanged(image_location);
+            port.imageLocationChanged(location);
         }
     }
     showGroup(group='default'){
@@ -265,7 +265,7 @@ class ViewPort{
         }
     }
     imageLocationChanged(image_location){
-        for (layer of this.layers){
+        for (let layer of this.layers){
             layer.imageLocationChanged(image_location);
         }
     }
@@ -384,10 +384,7 @@ class BingLayer extends ViewLayer{
     }
     update(){
         // Default location
-        let location =
-            this.vm.image_location[0]
-            +"~"
-            +this.vm.image_location[1];
+        let location = this.vm.image_location[0]+"~"+this.vm.image_location[1];
 
         let url = "https://www.bing.com/maps/embed?";
         url += "h="+this.container.height;
@@ -395,10 +392,13 @@ class BingLayer extends ViewLayer{
         url += "&cp="+location;
         url += "&lvl=12&typ=d&sty=a&src=SHELL&FORM=MBEDV8";
         this.container.src = url;
+        console.log(this.container.src);
     }
     sizeChanged(width, height){
-      this.container.width = width.toString()+"px";;
-      this.container.height = height.toString()+"px";;
+        this.container.width = width.toString()+"px";
+        this.container.height = height.toString()+"px";
+        this.container.style.width = width.toString()+"px";
+        this.container.style.height = height.toString()+"px";
 
       this.update();
     }
