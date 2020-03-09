@@ -1,6 +1,7 @@
 """Take care of holding the current project's configurations
 
 """
+from copy import deepcopy
 from glob import glob
 from numbers import Number
 import os
@@ -15,6 +16,8 @@ import numpy as np
 from skimage.io import imread
 import yaml
 import rasterio as rio
+
+from iris.utils import merge_deep_dicts
 
 class Project:
     def __init__(self):
@@ -34,6 +37,7 @@ class Project:
         if not isabs(filename):
             filename = join(os.getcwd(), filename)
 
+        # Load the project config:
         try:
             with open(filename, 'r') as stream:
                 if filename.endswith('json'):
@@ -42,6 +46,12 @@ class Project:
                     self.config = yaml.safe_load(stream)
         except Exception as error:
             raise Exception('[CONFIG] Error in config file: '+ str(error))
+
+        # Load default config:
+        with open(join(dirname(__file__), "default_config.json")) as stream:
+            self.config = merge_deep_dicts(
+                json.load(stream), self.config
+            )
 
         if 'name' not in self.config:
             self.config['name'] = ".".join(basename(filename).split(".")[:-1])
@@ -84,14 +94,8 @@ class Project:
                     + ",".join(encodings[format])
                 )
 
-            self['segmentation']['score'] = self['segmentation'].get(
-                self['segmentation']['score'], "f1"
-            )
             if self['segmentation']['score'] not in ['f1', 'jaccard', 'accuracy']:
                 raise Exception('Unknown segmentation score!', self['segmentation']['score'])
-
-            if 'pending_threshold' not in self['segmentation']:
-                self['segmentation']['pending_threshold'] = 1
 
         # Make sure the HTML is understood in the descriptions:
         for name, view in self.config['views'].items():
@@ -207,7 +211,7 @@ class Project:
 
     @property
     def segmentation(self):
-        return 'segmentation' in self.config
+        return 'path' in self.config.get('segmentation', [])
 
     def get_start_image_id(self):
         return self.image_ids[self.image_order[0]]
@@ -388,17 +392,19 @@ class Project:
 
         return imread(filename.format(id=image_id))
 
-    def get_user_config(self, user_id, default=False):
-        default_filename = join(dirname(__file__), 'user/default_config.json')
-        with open(default_filename, 'r') as stream:
-            user_config = json.load(stream)
-
+    def get_user_config(self, user_id):
         filename = join(self['path'], 'user_config', f'{user_id}.json')
-        if exists(filename) and not default:
+        config = deepcopy(self.config)
+        if exists(filename):
             with open(filename, 'r') as stream:
-                user_config.update(json.load(stream))
+                user_config = json.load(stream)
 
-        return user_config
+            # Actually, we only take over certain fields from the user config:
+            if project.segmentation and "ai_model" in self["segmentation"]:
+                config["segmentation"]["ai_model"] = \
+                    user_config["segmentation"]["ai_model"]
+
+        return config
 
     def save_user_config(self, user_id, user_config):
         filename = join(self['path'], 'user_config', f'{user_id}.json')

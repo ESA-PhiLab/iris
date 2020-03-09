@@ -1,0 +1,28 @@
+{
+    "authentication_required": true,
+    "images": {
+        "thumbnails": false,
+        "metadata": false
+    },
+    "segmentation": {
+        "mask_encoding": "rgb",
+        "score": "f1",
+        "pending_threshold": 1,
+        "test_images": null,
+        "ai_model": {
+            "bands": null,
+            "train_ratio": 0.8,
+            "max_train_pixels": 20000,
+            "n_estimators": 100,
+            "max_depth": 30,
+            "n_leaves": 30,
+            "suppression_threshold": 0,
+            "suppression_filter_size": 5,
+            "suppression_default_class": 0,
+            "use_edge_filter": true,
+            "use_context": true,
+            "use_superpixels": false,
+            "use_meshgrid": false
+        }
+    }
+}

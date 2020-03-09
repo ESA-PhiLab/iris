@@ -141,6 +141,9 @@ async function init_views(){
     init_toolbar_events();
 
     reset_views();
+
+    // Check every 5 seconds the current state on the server:
+    setInterval(fetch_server_update, 5000);
 }
 
 function init_events(){
@@ -844,34 +847,57 @@ function logout_finished(){
 
 async function fetch_server_update(){
     let response = await fetch(vars.url.user+"get/current");
-
     if (response.status == 403) {
         dialogue_login();
         return;
     }
+    let user = await response.json();
 
-    user = await response.json();
+    // Get more information about the current image:
+    response = await fetch(vars.url.main+"image_info/"+vars.image_id);
+    if (response.status != 404) {
+        image = await response.json();
 
-    let info_box = '<div class="info-box-top" style="position: relative;">';
-    info_box += nice_number(user.segmentation.score);
-    if (vars.user !== null && vars.user.id == user.id){
-        // Check how much the score changed in comparison to the last time:
-        let score_change = user.segmentation.score - vars.user.segmentation.score;
+        let info_box = '<div class="info-box-top" style="position: relative;">';
+        info_box += clip_string(image.id, 20);
+        let masks = image.segmentation.count;
+        if (image.segmentation.current_user_score !== null){
+            masks -= 1;
+        }
 
-        if (score_change){
-            score_change = nice_number(score_change);
-            let colour = "red";
-
-            if (user.segmentation.score > vars.user.segmentation.score){
-                score_change = "+" + score_change;
-                colour = "green";
+        if (masks != 0){
+            let text = '1 other mask';
+            if (masks > 1){
+                text = masks.toString() + ' other masks';
             }
 
-            info_box += '<span style="position: absolute; right: -10px; top: -25px; align-text: right;" class="tag '+colour+'">'+score_change+'</span>';
+            info_box += '<span style="position: absolute; right: -12px; top: -25px; align-text: right;" class="tag">'+text+'</span>';
         }
+        info_box += '</div>';
+        info_box += '<div class="info-box-bottom">image</div>';
+        get_object('image-info').innerHTML = info_box;
+    } else {
+        return;
+    }
+
+    info_box = '<div class="info-box-top" style="position: relative;">';
+    info_box += nice_number(user.segmentation.score);
+    if (image.segmentation.current_user_score !== null){
+        let image_score = image.segmentation.current_user_score;
+        let colour = "red";
+        if (image_score > 85){
+            colour = "green";
+        } else if (image_score > 70){
+            colour = "yellow";
+        }
+        image_score = image_score.toString();
+        if (image.segmentation.current_user_score_pending){
+            image_score += '?';
+        }
+        info_box += '<span style="position: absolute; right: -12px; top: -25px; align-text: right;" class="tag '+colour+'">'+image_score+'</span>';
     }
     info_box += '</div>';
-    info_box += '<div class="info-box-bottom">'+clip_string(user.name, 25)+'</div>';
+    info_box += '<div class="info-box-bottom">'+clip_string(user.name, 20)+'</div>';
     get_object('user-info').innerHTML = info_box;
     vars.user = user;
     vars.config = user.config;
@@ -880,27 +906,6 @@ async function fetch_server_update(){
         get_object('admin-button').style.display = "block";
     } else {
         get_object('admin-button').style.display = "none";
-    }
-
-    // Get more information about the current image:
-    response = await fetch(vars.url.main+"image_info/"+vars.image_id);
-    if (response.status != 404) {
-        image = await response.json();
-
-        info_box = '<div class="info-box-top" style="position: relative;">';
-        info_box += clip_string(image.id, 20);
-        if (image.n_segmentations != 0){
-            // Check how much the score changed in comparison to the last time:
-            let text = '1 mask';
-            if (image.n_segmentations > 1){
-                text = image.n_segmentations.toString() + ' masks';
-            }
-
-            info_box += '<span style="position: absolute; right: -10px; top: -25px; align-text: right;" class="tag">'+text+'</span>';
-        }
-        info_box += '</div>';
-        info_box += '<div class="info-box-bottom">image</div>';
-        get_object('image-info').innerHTML = info_box;
     }
 
     if (vars.next_action !== null){
@@ -1277,8 +1282,8 @@ async function predict_mask(){
         n_samples[user_class] = {
             "current": 0,
             "max": Math.min(
-                round_number(vars.n_user_pixels[user_class]*vars.config.segmentation.train_ratio),
-                vars.config.segmentation.max_train_pixels
+                round_number(vars.n_user_pixels[user_class]*vars.config.segmentation.ai_model.train_ratio),
+                vars.config.segmentation.ai_model.max_train_pixels
             )
         };
     }
@@ -1299,6 +1304,8 @@ async function predict_mask(){
             test_indices.push(i);
         }
     }
+
+    console.log(train_user_pixels.length, train_user_labels.length);
 
     show_loader("Train AI...");
     let results = await download(

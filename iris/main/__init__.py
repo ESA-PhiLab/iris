@@ -28,16 +28,31 @@ def image(image_id, view):
     return array_to_png(image)
 
 @main_app.route('/image_info/<image_id>')
+@requires_auth
 def image_info(image_id):
-    data = {
-        'id': image_id,
-        'n_segmentations':
-            Action.query.filter_by(image_id=image_id, type='segmentation').count(),
-        'n_classifications':
-            Action.query.filter_by(image_id=image_id, type='classification').count(),
-        'n_detections':
-            Action.query.filter_by(image_id=image_id, type='detection').count(),
+    user_id = flask.session['user_id']
+
+    actions = Action.query.filter_by(image_id=image_id).all()
+    # Sort actions by type:
+    actions = {
+        type: [action for action in actions if action.type == type]
+        for type in ['segmentation', 'classification', 'detection']
     }
+
+    data = {}
+    print(actions)
+    for type, t_actions in actions.items():
+        data[type] = {
+            'count': len(t_actions),
+            'current_user_score': None
+        }
+        for t_action in t_actions:
+            if t_action.user_id == user_id:
+                data[type]['current_user_score'] = t_action.score
+                data[type]['current_user_score_pending'] = t_action.pending
+                break
+
+    data['id'] = image_id
     return flask.jsonify(data)
 
 @main_app.route('/get_action_info/<image_id>/<action_type>')
@@ -45,7 +60,6 @@ def image_info(image_id):
 def get_action_info(image_id, action_type):
     user_id = flask.session['user_id'];
 
-    print(image_id, user_id, action_type)
     action = Action.query.filter_by(image_id=image_id, user_id=user_id, type=action_type).first_or_404()
 
     return flask.jsonify(action.to_json())

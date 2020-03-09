@@ -62,7 +62,11 @@ def index():
     )
 
 @segmentation_app.route('/next_image', methods=['GET'])
+@requires_auth
 def next_image():
+    user = User.query.get(flask.session['user_id'])
+    project.set_image_seed(user.image_seed)
+
     image_id = project.get_next_image(
         flask.request.args.get('image_id', project.get_start_image_id())
     )
@@ -72,7 +76,11 @@ def next_image():
     )
 
 @segmentation_app.route('/previous_image', methods=['GET'])
+@requires_auth
 def previous_image():
+    user = User.query.get(flask.session['user_id'])
+    project.set_image_seed(user.image_seed)
+
     image_id = project.get_previous_image(
         flask.request.args.get('image_id', project.get_start_image_id())
     )
@@ -153,7 +161,7 @@ def merge_masks(image_id):
         else:
             action.score = get_score(merged_mask.ravel(), final_masks[..., u].ravel())
 
-        action.pending = len(users) == 1
+        action.pending = len(users) <= project['segmentation']['pending_threshold']
 
     db.session.commit()
 
@@ -314,26 +322,18 @@ def predict_mask(image_id):
     print('Fit options:', config)
 
     # How to exclude certain bands?
-    image_dict = project.get_image(image_id)
+    image_dict = project.get_image(image_id, bands=config['ai_model']['bands'])
     image = image_dict_to_array(image_dict)
 
     n_channels = image.shape[-1]
 
     # Select only the masking area:
     mask_area = (
-        slice(
-            project['segmentation']['mask_area'][0],
-            project['segmentation']['mask_area'][2]
-        ),
-        slice(
-            project['segmentation']['mask_area'][1],
-            project['segmentation']['mask_area'][3]
-        ),
+        slice(config['mask_area'][0], config['mask_area'][2]),
+        slice(config['mask_area'][1], config['mask_area'][3]),
         slice(None, None, None)
     )
-    mask_size = \
-        project['segmentation']['mask_shape'][0] \
-        * project['segmentation']['mask_shape'][1]
+    mask_size = config['mask_shape'][0] * config['mask_shape'][1]
     image = image[mask_area]
 
     data = json.loads(flask.request.data)
@@ -341,22 +341,22 @@ def predict_mask(image_id):
     user_labels = np.array(data['user_labels'])
 
     inputs = [image]
-    if config['use_edge_filter']:
+    if config['ai_model']['use_edge_filter']:
         edges = np.dstack([
             sobel(image[..., i])
             for i in range(n_channels)
         ])
         inputs.append(edges)
 
-    if config['use_context']:
+    if config['ai_model']['use_context']:
         ...
 
-    if config['use_meshgrid']:
+    if config['ai_model']['use_meshgrid']:
         x, y = np.meshgrid(range(image.shape[0]), range(image.shape[1]))
         inputs.append(x[..., np.newaxis])
         inputs.append(y[..., np.newaxis])
 
-    if config['use_superpixels']:
+    if config['ai_model']['use_superpixels']:
         super_pixels = felzenszwalb(
             image, scale=image.shape[0]/5, sigma=4, min_size=100
         )
@@ -366,19 +366,19 @@ def predict_mask(image_id):
 
     train_indices, val_indices, train_labels, val_labels = train_test_split(
         user_indices, user_labels, stratify=user_labels,
-        test_size=0.2, random_state=42
+        test_size=0.3, random_state=42
     )
 
     gbm = lgb.LGBMClassifier(
-        num_leaves=config['n_leaves'],
+        num_leaves=config['ai_model']['n_leaves'],
         max_bin=128,
-        max_depth=config['max_depth'],
+        max_depth=config['ai_model']['max_depth'],
         # min_data_in_leaf=1000,
         # bagging_fraction=0.2,
         # boosting_type='dart',
         tree_learner='data',
         learning_rate=0.05,
-        n_estimators=config['n_estimators'],
+        n_estimators=config['ai_model']['n_estimators'],
         silent=True,
         n_jobs=10,
     )
@@ -395,19 +395,17 @@ def predict_mask(image_id):
     predictions = predictions.astype(np.uint8)
 
     # Apply suppression filter:
-    if config['suppression_threshold'] != 0:
-        other_classes = (predictions != config['suppression_default_class']).astype(int)
-        other_classes = other_classes.reshape(
-            *project['segmentation']['mask_shape']
-        )
-        window_size = config['suppression_filter_size']
+    if config['ai_model']['suppression_threshold'] != 0:
+        other_classes = (predictions != config['ai_model']['suppression_default_class']).astype(int)
+        other_classes = other_classes.reshape(*config['mask_shape'])
+        window_size = config['ai_model']['suppression_filter_size']
         window = np.ones((window_size, window_size))
         window[window_size//2, window_size//2] = 0
         neighbourhood_ratio = convolve(
             other_classes, window, mode='constant', cval=0.5
         ) / (window_size**2 - 1)
-        suppress = 100 * neighbourhood_ratio.ravel() < config['suppression_threshold']
-        predictions[suppress] = config['suppression_default_class']
+        suppress = 100 * neighbourhood_ratio.ravel() < config['ai_model']['suppression_threshold']
+        predictions[suppress] = config['ai_model']['suppression_default_class']
 
     # Return the results:
     response = flask.make_response(
