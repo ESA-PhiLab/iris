@@ -51,6 +51,7 @@ async function dialogue_config_save(){
                 "use_context": get_object('dcs-use_context').checked,
                 "use_edge_filter": get_object('dcs-use_edge_filter').checked,
                 "use_meshgrid": get_object('dcs-use_meshgrid').checked,
+                "meshgrid_cells": get_object('dcs-meshgrid_cells').value,
                 "use_superpixels": get_object('dcs-use_superpixels').checked,
                 "suppression_filter_size": parseInt(get_object('dcs-suppression_filter_size').value),
                 "suppression_threshold": parseInt(get_object('dcs-suppression_threshold').value),

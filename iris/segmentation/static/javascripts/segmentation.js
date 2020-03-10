@@ -917,7 +917,7 @@ async function fetch_server_update(){
         vars.next_action = null;
     }
 
-    // Check every 5 seconds the current state on the server:
+    // Check every 15 seconds the current state on the server:
     setTimeout(fetch_server_update, 15000);
 }
 

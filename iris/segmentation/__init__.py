@@ -352,9 +352,16 @@ def predict_mask(image_id):
         ...
 
     if config['ai_model']['use_meshgrid']:
-        x, y = np.meshgrid(range(image.shape[0]), range(image.shape[1]))
-        inputs.append(x[..., np.newaxis])
-        inputs.append(y[..., np.newaxis])
+        if config['ai_model']['meshgrid_cells'] == "pixelwise":
+            x_size, y_size = image.shape[0], image.shape[1]
+        else:
+            x_size, y_size = map(int, config['ai_model']['meshgrid_cells'].split('x'))
+        y_size = 3
+        x = np.repeat(np.arange(x_size), int(image.shape[0]/x_size)+1)
+        y = np.repeat(np.arange(y_size), int(image.shape[1]/y_size)+1)
+        x_grid, y_grid = np.meshgrid(x[:image.shape[0]], y[:image.shape[1]])
+        inputs.append(x_grid[..., np.newaxis])
+        inputs.append(y_grid[..., np.newaxis])
 
     if config['ai_model']['use_superpixels']:
         super_pixels = felzenszwalb(

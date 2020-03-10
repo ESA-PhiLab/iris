@@ -217,6 +217,7 @@ class ViewPort{
 
         this.select_view = document.createElement('select');
         this.select_view.classList.add("view-controls");
+        this.select_view.classList.add("with-arrow");
         this.select_view.innerHTML = "-";
         this.select_view.style.left = "10px";
         this.select_view.style.top = "10px";

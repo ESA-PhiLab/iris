@@ -22,7 +22,8 @@
             "use_edge_filter": false,
             "use_context": false,
             "use_superpixels": false,
-            "use_meshgrid": false
+            "use_meshgrid": false,
+            "meshgrid_cells": "3x3"
         }
     }
 }

@@ -93,6 +93,20 @@
                 <td><input id="dcs-use_meshgrid" type="checkbox" {% if config.segmentation.ai_model.use_meshgrid %} checked {% endif %}></td>
             </tr>
             <tr>
+                <td>Meshgrid cells</td>
+                <td>
+                    <select id="dcs-meshgrid_cells" class="with-arrow">
+                        {% for value in ["3x3", "5x5", "7x7", "10x10", "20x20", "pixelwise"] %}
+                            <option value={{value}}
+                                {% if config.segmentation.ai_model.meshgrid_cells == value %}
+                                    selected
+                                {% endif %}>{{value}}
+                            </option>
+                        {% endfor %}
+                        </select>
+                </td>
+            </tr>
+            <tr>
                 <td>Use superpixels?</td>
                 <td><input id="dcs-use_superpixels" type="checkbox" {% if config.segmentation.ai_model.use_superpixels %} checked {% endif %}></td>
             </tr>
@@ -133,7 +147,7 @@
             <tr>
                 <td style="width:300px">Suppression filter size:</td>
                 <td style="width:300px">
-                    <select id="dcs-suppression_filter_size">
+                    <select id="dcs-suppression_filter_size" class="with-arrow">
                         <option value="3" {% if config.segmentation.ai_model.suppression_filter_size == 3 %}selected{% endif %}>3</option>
                         <option value="5" {% if config.segmentation.ai_model.suppression_filter_size == 5 %}selected{% endif %}>5</option>
                         <option value="7" {% if config.segmentation.ai_model.suppression_filter_size == 7 %}selected{% endif %}>7</option>
@@ -157,7 +171,7 @@
             <tr>
                 <td>Suppression filter background class:</td>
                 <td>
-                    <select id="dcs-suppression_default_class">
+                    <select id="dcs-suppression_default_class" class="with-arrow">
                         {% for class in config.classes %}
                         <option style="background-color: {{class.css_colour}};" value="{{loop.index-1}}" {% if config.segmentation.ai_model.suppression_default_class == loop.index-1 %}selected{% endif %}>
                             {{class.name}}
