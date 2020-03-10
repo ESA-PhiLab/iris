@@ -69,10 +69,16 @@
           "data": ["$Sentinel1.B1", "$Sentinel1.B2", "$Sentinel1.B1-$Sentinel1.B2"]
       },
       "Edges": {
-          "description": "Edges in the pan-chromatic data",
+          "description": "Edges in the panchromatic bands",
           "type": "image",
-          "data": "sobel($Sentinel2.B2+$Sentinel2.B3+$Sentinel2.B4)",
+          "data": "edges($Sentinel2.B2+$Sentinel2.B3+$Sentinel2.B4)",
           "cmap": "gray"
+      },
+      "Superpixels": {
+          "description": "Superpixels in the panchromatic bands",
+          "type": "image",
+          "data": "superpixels($Sentinel2.B2+$Sentinel2.B3+$Sentinel2.B4, sigma=4, min_size=100)",
+          "cmap": "jet"
       },
       "Bing": {
           "description": "Aerial Imagery",

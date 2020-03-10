@@ -32,13 +32,12 @@ class Project:
         self.debug = False
 
     def load_from(self, filename):
+        if not isabs(filename):
+            filename = join(os.getcwd(), filename)
         self.file = filename
 
         if not filename.endswith('json') or filename.endswith('yaml'):
             raise Exception('[CONFIG] config file must be in JSON or YAML format!')
-
-        if not isabs(filename):
-            filename = join(os.getcwd(), filename)
 
         # Load the project config:
         try:
@@ -384,8 +383,8 @@ class Project:
             'sin': np.sin,
             'cos': np.cos,
             'PI': np.pi,
-            'sobel': sobel,
-            'felzenszwalb': felzenszwalb,
+            'edges': sobel,
+            'superpixels': felzenszwalb,
             **{
                 key.strip('$'): value
                 for key, value in image.items()
