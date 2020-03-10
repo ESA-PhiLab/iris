@@ -14,6 +14,8 @@ import json
 from matplotlib import cm
 import numpy as np
 from skimage.io import imread
+from skimage.filters import sobel
+from skimage.segmentation import felzenszwalb
 import yaml
 import rasterio as rio
 
@@ -382,6 +384,8 @@ class Project:
             'sin': np.sin,
             'cos': np.cos,
             'PI': np.pi,
+            'sobel': sobel,
+            'felzenszwalb': felzenszwalb,
             **{
                 key.strip('$'): value
                 for key, value in image.items()

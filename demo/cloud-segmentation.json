@@ -68,6 +68,12 @@
           "type": "image",
           "data": ["$Sentinel1.B1", "$Sentinel1.B2", "$Sentinel1.B1-$Sentinel1.B2"]
       },
+      "Edges": {
+          "description": "Edges in the pan-chromatic data",
+          "type": "image",
+          "data": "sobel($Sentinel2.B2+$Sentinel2.B3+$Sentinel2.B4)",
+          "cmap": "gray"
+      },
       "Bing": {
           "description": "Aerial Imagery",
           "type": "bingmap"
