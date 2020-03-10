@@ -5,7 +5,7 @@ from copy import deepcopy
 from glob import glob
 from numbers import Number
 import os
-from os.path import basename, dirname, exists, isabs, join, normpath
+from os.path import basename, dirname, exists, getmtime, isabs, join, normpath
 from pprint import pprint
 import re
 
@@ -27,6 +27,7 @@ class Project:
         self.image_ids = None
         self.name = None
         self.file = None
+        self.debug = False
 
     def load_from(self, filename):
         self.file = filename
@@ -217,10 +218,21 @@ class Project:
         return self.image_ids[self.image_order[0]]
 
     def load_image(self, filename, bands=None):
+        """Load image from file
+
+        Args:
+            filename:
+            bands: Defines which bands to load from file. Must be a list of
+                names starting with $, e.g. "$B1" or "$Sentinel2.B1"
+
+        Returns:
+            Returns a dictionary with the band names as keys and band array as
+            value.
+        """
         # The user uses band identifiers (like 'B1', etc):
         if bands is not None:
             bands = list(map(
-                lambda s: int(s.replace("B", ""))-1,
+                lambda s: int(s.replace("$B", ""))-1,
                 bands
             ))
 
@@ -238,7 +250,8 @@ class Project:
                 array = array[..., bands]
 
         if bands is None:
-            bands = list(range(1, array.shape[-1]+1))
+            bands = list(range(array.shape[-1]))
+
         data = {
             f"B{b+1}": array[..., i]
             for i, b in enumerate(bands)
@@ -250,11 +263,12 @@ class Project:
 
         Args:
             image_id: Id of the image as string.
-            bands: Bands of the image file (or files) to select.
+            bands: Bands of the image file (or files) to select, e.g. "$B1" or
+                "$Sentinel2.B1".
 
         Returns:
-            A dict with bands. The keys are either "B1"..."Bn" or
-            "FileIdentifier.B1".
+            A dict with bands. The keys are either "$B1"..."$Bn" or
+            "$FileIdentifier.B1".
         """
 
         if isinstance(self['images']['path'], dict):
@@ -266,7 +280,7 @@ class Project:
                     file_bands = [
                         band.replace(file_id+'.', '')
                         for band in bands
-                        if band.startswith(file_id+'.')
+                        if band.startswith('$'+file_id+'.')
                     ]
                     if not file_bands:
                         continue
@@ -280,8 +294,24 @@ class Project:
                 self['images']['path'].format(id=image_id),
                 bands=bands
             )
+            data = {
+                '$'+key: value
+                for key, value in data.items()
+            }
 
         return data
+
+    def get_image_bands(self, image_id):
+        # TODO: probably we could do this faster:
+        image = self.get_image(image_id)
+
+        bands = []
+        for band in image.keys():
+            if isinstance(image[band], dict):
+                bands.extend([f'${band}.{subband}' for subband in image[band]])
+            else:
+                bands.append(f'${band}')
+        return bands
 
     def get_image_path(self, image_id):
         if isinstance(self['images']['path'], dict):
@@ -294,10 +324,7 @@ class Project:
 
     def render_image(self, image_id, view, clip=True):
         # Find all required variables
-        bands = \
-            re.findall('\$(?:\w+\.{0,1}\w+)', ";".join(view['data']))
-        bands = list(map(lambda s: s.strip("$"), bands))
-
+        bands = re.findall('(?:\$\w+\.{0,1}\w+)', ";".join(view['data']))
         image = self.get_image(image_id, bands=bands)
         environment = self._get_render_environment(image)
 
@@ -309,7 +336,7 @@ class Project:
                 # Since one should never rely on evaluating an expression from
                 # untrusted sources, we will have to find a different solution
                 # to make it safe.
-                # self._check_band_expression(expression)
+                self._check_band_expression(expression)
                 rgb_bands.append(
                     eval(expression, {"__builtins__": None}, environment)
                 )
@@ -318,7 +345,7 @@ class Project:
                     f"Could not parse {i}th expression of {view['name']}\n",
                     f"Raw expression: {expression_raw}\n",
                     f"Python expression: {expression}\n",
-                    f"Error: {error}",
+                    f"Error: {error}\n",
                     "Environment:"
                 )
                 pprint(environment)
@@ -355,11 +382,14 @@ class Project:
             'sin': np.sin,
             'cos': np.cos,
             'PI': np.pi,
-            **image,
+            **{
+                key.strip('$'): value
+                for key, value in image.items()
+            },
         }
 
-    def _check_band_expression(expression):
-        forbidden_tokens = ['lambda', '__', '=', 'try']
+    def _check_band_expression(self, expression):
+        forbidden_tokens = ['lambda', '__', 'except', 'eval', ';']
 
         for forbidden in forbidden_tokens:
             if forbidden in expression:
@@ -395,14 +425,18 @@ class Project:
     def get_user_config(self, user_id):
         filename = join(self['path'], 'user_config', f'{user_id}.json')
         config = deepcopy(self.config)
-        if exists(filename):
+
+        # Only if the user config is newer the system's config file, we use it
+        # for updates:
+        if exists(filename) and getmtime(self.file) <= getmtime(filename):
             with open(filename, 'r') as stream:
                 user_config = json.load(stream)
 
+            config = merge_deep_dicts(config, user_config)
             # Actually, we only take over certain fields from the user config:
-            if project.segmentation and "ai_model" in self["segmentation"]:
-                config["segmentation"]["ai_model"] = \
-                    user_config["segmentation"]["ai_model"]
+            # if project.segmentation and "ai_model" in self["segmentation"]:
+            #     config["segmentation"]["ai_model"] = \
+            #         user_config["segmentation"]["ai_model"]
 
         return config
 

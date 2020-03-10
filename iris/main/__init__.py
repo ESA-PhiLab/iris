@@ -40,7 +40,6 @@ def image_info(image_id):
     }
 
     data = {}
-    print(actions)
     for type, t_actions in actions.items():
         data[type] = {
             'count': len(t_actions),

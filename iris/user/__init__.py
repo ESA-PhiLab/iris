@@ -117,24 +117,16 @@ def show(user_id):
 @user_app.route('/config', methods=['GET'])
 @requires_auth
 def config():
-    user_config = project.get_user_config(flask.session['user_id'])
-
-    try:
-        return flask.render_template(
-            'user/config.html', project=project.config,
-            config=user_config
-        )
-    except:
-        print('User config failed so fall back to default config!')
-
-    user_config = project.get_user_config(
-        flask.session['user_id'],
-        default=True
-    )
+    config = project.get_user_config(flask.session['user_id'])
+    all_bands = project.get_image_bands(project.image_ids[0])
+    config['segmentation']['ai_model']['bands'] = {
+        band
+        for band in all_bands
+        if config['segmentation']['ai_model']['bands'] is None or band in config['segmentation']['ai_model']['bands']
+    }
 
     return flask.render_template(
-        'user/config.html', project=project.config, config=user_config,
-        error=True,
+        'user/config.html', config=config, all_bands=all_bands
     )
 
 @user_app.route('/save_config', methods=['POST'])

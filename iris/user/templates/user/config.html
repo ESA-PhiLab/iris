@@ -9,7 +9,7 @@
         <table>
             <tr>
                 <td style="width:300px">Number of estimators:</td>
-                <td style="width:200px">
+                <td style="width:300px">
                     <div class="slider">
                         <div class="slider-value">{{config.segmentation.ai_model.n_estimators}}</div>
                         <input
@@ -82,7 +82,7 @@
         <table>
             <tr>
                 <td style="width:300px">Use context metrics?</td>
-                <td style="width:200px"><input id="dcs-use_context" type="checkbox" {% if config.segmentation.ai_model.use_context %} checked {% endif %}></td>
+                <td style="width:300px"><input id="dcs-use_context" type="checkbox" {% if config.segmentation.ai_model.use_context %} checked {% endif %}></td>
             </tr>
             <tr>
                 <td>Use edge filter?</td>
@@ -96,6 +96,35 @@
                 <td>Use superpixels?</td>
                 <td><input id="dcs-use_superpixels" type="checkbox" {% if config.segmentation.ai_model.use_superpixels %} checked {% endif %}></td>
             </tr>
+            <tr>
+                <td>Inputs bands</td>
+                <td>
+                    <div style="display: flex">
+                        <div>
+                            <select id="dcs-bands-include" size=10 multiple style="width: 130px; height: 200px;">
+                            {% for band in all_bands %}
+                                {% if band in config.segmentation.ai_model.bands %}
+                                    <option value="{{band}}" type="checkbox">{{band}}</option>
+                                {% endif %}
+                            {% endfor %}
+                            </select>
+                        </div>
+                        <div style="width: 60px;">
+                            <button onclick="dialogue_config_exclude_bands();">&gt;</button>
+                            <button onclick="dialogue_config_include_bands();">&lt;</button>
+                        </div>
+                        <div>
+                            <select id="dcs-bands-exclude" size=10 multiple style="width: 130px; height: 200px;">
+                            {% for band in all_bands %}
+                                {% if band not in config.segmentation.ai_model.bands %}
+                                    <option value="{{band}}" type="checkbox">{{band}}</option>
+                                {% endif %}
+                            {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </td>
+            </tr>
         </table>
     </div>
     <div class="accordion checked" onclick="toogle_display(this);">Postprocessing</div>
@@ -103,7 +132,7 @@
         <table>
             <tr>
                 <td style="width:300px">Suppression filter size:</td>
-                <td style="width:200px">
+                <td style="width:300px">
                     <select id="dcs-suppression_filter_size">
                         <option value="3" {% if config.segmentation.ai_model.suppression_filter_size == 3 %}selected{% endif %}>3</option>
                         <option value="5" {% if config.segmentation.ai_model.suppression_filter_size == 5 %}selected{% endif %}>5</option>
@@ -129,7 +158,7 @@
                 <td>Suppression filter background class:</td>
                 <td>
                     <select id="dcs-suppression_default_class">
-                        {% for class in project.classes %}
+                        {% for class in config.classes %}
                         <option style="background-color: {{class.css_colour}};" value="{{loop.index-1}}" {% if config.segmentation.ai_model.suppression_default_class == loop.index-1 %}selected{% endif %}>
                             {{class.name}}
                         </option>
@@ -140,11 +169,7 @@
         </table>
     </div>
 </div>
-{% if error %}
-    <span class="tag red">
-        The user's config could not be loaded. These are the standard settings.
-    </span>
-{% endif %}
+<p id="dc-error" class="tag red" style="display: none"></p>
 <p>
     <button onclick="dialogue_config_save();">Save</button>
     <button onclick="hide_dialogue();">Close</button>

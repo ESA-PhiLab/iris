@@ -18,11 +18,22 @@
                 'admin': {{url_for('admin.index')|tojson}},
                 'help': {{url_for('help.index')|tojson}},
             },
-            'config': null
+            'config': null,
+            // Will be set to true if the user performed an action on this image:
+            'show_dialogue_before_next_image': false
         };
 
         function goto_url(url){
-            window.location = url
+            window.location = url;
+        }
+
+        function goto_image(mode, image_id){
+            // if (vars.show_dialogue_before_next_image){
+            //     dialogue_before_next_image();
+            //     return;
+            // }
+            // save_
+            window.location = vars.url[mode] + `/?image_id=${encodeURI(image_id)}`;
         }
     </script>
 

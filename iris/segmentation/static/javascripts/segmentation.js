@@ -141,14 +141,22 @@ async function init_views(){
     init_toolbar_events();
 
     reset_views();
-
-    // Check every 5 seconds the current state on the server:
-    setInterval(fetch_server_update, 5000);
 }
 
 function init_events(){
     document.body.onkeydown = key_down;
     document.body.onresize = () => vars.vm.updateSize();
+
+    window.addEventListener('unload', (event) => {
+      // Cancel the event as stated by the standard.
+      event.preventDefault();
+
+      save_mask();
+
+      // Chrome requires returnValue to be set.
+      event.returnValue = '';
+      return '';
+    });
 }
 
 function init_toolbar_events(){
@@ -176,7 +184,6 @@ function key_down(event){
 
     if (get_object('dialogue').style.display == "block"){
         // Don't allow any key events during an opened dialogue
-
     }else if (key == "Space"){
         show_mask(!vars.show_mask);
     } else if (key == "KeyS"){
@@ -203,6 +210,8 @@ function key_down(event){
         change_saturation(up=false);
     } else if (key == "KeyX"){
         reset_filters();
+    } else if (key == "KeyY"){
+        reset_views();
     } else if (key == "KeyA"){
         predict_mask();
     } else if (key == "KeyF"){
@@ -226,12 +235,9 @@ function key_down(event){
         set_tool("move");
     } else if (key == "KeyN"){
         dialogue_reset_mask();
-    } else if (key == "KeyZ"){
-        reset_views();
     } else if (key == "KeyV"){
         vars.vm.toogleControls();
     }
-
 }
 
 function change_brightness(up){
@@ -321,7 +327,6 @@ function mouse_wheel(event){
                 vars.tool.size, Math.max(...vars.mask_shape)
             )
         ));
-        console.log(vars.tool.size);
         render_preview();
     } else {
         zoom(delta);
@@ -469,7 +474,6 @@ function reset_views(){
             ctx.canvas.width / vars.image_shape[0], 0, 0
         );
     }
-
     update_views();
 }
 
@@ -692,7 +696,7 @@ function reload_hidden_mask(){
     // We go through each pixel in the bounding box and redraw them:
     for (var y = 0; y < sprite.height; y++) {
         for (var x = 0; x < sprite.width; x++) {
-            var offset = (y * sprite.width + x) * 4;
+            let offset = (y * sprite.width + x) * 4;
             let colour = colours[mask[y*vars.mask_shape[0]+x]];
             sprite.data[offset] = colour[0];
             sprite.data[offset + 1] = colour[1];
@@ -888,7 +892,7 @@ async function fetch_server_update(){
         if (image_score > 85){
             colour = "green";
         } else if (image_score > 70){
-            colour = "yellow";
+            colour = "";
         }
         image_score = image_score.toString();
         if (image.segmentation.current_user_score_pending){
@@ -912,6 +916,9 @@ async function fetch_server_update(){
         vars.next_action();
         vars.next_action = null;
     }
+
+    // Check every 5 seconds the current state on the server:
+    setTimeout(fetch_server_update, 15000);
 }
 
 async function dialogue_image(){
@@ -1138,8 +1145,11 @@ function deactivate_mask(){
 }
 
 async function dialogue_before_next_image(){
-    let response = await fetch(`${vars.url.main}get_action_info/${vars.image_id}/segmentation`);
+    if (!vars.show_dialogue_before_next_image){
+        return;
+    }
 
+    let response = await fetch(`${vars.url.main}get_action_info/${vars.image_id}/segmentation`);
     if (response.status >= 400){
         // Continue without any dialogue
         vars.show_dialogue_before_next_image=false;
