@@ -53,10 +53,11 @@ def run_app():
     create_default_admin(app, db)
 
     # webbrowser.open('http://localhost:5000/segmentation')
-    app.run(debug=project['debug'], host=project['host'], port=project['port'])
+    app.run(debug=project.debug, host=project['host'], port=project['port'])
 
-def create_app(project_file):
+def create_app(project_file, args):
     project.load_from(project_file)
+    project.debug = args['debug']
 
     # Create the flask app:
     app = flask.Flask(__name__)
@@ -117,10 +118,12 @@ def register_extensions(app):
 if len(sys.argv) > 1:
     args = parse_cmd_line()
 else:
-    args = {}
+    args = {
+        'debug': False
+    }
     args['project'] = get_demo_file()
 
-app, db = create_app(args['project'])
+app, db = create_app(args['project'], args)
 from iris.models import User, Action
 
 db.create_all()
