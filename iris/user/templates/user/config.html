@@ -115,7 +115,8 @@
                 <td>
                     <div style="display: flex">
                         <div>
-                            <select id="dcs-bands-include" size=10 multiple style="width: 130px; height: 200px;">
+                            Bands to include
+                            <select id="dcs-bands-include" size=10 multiple style="width: 125px; height: 200px;">
                             {% for band in all_bands %}
                                 {% if band in config.segmentation.ai_model.bands %}
                                     <option value="{{band}}" type="checkbox">{{band}}</option>
@@ -123,12 +124,13 @@
                             {% endfor %}
                             </select>
                         </div>
-                        <div style="width: 60px;">
-                            <button onclick="dialogue_config_exclude_bands();">&gt;</button>
+                        <div style="width: 70px; display: flex; align-items: center;">
                             <button onclick="dialogue_config_include_bands();">&lt;</button>
+                            <button onclick="dialogue_config_exclude_bands();">&gt;</button>
                         </div>
                         <div>
-                            <select id="dcs-bands-exclude" size=10 multiple style="width: 130px; height: 200px;">
+                            Bands to exclude
+                            <select id="dcs-bands-exclude" size=10 multiple style="width: 125px; height: 200px;">
                             {% for band in all_bands %}
                                 {% if band not in config.segmentation.ai_model.bands %}
                                     <option value="{{band}}" type="checkbox">{{band}}</option>
