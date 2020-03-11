@@ -91,7 +91,7 @@ Optional metadata for the images. Path must contain a placeholder `{id}`. Metada
     "location": [-26.3981, 113.3077],
     "resolution": 20.0
 }
-
+```
 
 ## classes
 This is a list of classes that you want to allow the user to label. Each class is represented as a dictionary with the following keys:
