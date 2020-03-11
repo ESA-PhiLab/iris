@@ -104,7 +104,7 @@ This is a list of classes that you want to allow the user to label. Each class i
         *colour:* Colour for this class. Must be a list of 4 integers (RGBA) from 0 to 255.
     </li>
     <li>
-        *user_colour (optional)*: Colour for this class when user mask is activated in the interface. Useful for background classes which are normally transparent.
+        *user_colour (optional):* Colour for this class when user mask is activated in the interface. Useful for background classes which are normally transparent.
     </li>
 </ul>
 
@@ -132,13 +132,13 @@ Since this app was developed for multi-spectral satellite data (i.e. images with
         *description:* Further description which explains what the user can see in this view.
     </li>
     <li>
-        *type*: Can be either `bingmap` or `image`.
+        *type:* Can be either `bingmap` or `image`.
     </li>
     <li>
-        *data*: Can be either one string (monochrome image) or a list of three strings (rgb image). Each string must contain an expression that returns a valid band array. It can contain mathematical expressions, band combinations or calls of specific functions like `edges` or `superpixels`. One refers to the bands by using variable names starting with `$B`, e.g. `$B1` for the first band of the image file. If you set `image:path` to a dictionary, you need the file identifiers as prefix, i.e. `$FileIdentifier.B1` (e.g. `$Sentinel2.B1`).
+        *data:* Can be either one string (monochrome image) or a list of three strings (rgb image). Each string must contain an expression that returns a valid band array. It can contain mathematical expressions, band combinations or calls of specific functions like `edges` or `superpixels`. One refers to the bands by using variable names starting with `$B`, e.g. `$B1` for the first band of the image file. If you set `image:path` to a dictionary, you need the file identifiers as prefix, i.e. `$FileIdentifier.B1` (e.g. `$Sentinel2.B1`).
     </li>
     <li>
-        *cmap*: If `data` contains only one string (monochrome image), you can set a matplotlib colormap name here to render that image.
+        *cmap:* If `data` contains only one string (monochrome image), you can set a matplotlib colormap name here to render that image.
     </li>
 </ul>
 
@@ -180,6 +180,18 @@ Iris can display up to 4 views until v0.1. From v0.2 it can display an arbitrary
       "type": "bingmap"
   }
 }
+```
+
+## view_groups
+Views are displayed in groups. In the GUI of iris, you will be able to switch between different groups quickly.
+The group `default` must always be set, further groups are optional.
+
+```
+"view_groups": {
+      "default": ["Cirrus", "RGB", "Bing"],
+      "clouds": ["Cirrus"],
+      "radar": ["Sentinel1"]
+  }
 ```
 
 ## segmentation
