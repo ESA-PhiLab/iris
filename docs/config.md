@@ -126,37 +126,60 @@ This is a list of classes that you want to allow the user to label. Each class i
 ```
 
 ## views
-Since this app was developed for multi-spectral satellite data (i.e. images with more than just three channels), you can decide how to present the images to the user. This option must be a list of dictionaries where each dictionary represents a view and has the following keys:
+Since this app was developed for multi-spectral satellite data (i.e. images with more than just three channels), you can decide how to present the images to the user. This option must be a dictionary where each key is the name of the view and the value another dictionary containing properties for the view:
 <ul>
-    <li>*name*: Name of the view</li>
     <li>
         *description:* Further description which explains what the user can see in this view.
     </li>
     <li>
-        *content*: Can be either `bingmap` or a list of three strings which can be mathematical expressions with the image bands.
+        *type*: Can be either `bingmap` or `image`.
+    </li>
+    <li>
+        *data*: Can be either one string (monochrome image) or a list of three strings (rgb image). Each string must contain an expression that returns a valid band array. It can contain mathematical expressions, band combinations or calls of specific functions like `edges` or `superpixels`. One refers to the bands by using variable names starting with `$B`, e.g. `$B1` for the first band of the image file. If you set `image:path` to a dictionary, you need the file identifiers as prefix, i.e. `$FileIdentifier.B1` (e.g. `$Sentinel2.B1`).
+    </li>
+    <li>
+        *cmap*: If `data` contains only one string (monochrome image), you can set a matplotlib colormap name here to render that image.
     </li>
 </ul>
 
-Iris can display up to 4 views.
+Iris can display up to 4 views until v0.1. From v0.2 it can display an arbitrary number of views.
 
 <i>Example:</i>
 ```
-"views": [
-    {
-        "name": "RGB",
-        "description": "Normal RGB image.",
-        "content": ["B5", "B3", "B2"]
-    },
-    {
-        "name": "NDVI",
-        "description": "Normalized Difference Vegetation Index (NDVI).",
-        "content": ["B4", "(B8 - B4) / (B8 + B0)", "B2"]
-    },
-    {
-        "name": "Aerial imagery from bing",
-        "content": "bingmap"
-    },
-]
+"views": {
+  "Cirrus": {
+      "description": "Cirrus and high clouds are red.",
+      "type": "image",
+      "data": "$Sentinel2.B11**0.8*5",
+      "cmap": "jet"
+  },
+  "Cirrus-Edges": {
+      "description": "Edges in the cirrus band",
+      "type": "image",
+      "data": "edges($Sentinel2.B11**0.8*5)*1.5",
+      "cmap": "gray"
+  },
+  "RGB": {
+      "description": "Normal RGB image.",
+      "type": "image",
+      "data": ["$Sentinel2.B5", "$Sentinel2.B3", "$Sentinel2.B2"]
+  },
+  "Sentinel-1": {
+      "description": "RGB of VH, VV and VH-VV.",
+      "type": "image",
+      "data": ["$Sentinel1.B1", "$Sentinel1.B2", "$Sentinel1.B1-$Sentinel1.B2"]
+  },
+  "Superpixels": {
+      "description": "Superpixels in the panchromatic bands",
+      "type": "image",
+      "data": "superpixels($Sentinel2.B2+$Sentinel2.B3+$Sentinel2.B4, sigma=4, min_size=100)",
+      "cmap": "jet"
+  },
+  "Bing": {
+      "description": "Aerial Imagery",
+      "type": "bingmap"
+  }
+}
 ```
 
 ## segmentation
