@@ -436,10 +436,12 @@ class Project:
                 user_config = json.load(stream)
 
             config = merge_deep_dicts(config, user_config)
-            # Actually, we only take over certain fields from the user config:
-            # if project.segmentation and "ai_model" in self["segmentation"]:
-            #     config["segmentation"]["ai_model"] = \
-            #         user_config["segmentation"]["ai_model"]
+            # Actually, it would be a security risk to allow some options to be
+            # set by the user (or by a potential attacker):
+            config['images'] = deepcopy(self.config['images'])
+            config['views'] = deepcopy(self.config['views'])
+            if "path" in self.config['segmentation']:
+                config['segmentation']['path'] = self.config['segmentation']['path']
 
         return config
 
