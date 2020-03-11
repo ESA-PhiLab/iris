@@ -198,15 +198,17 @@ The group `default` must always be set, further groups are optional.
 A dictionary which defines the parameters for the segmentation mode.
 
 ### segmentation : path
-The output directory for your project. This directory will contain the mask files (from the segmentation) and user configurations
+This directory will contain the mask files from the segmentation. Four different mask formats are allowed: *npy*, *tif*, *png* or *jpeg*.
 
 <i>Example:</i>
+This will create a folder next to the project file called `masks` containing the mask files in *png* format.
 ```
 "path": "masks/{id}.png"
 ```
 
 ### segmentation : mask_encoding
- The encodings of the final masks. Can be `integer`, `binary`, `rgb` or `rgba`.
+The encodings of the final masks. Can be `integer`, `binary`, `rgb` or `rgba`. 
+Note: not all mask formats support all encodings.
 
 <i>Example:</i>
 ```
