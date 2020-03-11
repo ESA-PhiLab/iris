@@ -53,7 +53,7 @@ When you have one folder `images` containing subfolders with your images in *tif
 "path": "images/{id}/image.tif"
 ```
 
-When you have your data distributed over multiple files (e.g. coming from Sentinel-1 and Sentinel-2), you can use a dictionary for each file type. The keys of the dictionary are file identifiers which are important for the [views](##views) configuration.
+When you have your data distributed over multiple files (e.g. coming from Sentinel-1 and Sentinel-2), you can use a dictionary for each file type. The keys of the dictionary are file identifiers which are important for the [views](#views) configuration.
 ```
 "path": {
     "Sentinel1": "images/{id}/S1.tif",
