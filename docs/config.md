@@ -53,7 +53,7 @@ When you have one folder `images` containing subfolders with your images in *tif
 "path": "images/{id}/image.tif"
 ```
 
-When you have your data distributed over multiple files (e.g. coming from Sentinel-1 and Sentinel-2), you can use a dictionary for each file type. The keys of the dictionary are file identifiers which are important for the [views](#views) configuration.
+When you have your data distributed over multiple files (e.g. coming from Sentinel-1 and Sentinel-2), you can use a dictionary for each file type. The keys of the dictionary are file identifiers which are important for the [views](##views) configuration.
 ```
 "path": {
     "Sentinel1": "images/{id}/S1.tif",
@@ -68,7 +68,7 @@ The shape of the images. Must be a list of width and height.
 ```
 
 ### images : thumbnails
-Optional thumbnail files for the images. Path must contain a placeholder `{id}`.
+Optional thumbnail files for the images. Path must contain a placeholder `{id}`. If you cannot provide any thumbnail, just leave it out or set it to `false`.
 
 <i>Example:</i>
 ```
@@ -76,12 +76,22 @@ Optional thumbnail files for the images. Path must contain a placeholder `{id}`.
 ```
 
 ### images : metadata
-Optional metadata for the images. Path must contain a placeholder `{id}`. Metadata files can be in json, yaml or another text file format. json and yaml files will be parsed and made accessible via the GUI. If the metadata contains the key `location` with a list of two floats (longitude and latitude), it can be used for a bingmap view.
+Optional metadata for the images. Path must contain a placeholder `{id}`. Metadata files can be in json, yaml or another text file format. json and yaml files will be parsed and made accessible via the GUI. If the metadata contains the key `location` with a list of two floats (longitude and latitude), it can be used for a bingmap view. If you cannot provide any metadata, just leave it out or set it to `false`.
 
 <i>Example:</i>
 ```
 "metadata": "metadata/{id}.json"
 ```
+
+<i>Example for metadata file:</i>
+```
+{
+    "spacecraft_id": "Sentinel2",
+    "scene_id": "coast",
+    "location": [-26.3981, 113.3077],
+    "resolution": 20.0
+}
+
 
 ## classes
 This is a list of classes that you want to allow the user to label. Each class is represented as a dictionary with the following keys:
