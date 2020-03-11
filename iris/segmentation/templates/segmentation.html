@@ -26,12 +26,8 @@
                 'current_epoch': 0,
                 'max_epochs': 30,
             },
-            'classes': {{classes|tojson}},
-            'views': {{views|tojson}},
-            'view_groups': {{view_groups|tojson}},
             'image_id': {{image_id|tojson}},
-            'image_shape': {{image_shape|tojson}},
-            'mask_area': {{mask_area|tojson}},
+            'image_location': {{image_location|tojson}},
             'current_class': 0,
             'cursor_canvas': [0, 0],
             'cursor_image': [0, 0],
@@ -49,11 +45,6 @@
                 'pixels': null,
             }
         };
-
-        // The size (shape) of the mask area:
-        vars.mask_shape = [
-            vars.mask_area[2] - vars.mask_area[0], vars.mask_area[3] - vars.mask_area[1]
-        ];
 
         function next_image(){
             if (vars.show_dialogue_before_next_image){

@@ -62,9 +62,13 @@ async function dialogue_config_save(){
 
     vars.config = user_config;
 
+    save_config(config);
+}
+
+function save_config(config){
     fetch(vars.url.user+'save_config', {
         method: "POST",
-        body: JSON.stringify(user_config)
+        body: JSON.stringify(config)
     })
 }
 

@@ -53,10 +53,27 @@
           "data": "$Sentinel2.B11**0.8*5",
           "cmap": "jet"
       },
+      "Cirrus-Edges": {
+          "description": "Edges in the cirrus band",
+          "type": "image",
+          "data": "edges($Sentinel2.B11**0.8*5)*1.5",
+          "cmap": "gray"
+      },
       "RGB": {
           "description": "Normal RGB image.",
           "type": "image",
           "data": ["$Sentinel2.B5", "$Sentinel2.B3", "$Sentinel2.B2"]
+      },
+      "NRGB": {
+          "description": "Near-Infrared RGB image.",
+          "type": "image",
+          "data": ["$Sentinel2.B5*1.5", "$Sentinel2.B3*1.5", "$Sentinel2.B2*1.5"]
+      },
+      "Edges": {
+          "description": "Edges in the panchromatic bands",
+          "type": "image",
+          "data": "edges($Sentinel2.B2+$Sentinel2.B3+$Sentinel2.B4)",
+          "cmap": "gray"
       },
       "Snow": {
           "description": "Small ice crystals in high-level clouds appear reddish-orange or peach, and thick ice snow looks vivid red (or red-orange). Bare soil appears bright cyan and vegetation seem greenish in the image. Water on the ground is very dark as it absorbs the SWIR and the red, but small (liquid) water drops in the clouds scatter the light equally in both visible and the SWIR, and therefore it appears white. Water Sediments are displayed as dark red.",
@@ -67,12 +84,6 @@
           "description": "RGB of VH, VV and VH-VV.",
           "type": "image",
           "data": ["$Sentinel1.B1", "$Sentinel1.B2", "$Sentinel1.B1-$Sentinel1.B2"]
-      },
-      "Edges": {
-          "description": "Edges in the panchromatic bands",
-          "type": "image",
-          "data": "edges($Sentinel2.B2+$Sentinel2.B3+$Sentinel2.B4)",
-          "cmap": "gray"
       },
       "Superpixels": {
           "description": "Superpixels in the panchromatic bands",
@@ -86,6 +97,7 @@
       }
   },
   "view_groups": {
-      "default": ["Cirrus", "RGB", "Snow"]
+      "default": ["Cirrus", "RGB", "Snow"],
+      "radar": ["Sentinel-1"]
   }
 }

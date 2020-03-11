@@ -54,11 +54,7 @@ def index():
     return flask.render_template(
         'segmentation.html',
         image_id=image_id,
-        image_shape=project['images']['shape'],
-        image_location=metadata.get("location", None),
-        mask_area=project['segmentation']['mask_area'],
-        views=project['views'], view_groups=project['view_groups'],
-        classes=project['classes'],
+        image_location=metadata.get("location", None)
     )
 
 @segmentation_app.route('/next_image', methods=['GET'])

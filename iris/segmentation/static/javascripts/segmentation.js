@@ -77,33 +77,25 @@ let commands = {
     },
     "show_view_controls": {
         "key": "V", "description": "Toogle display of view controls on/off"
+    },
+    "next_view_group": {
+        "key": "B", "description": "Switch to next group view"
     }
 };
 
 function init_segmentation(){
     // Before we start, we check for the login, etc.
     vars.next_action = init_views;
-    fetch_server_update();
+    fetch_server_update(update_config=true);
 }
 
 async function init_views(){
     vars.vm = new ViewManager(
         get_object('views-container'),
-        vars.views, vars.view_groups,
+        vars.config.views, vars.config.view_groups,
         vars.url.main+"image/"
     );
-
-    // Set the image location if it was given in the metadata:
-    fetch(
-        vars.url.main+'metadata/'+vars.image_id
-    ).then(async (response) => {
-        if (response.status < 400){
-            let metadata = await response.json();
-            if ("location" in metadata){
-                vars.vm.setImageLocation(metadata.location);
-            }
-        }
-    });
+    vars.vm.setImageLocation(vars.image_location);
 
     // Add standard layers to all view ports if the view type is not "bingmap":
     vars.vm.addStandardLayer(
@@ -237,6 +229,8 @@ function key_down(event){
         dialogue_reset_mask();
     } else if (key == "KeyV"){
         vars.vm.toogleControls();
+    } else if (key == "KeyB"){
+        vars.vm.showNextGroup();
     }
 }
 
@@ -841,7 +835,7 @@ function show_mask(visible){
 }
 
 function login_finished(){
-    fetch_server_update();
+    fetch_server_update(update_config=true);
 }
 
 function logout_finished(){
@@ -849,7 +843,7 @@ function logout_finished(){
     goto_url(vars.url.segmentation+'?image_id='+vars.image_id);
 }
 
-async function fetch_server_update(){
+async function fetch_server_update(update_config=true){
     let response = await fetch(vars.url.user+"get/current");
     if (response.status == 403) {
         dialogue_login();
@@ -904,7 +898,19 @@ async function fetch_server_update(){
     info_box += '<div class="info-box-bottom">'+clip_string(user.name, 20)+'</div>';
     get_object('user-info').innerHTML = info_box;
     vars.user = user;
-    vars.config = user.config;
+
+    if (update_config){
+        vars.config = user.config;
+
+        vars.mask_area = vars.config.segmentation.mask_area;
+        vars.image_shape = vars.config.images.shape;
+        vars.classes = vars.config.classes;
+
+        // The size (shape) of the mask area:
+        vars.mask_shape = [
+            vars.mask_area[2] - vars.mask_area[0], vars.mask_area[3] - vars.mask_area[1]
+        ];
+    }
 
     if (user.admin){
         get_object('admin-button').style.display = "block";

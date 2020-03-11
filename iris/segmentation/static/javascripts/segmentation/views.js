@@ -54,7 +54,7 @@ class PreviewLayer extends CanvasLayer{
 
         // Draw the boundaries of the masking area
         ctx.beginPath();
-        if (vars.views.length < 2){
+        if (vars.config.views.length < 2){
             ctx.lineWidth = "3";
         } else {
             ctx.lineWidth = "2";

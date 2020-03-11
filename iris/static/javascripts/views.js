@@ -33,7 +33,24 @@ class ViewManager{
             port.imageLocationChanged(location);
         }
     }
-    showGroup(group='default'){
+    showNextGroup(){
+        let groups = Object.keys(this.view_groups);
+        let index = groups.indexOf(this.current_group);
+
+        if (index >= groups.length-1){
+            index = 0;
+        } else {
+            index += 1;
+        }
+
+        show_message(`Group: <i>${groups[index]}</i>`);
+        this.showGroup(groups[index]);
+    }
+    showGroup(group=null){
+        if (group === null){
+            group = this.current_group;
+        }
+
         // Save current transformations since we don't want to reset the views
         // just because we chose a new one:
         let canvases = document.getElementsByClassName("view-canvas");
@@ -74,10 +91,11 @@ class ViewManager{
                 );
             }
         }
-
         this.render();
-
         this.showControls(this.show_controls);
+
+        vars.config.view_groups = this.view_groups;
+        save_config(vars.config);
     }
     updateSize(){
         // Views are always squared and we want to make sure we have enough
