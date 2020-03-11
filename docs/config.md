@@ -1,6 +1,6 @@
 # Project file configurations
 
-To use iris, you need to define a project file in JSON or YAML format. An example can be found [here](../demo/cloud-segmentation.json).
+To use iris, you need to define a project file in JSON or YAML format. A full-working example can be found [here](../demo/cloud-segmentation.json).
 
 - [Project file configurations](#project-file-configurations)
   * [name](#name)
