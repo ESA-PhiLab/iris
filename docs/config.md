@@ -40,11 +40,25 @@ A dictionary which defines the inputs.
 ```
 
 ### images : path
-The input path to the images. Must be an existing path with the placeholder `{id}`. The placeholder will be replaced by the unique id of the current image. IRIS can load standard image formats (like *png* or *tif*) and numpy files (*npy*). The arrays inside the numpy arrays should have the shape HxWxC.
+This hold the input path to the images. Can be either a string containing an existing path with the placeholder `{id}` or a dictionary of paths with the placeholder `{id}` (see examples below). The placeholder will be replaced by the unique id of the current image. IRIS can load standard image formats (like *png* or *tif*),  theoretically all kind of files that can be opened by GDAL/rasterio (such as *geotiff* or *vrt*) and numpy files (*npy*). The arrays inside the numpy files should have the shape HxWxC.
 
 <i>Example:</i>
+When you have one folder `images` containing your images in *tif* format:
 ```
 "path": "images/{id}.tif"
+```
+
+When you have one folder `images` containing subfolders with your images in *tif* format:
+```
+"path": "images/{id}/image.tif"
+```
+
+When you have your data distributed over multiple files (e.g. coming from Sentinel-1 and Sentinel-2), you can use a dictionary for each file type. The keys of the dictionary are file identifiers which are important for the [views](#views) configuration.
+```
+"path": {
+    "Sentinel1": "images/{id}/S1.tif",
+    "Sentinel2": "images/{id}/S2.tif"
+}
 ```
 
 ### images : shape
