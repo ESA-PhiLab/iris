@@ -28,6 +28,7 @@ class ViewManager{
     }
     setImageLocation(location){
         this.image_location = location;
+        print(location);
 
         for (let port of this.ports){
             port.imageLocationChanged(location);
