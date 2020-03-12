@@ -84,12 +84,15 @@ let commands = {
 };
 
 function init_segmentation(){
+    show_loader("Fetch user information...");
+
     // Before we start, we check for the login, etc.
     vars.next_action = init_views;
     fetch_server_update(update_config=true);
 }
 
 async function init_views(){
+    show_loader("Loading views...");
     vars.vm = new ViewManager(
         get_object('views-container'),
         vars.config.views, vars.config.view_groups,
