@@ -98,8 +98,6 @@ async function init_views(){
         vars.config.views, vars.config.view_groups,
         vars.url.main+"image/"
     );
-    print(vars.image_location);
-    vars.vm.setImageLocation(vars.image_location);
 
     // Add standard layers to all view ports if the view type is not "bingmap":
     vars.vm.addStandardLayer(
@@ -127,7 +125,7 @@ async function init_views(){
     // Load mask:
     load_mask();
 
-    vars.vm.setImage(vars.image_id);
+    vars.vm.setImage(vars.image_id, vars.image_location);
     vars.vm.showGroup();
 
     set_tool(vars.tool.type);

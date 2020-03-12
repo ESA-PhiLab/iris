@@ -20,15 +20,14 @@ class ViewManager{
         ];
         this.show_controls = false;
     }
-    setImage(image_id){
+    setImage(image_id, image_location){
         this.clear();
         this.image_id = image_id;
-        this.image_location = [0, 0];
+        this.image_location = image_location;
         this.source = {};
     }
     setImageLocation(location){
         this.image_location = location;
-        print(location);
 
         for (let port of this.ports){
             port.imageLocationChanged(location);
@@ -407,12 +406,13 @@ class BingLayer extends ViewLayer{
         let location = this.vm.image_location[0]+"~"+this.vm.image_location[1];
 
         let url = "https://www.bing.com/maps/embed?";
-        url += "h="+this.container.height;
-        url += "&w="+this.container.width;
+        // container height and width are given in pixels (e.g. 410px). However,
+        // bing only understand pure integers
+        url += "h="+this.container.height.slice(0, -2);
+        url += "&w="+this.container.width.slice(0, -2);
         url += "&cp="+location;
         url += "&lvl=12&typ=d&sty=a&src=SHELL&FORM=MBEDV8";
         this.container.src = url;
-        console.log(this.container.src);
     }
     sizeChanged(width, height){
         this.container.width = width.toString()+"px";

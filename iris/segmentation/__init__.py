@@ -48,13 +48,10 @@ def index():
         return flask.make_response('Unknown image id!', 404)
 
     metadata = project.get_metadata(image_id)
-
-    print("Segmentation of", image_id)
-
     return flask.render_template(
         'segmentation.html',
         image_id=image_id,
-        image_location=metadata.get("location", None)
+        image_location=metadata.get("location", [0, 0])
     )
 
 @segmentation_app.route('/next_image', methods=['GET'])
