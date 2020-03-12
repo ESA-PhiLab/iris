@@ -27,6 +27,7 @@ def index():
     return flask.redirect(flask.url_for('admin.users'))
 
 @admin_app.route('/users', methods=['GET'])
+@requires_auth
 def users():
     user = User.query.get(flask.session.get('user_id'))
 
@@ -46,6 +47,7 @@ def users():
     return flask.render_template('admin/index.html', user=user, page=flask.Markup(html))
 
 @admin_app.route('/actions/<type>', methods=['GET'])
+@requires_auth
 def actions(type):
     user = User.query.get(flask.session.get('user_id'))
 
@@ -75,6 +77,7 @@ def actions(type):
     return flask.render_template('admin/index.html', user=user, page=flask.Markup(html))
 
 @admin_app.route('/images', methods=['GET'])
+@requires_auth
 def images():
     user = User.query.get(flask.session.get('user_id'))
 
