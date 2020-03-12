@@ -17,7 +17,7 @@
     <span style="width: 150px;">Order by:</span>
     <select id="order_by" class="with-arrow" onchange="update_page();">
         <option value="id" {% if order_by=="id" %} selected {% endif %}>User ID</option>
-        <option value="username" {% if order_by=="username" %} selected {% endif %}>Username</option>
+        <option value="name" {% if order_by=="name" %} selected {% endif %}>Username</option>
         <option value="admin" {% if order_by=="admin" %} selected {% endif %}>Admin status</option>
         <option value="created" {% if order_by=="created" %} selected {% endif %}>Creation date</option>
     </select>

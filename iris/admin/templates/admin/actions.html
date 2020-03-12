@@ -48,7 +48,7 @@
             <td>{{action.username}}</td>
             <td>
                 {{action.score}}
-                {% if action.score_pending %}<span class="tag">pending</span>{% endif %}
+                {% if action.pending %}<span class="tag">pending</span>{% endif %}
                 {% if not action.active %}<span class="tag red">inactive</span>{% endif %}
             </td>
             <td>{{action.difficulty}}</td>
