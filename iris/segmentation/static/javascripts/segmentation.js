@@ -1157,6 +1157,7 @@ async function dialogue_before_next_image(){
         return;
     }
 
+    show_loader("Make some checks...")
     let response = await fetch(`${vars.url.main}get_action_info/${vars.image_id}/segmentation`);
     if (response.status >= 400){
         // Continue without any dialogue
@@ -1207,6 +1208,7 @@ function dialogue_before_next_image_save_and_continue(action_id){
 }
 
 function save_mask(call_afterwards=null){
+    show_message('Saving mask...');
     // Do not save any masks if they have not been loaded yet
     let abort_save = false;
     if (vars.mask === null
