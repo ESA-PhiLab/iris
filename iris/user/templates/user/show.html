@@ -42,7 +42,7 @@
                 </tr>
                 {% for mask in user.segmentation.last_masks %}
                 <tr>
-                    <td><button onclick="goto_image('segmentation', '{{mask.image_id}}');">{{mask.image_id}}</button></td>
+                    <td><button onclick="save_mask(); goto_image('segmentation', '{{mask.image_id}}');">{{mask.image_id}}</button></td>
                     <td>{{mask.score}}
                         {% if mask.score_pending %}<span class="tag">pending</span>{% endif %}
                     </td>
