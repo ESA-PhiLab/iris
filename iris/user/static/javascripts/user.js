@@ -62,7 +62,7 @@ async function dialogue_config_save(){
 
     vars.config = user_config;
 
-    save_config(config);
+    save_config(vars.config);
 }
 
 function save_config(config){
