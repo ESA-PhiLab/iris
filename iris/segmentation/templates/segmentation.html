@@ -74,6 +74,9 @@
         <li class="toolbutton icon_button" id='tb_save_mask' onclick="save_mask();">
             <img src={{url_for('segmentation.static', filename='icons/save_mask.png')}} class="icon" />
         </li>
+        <li class="toolbutton icon_button" id='tb_activate_action' onclick="activate_action(!vars.action_active);">
+            <img src={{url_for('segmentation.static', filename='icons/ok.png')}} class="icon" />
+        </li>
         <li class="toolbutton icon_button" id='tb_undo' onclick="undo();">
             <img src={{url_for('segmentation.static', filename='icons/undo.png')}} class="icon" />
         </li>

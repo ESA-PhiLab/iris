@@ -72,6 +72,30 @@ def get(user_id):
         del json_user['email']
         return flask.jsonify(json_user)
 
+@user_app.route('/set/<user_id>', methods=['POST'])
+@requires_auth
+def set(user_id):
+    if user_id == 'current':
+        user_id = flask.session['user_id']
+
+    current_user_id = flask.session['user_id']
+    current_user = User.query.get(current_user_id)
+    if current_user_id != user_id and not current_user.admin:
+        return flask.make_response("Permission denied!", 403)
+
+    user = User.query.get_or_404(user_id);
+
+    for k, v in json.loads(flask.request.data).items():
+        if k == "admin":
+            user.admin = bool(v)
+        else:
+            return flask.make_response(f"Unknown parameter <i>{k}</i>!", 400)
+
+    db.session.add(user)
+    db.session.commit()
+
+    return flask.make_response("Saved new user info successfully")
+
 @user_app.route('/show/<user_id>', methods=['GET'])
 @requires_auth
 def show(user_id):

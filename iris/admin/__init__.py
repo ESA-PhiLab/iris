@@ -17,7 +17,6 @@ admin_app = flask.Blueprint(
 @admin_app.route('/', methods=['GET'])
 def index():
     user_id = flask.session.get('user_id', None)
-
     if user_id is None:
         return flask.render_template('admin/index.html', user=None)
 
@@ -25,13 +24,15 @@ def index():
     if user is None:
         return flask.render_template('admin/index.html', user=None)
 
-    return flask.render_template('admin/index.html', user=user.to_json())
+    return flask.redirect(flask.url_for('admin.users'))
 
 @admin_app.route('/users', methods=['GET'])
-@requires_admin
 def users():
+    user = User.query.get(flask.session.get('user_id'))
+
     order_by = flask.request.args.get('order_by', 'id')
-    ascending = flask.request.args.get('ascending', True)
+    ascending = flask.request.args.get('ascending', 'true')
+    ascending = True if ascending == 'true' else False
 
     users = User.query
     if ascending:
@@ -41,13 +42,16 @@ def users():
 
     users_json = [user.to_json() for user in users]
 
-    return flask.render_template('admin/users.html', users=users_json)
+    html = flask.render_template('admin/users.html', users=users_json, order_by=order_by, ascending=ascending)
+    return flask.render_template('admin/index.html', user=user, page=flask.Markup(html))
 
 @admin_app.route('/actions/<type>', methods=['GET'])
-@requires_admin
 def actions(type):
+    user = User.query.get(flask.session.get('user_id'))
+
     order_by = flask.request.args.get('order_by', 'user_id')
-    ascending = flask.request.args.get('ascending', True)
+    ascending = flask.request.args.get('ascending', 'true')
+    ascending = True if ascending == 'true' else False
 
     actions = Action.query.filter_by(type=type)
     if ascending:
@@ -64,16 +68,21 @@ def actions(type):
         "total": len(project.image_ids)
     }
 
-    return flask.render_template(
-        'admin/actions.html', actions=actions_json,
-        image_stats=image_stats
+    html = flask.render_template(
+        'admin/actions.html', action_type=type, actions=actions_json,
+        image_stats=image_stats, order_by=order_by, ascending=ascending
     )
+    return flask.render_template('admin/index.html', user=user, page=flask.Markup(html))
 
 @admin_app.route('/images', methods=['GET'])
-@requires_admin
 def images():
-    # TODO: make this more performant by using less database calls
+    user = User.query.get(flask.session.get('user_id'))
 
+    order_by = flask.request.args.get('order_by', 'user_id')
+    ascending = flask.request.args.get('ascending', 'true')
+    ascending = True if ascending == 'true' else False
+
+    # TODO: make this more performant by using less database calls
     images = defaultdict(dict)
     actions = Action.query.all();
     default_stats = {
@@ -102,6 +111,7 @@ def images():
             stats['time_spent'] /= stats['count']
             stats['time_spent'] = stats['time_spent'].total_seconds() / 3600.
 
-    return flask.render_template(
-        'admin/images.html', images=images,
+    html = flask.render_template(
+        'admin/images.html', images=images, order_by=order_by, ascending=ascending
     )
+    return flask.render_template('admin/index.html', user=user, page=flask.Markup(html))

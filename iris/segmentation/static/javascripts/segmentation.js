@@ -12,6 +12,9 @@ let commands = {
     "save_mask": {
         "key": "S", "description": "Save this mask",
     },
+    "activate_action": {
+        "description": "Activate if you think your mask is ready for evaluation.",
+    },
     "undo": {
         "key": "U", "description": "Undo last modification",
     },
@@ -819,6 +822,29 @@ function reset_filters(){
     vars.vm.render();
 }
 
+// TODO: how to get the action_id without sending an additional request?
+// async function activate_action(activate){
+//     vars.activate_action = activate;
+//
+//     show_message("Mask is being activated...");
+//
+//     action_info = {
+//         "active": activate
+//     }
+//
+//     fetch(`${vars.url.main}set_action_info/${action_id}`, {
+//         method: "POST",
+//         body: JSON.stringify(action_info)
+//     })
+//
+//     if (vars.activate_action){
+//         get_object("tb_activate_action").classList.add("checked");
+//     } else {
+//         get_object("tb_activate_action").classList.remove("checked");
+//     }
+//     hide_message();
+// }
+
 function show_mask(visible){
     vars.show_mask = visible;
     var state = "none";
@@ -1140,16 +1166,6 @@ async function download(url, init=null, html_object=null){
         "response": response,
         "data": data
     };
-}
-
-function activate_mask(){
-    /*If the user thinks this mask is not yet good enough*/
-
-}
-
-function deactivate_mask(){
-    /*If the user thinks this mask is not yet good enough*/
-
 }
 
 async function dialogue_before_next_image(){
