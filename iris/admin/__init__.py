@@ -4,7 +4,7 @@ from datetime import timedelta
 import flask
 from sqlalchemy import func
 
-from iris.user import requires_admin
+from iris.user import requires_admin, requires_auth
 from iris.models import db, Action, User
 from iris.project import project
 
