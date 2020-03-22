@@ -1,4 +1,6 @@
 // This requires diaglogue.js and a valid login_finished function!
+// TODO: This is clearly not the way how one should do this. I should enforce a
+// better programming style here.
 async function dialogue_user(label_mode){
     let response = await fetch(vars.url.user+"show/current");
 

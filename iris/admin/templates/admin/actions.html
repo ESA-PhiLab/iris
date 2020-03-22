@@ -44,7 +44,7 @@
     </tr>
     {% for action in actions %}
         <tr>
-            <td>{{action.image_id}}</td>
+            <td><button onclick="goto_image('segmentation', '{{action.image_id}}');">{{action.image_id}}</button></td>
             <td>{{action.username}}</td>
             <td>
                 {{action.score}}
