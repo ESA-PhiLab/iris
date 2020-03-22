@@ -138,6 +138,9 @@ async function init_views(){
     init_toolbar_events();
 
     reset_views();
+
+    get_object("toolbar").style.visibility = "visible";
+    get_object("statusbar").style.visibility = "visible";
 }
 
 function init_events(){

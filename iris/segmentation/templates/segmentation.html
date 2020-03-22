@@ -64,7 +64,7 @@
 
 {% endblock %}
 {% block content %}
-    <ul class='toolbar'>
+    <ul class='toolbar' id="toolbar" style="visibility: hidden;">
         <li class="toolbutton icon_button" id='tb_previous_image' onclick="save_mask(prev_image);">
             <img src={{url_for('segmentation.static', filename='icons/previous.png')}} class="icon">
         </li>
@@ -163,7 +163,7 @@
     </div>
 
     <!-- <div class="info-box" style="position: fixed; bottom: 10; left: 10; float: left; display: flex; flex-direction: row;"> -->
-    <div class='statusbar' style="position: fixed; bottom: 10px; z-index: 10;">
+    <div id="statusbar" class='statusbar' style="visibility: hidden; position: fixed; bottom: 10px; z-index: 10;">
         <div class="statusbutton" onclick="dialogue_user();" id="user-info">
             <div style="float: left;">Login</div>
         </div>
