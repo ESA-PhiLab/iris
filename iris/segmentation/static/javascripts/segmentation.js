@@ -87,7 +87,7 @@ let commands = {
 };
 
 function init_segmentation(){
-    show_loader("Fetch user information...");
+    show_loader("Fetching user information...");
 
     // Before we start, we check for the login, etc.
     vars.next_action = init_views;
@@ -1176,7 +1176,7 @@ async function dialogue_before_next_image(){
         return;
     }
 
-    show_loader("Make some checks...")
+    show_loader("Making some checks...")
     let response = await fetch(`${vars.url.main}get_action_info/${vars.image_id}/segmentation`);
     if (response.status >= 400){
         // Continue without any dialogue
@@ -1256,11 +1256,7 @@ function save_mask(call_afterwards=null){
         headers: {
             "Content-Type": "application/octet-stream"
         }
-    }).then(
-        function(response) {
-            save_mask_finished(response, call_afterwards);
-        }
-    );
+    }).then((response) => {save_mask_finished(response, call_afterwards);});
 }
 
 async function save_mask_finished(response, call_afterwards){
@@ -1343,8 +1339,6 @@ async function predict_mask(){
             test_indices.push(i);
         }
     }
-
-    console.log(train_user_pixels.length, train_user_labels.length);
 
     show_loader("Train AI...");
     let results = await download(

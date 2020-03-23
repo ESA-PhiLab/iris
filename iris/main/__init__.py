@@ -35,7 +35,7 @@ def image_info(image_id):
     actions = Action.query.filter_by(image_id=image_id).all()
     # Sort actions by type:
     actions = {
-        type: [action for action in actions if action.type == type]
+        type: list(filter(lambda a: a.type == type, actions))
         for type in ['segmentation', 'classification', 'detection']
     }
 
