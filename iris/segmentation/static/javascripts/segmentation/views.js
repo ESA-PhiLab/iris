@@ -29,6 +29,39 @@ class MaskLayer extends CanvasLayer{
     }
 }
 
+class SuperpixelsLayer extends CanvasLayer{
+    // Shows
+    //
+    //
+    //
+    constructor(port, vm, view){
+        super(port, vm, view, "superpixels");
+    }
+    render(bbox=null){
+        let ctx = this.container.getContext("2d");
+        if (bbox === null){
+            // No specific coordinates are given, i.e. we redraw the whole mask:
+            ctx.clearRect(0, 0, ...vars.image_shape);
+            ctx.drawImage(
+                vars.hidden_mask,
+                vars.mask_area[0], vars.mask_area[1]
+            );
+        } else {
+            ctx.clearRect(
+                bbox[0]+vars.mask_area[0],
+                bbox[1]+vars.mask_area[1],
+                bbox[2], bbox[3]
+            );
+            ctx.drawImage(
+                vars.hidden_mask,
+                ...bbox,
+                bbox[0]+vars.mask_area[0], bbox[1]+vars.mask_area[1],
+                bbox[2], bbox[3]
+            );
+        }
+    }
+}
+
 class PreviewLayer extends CanvasLayer{
     constructor(port, vm, view){
         super(port, vm, view, "preview");

@@ -300,8 +300,14 @@ class ViewLayer{
         this.type = type
     }
 
-    // empty method:
-    render(){}
+    // empty methods:
+    render(){
+        /*
+        Should be called when transformations inside the canvas happended (such
+        as zooming or moving).
+
+        */
+    }
     sizeChanged(new_width, new_height){}
     positionChanged(new_x, new_y){}
     imageLocationChanged(){}
@@ -356,9 +362,9 @@ class RGBLayer extends CanvasLayer{
         // this.image[name].onload = render_image.bind(null, i, true);
     }
     render(){
-        // Check whether the image has been loaded already
         this.loadSource();
 
+        // Check whether the image has been loaded already
         let image = this.vm.source[this.view.name];
         if (!image.complete){
             setTimeout(() => {this.render();}, 100);
