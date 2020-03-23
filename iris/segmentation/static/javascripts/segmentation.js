@@ -145,6 +145,7 @@ async function init_views(){
 
 function init_events(){
     document.body.onkeydown = key_down;
+    document.body.onkeyup = key_up;
     document.body.onresize = () => vars.vm.updateSize();
 
     window.addEventListener('unload', (event) => {
@@ -239,7 +240,13 @@ function key_down(event){
         vars.vm.toogleControls();
     } else if (key == "KeyB"){
         vars.vm.showNextGroup();
+    } else if (event.shiftKey){
+        vars.tool.resizing_mode = true;
     }
+}
+
+function key_up(event){
+    vars.tool.resizing_mode = event.shiftKey;
 }
 
 function change_brightness(up){
@@ -321,7 +328,7 @@ function get_tool_offset(){
 
 function mouse_wheel(event){
     var delta = Math.max(-1, Math.min(1, (event.wheelDelta || -event.detail)));
-    if (event.shiftKey){
+    if (vars.tool.resizing_mode){
         // Change size of tool:
         vars.tool.size += delta * 0.5 * vars.tool.size;
         vars.tool.size = round_number(Math.max(
