@@ -1,4 +1,7 @@
 function show_dialogue(type, content, blocking=false, title=null){
+    // Make sure no loader blocks the screen:
+    hide_loader();
+
     // Get the dialogue
     var dialogue = document.getElementById("dialogue");
 

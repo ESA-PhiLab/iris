@@ -23,24 +23,24 @@
 
             window.onload = dialogue_not_authenticated;
         </script>
-    {% else %}
-            <script type="text/javascript" src="{{ url_for('admin.static', filename='javascripts/admin.js') }}"></script>
-            <script>
-                window.onload = function (){open_page('users');}
-            </script>
     {% endif %}
 {% endblock %}
 {% block content %}
     {% if user and user.admin %}
     <div class="tab">
-        <button id="page-users" class="tablinks" onclick="open_page('users');">Users</button>
-        <button id="page-images" class="tablinks" onclick="open_page('images');">Images</button>
-        <button id="page-actions/segmentation" class="tablinks" onclick="open_page('actions/segmentation');">Segmentation</button>
-        <button id="page-actions/classification" class="tablinks" onclick="open_page('actions/classification');">Classification</button>
-        <button id="page-actions/detection" class="tablinks" onclick="open_page('actions/detection');">Detection</button>
+        <button class="tablinks" onclick="goto_url(`${vars.url.admin}users`);">Users</button>
+        <button class="tablinks" onclick="goto_url(`${vars.url.admin}images`);">Images</button>
+        <button class="tablinks" onclick="goto_url(`${vars.url.admin}actions/segmentation`);">Segmentation</button>
+        <button class="tablinks" onclick="goto_url(`${vars.url.admin}actions/classification`);">Classification</button>
+        <button class="tablinks" onclick="goto_url(`${vars.url.admin}actions/detection`);">Detection</button>
     </div>
 
-    <div id="admin-page-content">
+    <div>
+        {% if page is defined %}
+            {{page}}
+        {% else %}
+            No data available!
+        {% endif %}
     </div>
     {% endif %}
 {% endblock %}

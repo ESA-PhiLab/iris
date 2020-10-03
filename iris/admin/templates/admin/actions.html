@@ -9,25 +9,52 @@
     {% endif %}
 </p>
 
-<table style="width: 80%;">
+<script type="text/javascript">
+    function update_page(){
+        let order_by = document.getElementById('order_by');
+        let ascending = document.getElementById('ascending');
+        goto_url(`${vars.url.admin}actions/{{action_type}}?order_by=${order_by.value}&ascending=${ascending.checked}`);
+    }
+</script>
+
+<p style="display:flex; flex-direction: row; justify-content: center; align-items: center; width: 400px;">
+    <span style="width: 150px;">Order by:</span>
+    <select id="order_by" class="with-arrow" onchange="update_page();">
+        <option value="last_modification" {% if order_by=="last_modification" %} selected {% endif %}>Last modification</option>
+        <option value="user_id" {% if order_by=="user_id" %} selected {% endif %}>User</option>
+        <option value="score" {% if order_by=="score" %} selected {% endif %}>Score</option>
+        <option value="difficulty" {% if order_by=="difficulty" %} selected {% endif %}>Difficulty</option>
+        <option value="active" {% if order_by=="active" %} selected {% endif %}>Active status</option>
+        <option value="pending" {% if order_by=="pending" %} selected {% endif %}>Pending</option>
+        <option value="time_spent" {% if order_by=="time_spent" %} selected {% endif %}>Time spent</option>
+    </select>
+
+    <input id="ascending" type="checkbox" {% if ascending %} checked {% endif %} onclick="update_page();">Ascending?</input>
+</p>
+
+<table style="width: 100%">
     <tr style="font-weight: bold;">
-        <td>ID</td>
         <td>Image</td>
-        <td>User (ID)</td>
+        <td>User</td>
         <td>Score</td>
-        <td>Score pending?</td>
+        <td>Difficulty</td>
         <td>Last modification</td>
         <td>Time spent</td>
+        <td>Notes</td>
     </tr>
     {% for action in actions %}
         <tr>
-            <td>{{action.id}}</td>
-            <td>{{action.image_id}}</td>
-            <td>{{action.username}} ({{action.user_id}})</td>
-            <td>{{action.score}}</td>
-            <td>{{action.score_pending}}</td>
+            <td><button onclick="goto_image('segmentation', '{{action.image_id}}');">{{action.image_id}}</button></td>
+            <td>{{action.username}}</td>
+            <td>
+                {{action.score}}
+                {% if action.pending %}<span class="tag">pending</span>{% endif %}
+                {% if not action.active %}<span class="tag red">inactive</span>{% endif %}
+            </td>
+            <td>{{action.difficulty}}</td>
             <td>{{action.last_modification}}</td>
             <td>{{action.time_spent}}</td>
+            <td>{{action.notes}}</td>
         </tr>
     {% endfor %}
 </table>

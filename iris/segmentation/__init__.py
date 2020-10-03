@@ -12,12 +12,13 @@ import numpy as np
 from scipy.ndimage import convolve, minimum_filter, maximum_filter
 from skimage.io import imread, imsave
 from skimage.filters import sobel
+from skimage.segmentation import felzenszwalb
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, f1_score, jaccard_similarity_score
 import yaml
 
 from iris.user import requires_auth
-from iris.models import db, Image, User, Action
+from iris.models import db, User, Action
 from iris.project import project
 
 segmentation_app = flask.Blueprint(
@@ -31,7 +32,7 @@ def index():
     image_id = flask.request.args.get('image_id', None)
 
     if image_id is None:
-        image_id = project.get_start_image()
+        image_id = project.get_start_image_id()
 
         user_id = flask.session.get('user_id', None)
         if user_id:
@@ -43,25 +44,24 @@ def index():
 
             if last_mask is not None:
                 image_id = last_mask.image_id
-    elif image_id not in project['file_ids']:
+    elif image_id not in project.image_ids:
         return flask.make_response('Unknown image id!', 404)
 
-    print(f"Segmentation:", project['files'][image_id])
-
+    metadata = project.get_metadata(image_id)
     return flask.render_template(
         'segmentation.html',
         image_id=image_id,
-        image_shape=project['images']['shape'],
-        mask_area=project['segmentation']['mask_area'],
-        views=project['views'], classes=project['classes'],
-        thumbnail_available='thumbnail' in project['files'][image_id],
-        metadata_available='metadata' in project['files'][image_id],
+        image_location=metadata.get("location", [0, 0])
     )
 
 @segmentation_app.route('/next_image', methods=['GET'])
+@requires_auth
 def next_image():
+    user = User.query.get(flask.session['user_id'])
+    project.set_image_seed(user.image_seed)
+
     image_id = project.get_next_image(
-        flask.request.args.get('image_id', project.get_start_image())
+        flask.request.args.get('image_id', project.get_start_image_id())
     )
 
     return flask.redirect(
@@ -69,9 +69,13 @@ def next_image():
     )
 
 @segmentation_app.route('/previous_image', methods=['GET'])
+@requires_auth
 def previous_image():
+    user = User.query.get(flask.session['user_id'])
+    project.set_image_seed(user.image_seed)
+
     image_id = project.get_previous_image(
-        flask.request.args.get('image_id', project.get_start_image())
+        flask.request.args.get('image_id', project.get_start_image_id())
     )
 
     return flask.redirect(
@@ -80,9 +84,6 @@ def previous_image():
 
 def get_mask_filenames(image_id, user_id=None):
     """Get final and user mask filenames"""
-    if user_id is None:
-        user_id = project.user_id
-
     final_mask = join(
         project['path'], 'segmentation', image_id,
         f'{user_id}_final.npy'
@@ -95,9 +96,9 @@ def get_mask_filenames(image_id, user_id=None):
 
     return final_mask, user_mask
 
-def read_masks(image_id):
+def read_masks(image_id, user_id):
     """Read the final and user mask"""
-    final_mask_file, user_mask_file = get_mask_filenames(image_id)
+    final_mask_file, user_mask_file = get_mask_filenames(image_id, user_id)
 
     final_mask = np.load(final_mask_file)
     final_mask = np.argmax(final_mask, axis=-1)
@@ -135,48 +136,45 @@ def merge_masks(image_id):
     merged_mask = np.vectorize(classes.__getitem__, otypes=[np.uint8])(winner_indices)
 
     # Update the database for all users
-    image = Image.query.get(image_id)
-    if not image:
-        image = Image(id=image_id)
-        db.session.add(image)
-
     for u, user_id in enumerate(users):
         user = User.query.get(user_id)
         if user is None:
             continue
 
-        action = Action.query.filter_by(user=user, image=image, type="segmentation").first()
+        action = Action.query.filter_by(
+                user=user, image_id=image_id, type="segmentation"
+            ).first()
         if not action:
-            action = Action(user=user, image=image, type="segmentation")
+            action = Action(user=user, image_id=image_id, type="segmentation")
 
-        if project['segmentation']['score'] == 'jaccard':
-            action.score = round(100 * jaccard_similarity_score(
-                merged_mask.ravel(), final_masks[..., u].ravel()
-            ))
-        elif project['segmentation']['score'] == 'f1':
-            action.score = round(100 * f1_score(
-                merged_mask.ravel(), final_masks[..., u].ravel(), average='macro'
-            ))
-        elif project['segmentation']['score'] == 'accuracy':
-            action.score = round(100 * accuracy_score(
-                merged_mask.ravel(), final_masks[..., u].ravel()
-            ))
-        action.score_pending = len(users) < 3
+        if len(users) == 2:
+            # Just check how much the user agrees with the other one:
+            other_user = 0 if u else 1
+            action.score = get_score(final_masks[..., other_user].ravel(), final_masks[..., u].ravel())
+        else:
+            action.score = get_score(merged_mask.ravel(), final_masks[..., u].ravel())
 
-    # total_agreement = \
-    #     np.take_along_axis(class_votes, winner_indices[..., np.newaxis], axis=-1).sum()
-    # image.segmentation_agreement = total_agreement / class_votes.sum()
+        action.pending = len(users) <= project['segmentation']['pending_threshold']
+
     db.session.commit()
 
     merged_mask = encode_mask(
         merged_mask, mode=project['segmentation']['mask_encoding']
     )
-    filename = project['files'][image_id]['mask']
+    filename = project['segmentation']['path'].format(id=image_id)
     os.makedirs(dirname(filename), exist_ok=True)
     if filename.endswith('npy'):
         np.save(filename, merged_mask, allow_pickle=False)
     else:
         imsave(filename, merged_mask, check_contrast=False)
+
+def get_score(mask1, mask2):
+    if project['segmentation']['score'] == 'jaccard':
+        return round(100 * jaccard_similarity_score(mask1, mask2))
+    elif project['segmentation']['score'] == 'f1':
+        return round(100 * f1_score(mask1, mask2, average='macro'))
+    elif project['segmentation']['score'] == 'accuracy':
+        return round(100 * accuracy_score(mask1, mask2))
 
 def encode_mask(mask, mode='binary'):
     """Encode the mask to save it on disk
@@ -218,37 +216,13 @@ def encode_mask(mask, mode='binary'):
 
     return encoded_mask.astype(np.uint8)
 
-def save_masks(image_id, final_mask, user_mask):
-    final_mask_file, user_mask_file = get_mask_filenames(image_id)
-
-    os.makedirs(dirname(final_mask_file), exist_ok=True)
-
-    final_mask = encode_mask(final_mask, mode='binary')
-
-    np.save(final_mask_file, final_mask, allow_pickle=False)
-    np.save(user_mask_file, user_mask.astype(bool), allow_pickle=False)
-
-    # Update the database:
-    image = Image.query.get(image_id)
-    if not image:
-        image = Image(id=image_id)
-        db.session.add(image)
-
-    user = User.query.get(project.user_id)
-    action = Action.query.filter_by(user=user, image=image, type="segmentation").first()
-    if not action:
-        action = Action(user=user, image=image, type="segmentation")
-    action.last_modification = datetime.utcnow()
-    db.session.add(action)
-    db.session.commit()
-
 @segmentation_app.route('/load_mask/<image_id>')
 @requires_auth
 def load_mask(image_id):
     user_id = flask.session.get('user_id')
 
     try:
-        final_mask, user_mask = read_masks(image_id)
+        final_mask, user_mask = read_masks(image_id, user_id)
 
         data = np.concatenate([final_mask.ravel(), user_mask.ravel()])
         data = np.pad(data, 1, constant_values=(254, 254))
@@ -300,70 +274,111 @@ def save_mask(image_id):
     user_mask = data[1+mask_length:-1].astype(np.bool)
     user_mask = user_mask.reshape(project['segmentation']['mask_shape'][::-1])
 
-    save_masks(image_id, final_mask, user_mask)
+    final_mask_file, user_mask_file = get_mask_filenames(image_id, user_id)
+    os.makedirs(dirname(final_mask_file), exist_ok=True)
+
+    final_mask = encode_mask(final_mask, mode='binary')
+
+    np.save(final_mask_file, final_mask, allow_pickle=False)
+    np.save(user_mask_file, user_mask.astype(bool), allow_pickle=False)
+
+    # Update the database:
+    user = User.query.get(user_id)
+    action = Action.query\
+        .filter_by(user=user, image_id=image_id, type="segmentation")\
+        .first()
+    if not action:
+        action = Action(user=user, image_id=image_id, type="segmentation")
+    action.last_modification = datetime.utcnow()
+    db.session.add(action)
+    db.session.commit()
+
     merge_masks(image_id)
 
     # We need this to send a successful response to the client
     return flask.make_response('Masks successfully saved!')
 
+def image_dict_to_array(image_dict):
+    if isinstance(image_dict, np.ndarray):
+        return image_dict
+
+    return np.dstack(
+        [image_dict_to_array(v) for v in image_dict.values()]
+    )
+
 @segmentation_app.route('/predict_mask/<image_id>', methods=['POST'])
 @requires_auth
 def predict_mask(image_id):
-    image = project.get_image(image_id)
+    config = project.get_user_config(flask.session['user_id'])
+    config = config['segmentation']
+
+    print('Fit options:', config)
+
+    # How to exclude certain bands?
+    image_dict = project.get_image(image_id, bands=config['ai_model']['bands'])
+    image = image_dict_to_array(image_dict)
+
     n_channels = image.shape[-1]
 
     # Select only the masking area:
     mask_area = (
-        slice(
-            project['segmentation']['mask_area'][0],
-            project['segmentation']['mask_area'][2]
-        ),
-        slice(
-            project['segmentation']['mask_area'][1],
-            project['segmentation']['mask_area'][3]
-        ),
+        slice(config['mask_area'][0], config['mask_area'][2]),
+        slice(config['mask_area'][1], config['mask_area'][3]),
         slice(None, None, None)
     )
-    mask_size = \
-        project['segmentation']['mask_shape'][0] \
-        * project['segmentation']['mask_shape'][1]
+    mask_size = config['mask_shape'][0] * config['mask_shape'][1]
     image = image[mask_area]
 
     data = json.loads(flask.request.data)
     user_indices = np.array(data['user_pixels'])
     user_labels = np.array(data['user_labels'])
-    config = project.get_user_config()['segmentation']
-
-    print('Fit options:', config)
 
     inputs = [image]
-    if config['detect_edges']:
+    if config['ai_model']['use_edge_filter']:
         edges = np.dstack([
             sobel(image[..., i])
             for i in range(n_channels)
         ])
         inputs.append(edges)
 
-    if config['include_context']:
+    if config['ai_model']['use_context']:
         ...
+
+    if config['ai_model']['use_meshgrid']:
+        if config['ai_model']['meshgrid_cells'] == "pixelwise":
+            x_size, y_size = image.shape[0], image.shape[1]
+        else:
+            x_size, y_size = map(int, config['ai_model']['meshgrid_cells'].split('x'))
+        y_size = 3
+        x = np.repeat(np.arange(x_size), int(image.shape[0]/x_size)+1)
+        y = np.repeat(np.arange(y_size), int(image.shape[1]/y_size)+1)
+        x_grid, y_grid = np.meshgrid(x[:image.shape[0]], y[:image.shape[1]])
+        inputs.append(x_grid[..., np.newaxis])
+        inputs.append(y_grid[..., np.newaxis])
+
+    if config['ai_model']['use_superpixels']:
+        super_pixels = felzenszwalb(
+            image, scale=image.shape[0]/5, sigma=4, min_size=100
+        )
+        inputs.append(super_pixels)
 
     inputs = np.dstack(inputs).reshape(mask_size, -1)
 
     train_indices, val_indices, train_labels, val_labels = train_test_split(
         user_indices, user_labels, stratify=user_labels,
-        test_size=0.2, random_state=42
+        test_size=0.3, random_state=42
     )
 
     gbm = lgb.LGBMClassifier(
-        num_leaves=config['n_leaves'],
+        num_leaves=config['ai_model']['n_leaves'],
         max_bin=128,
-        max_depth=config['max_depth'],
+        max_depth=config['ai_model']['max_depth'],
         # min_data_in_leaf=1000,
         # bagging_fraction=0.2,
         # boosting_type='dart',
         tree_learner='data',
         learning_rate=0.05,
-        n_estimators=config['n_estimators'],
+        n_estimators=config['ai_model']['n_estimators'],
         silent=True,
         n_jobs=10,
     )
@@ -380,19 +395,17 @@ def predict_mask(image_id):
     predictions = predictions.astype(np.uint8)
 
     # Apply suppression filter:
-    if config['suppression_threshold'] != 0:
-        other_classes = (predictions != config['suppression_default_class']).astype(int)
-        other_classes = other_classes.reshape(
-            *project['segmentation']['mask_shape']
-        )
-        window_size = config['suppression_filter_size']
+    if config['ai_model']['suppression_threshold'] != 0:
+        other_classes = (predictions != config['ai_model']['suppression_default_class']).astype(int)
+        other_classes = other_classes.reshape(*config['mask_shape'])
+        window_size = config['ai_model']['suppression_filter_size']
         window = np.ones((window_size, window_size))
         window[window_size//2, window_size//2] = 0
         neighbourhood_ratio = convolve(
             other_classes, window, mode='constant', cval=0.5
         ) / (window_size**2 - 1)
-        suppress = 100 * neighbourhood_ratio.ravel() < config['suppression_threshold']
-        predictions[suppress] = config['suppression_default_class']
+        suppress = 100 * neighbourhood_ratio.ravel() < config['ai_model']['suppression_threshold']
+        predictions[suppress] = config['ai_model']['suppression_default_class']
 
     # Return the results:
     response = flask.make_response(

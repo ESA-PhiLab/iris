@@ -1,4 +1,6 @@
 // This requires diaglogue.js and a valid login_finished function!
+// TODO: This is clearly not the way how one should do this. I should enforce a
+// better programming style here.
 async function dialogue_user(label_mode){
     let response = await fetch(vars.url.user+"show/current");
 
@@ -18,28 +20,72 @@ async function dialogue_config(){
     show_dialogue("info", content, false, title="Preferences");
 }
 
+function dialogue_config_show_error(error){
+    document.getElementById('dc-error').innerHTML = error;
+    document.getElementById('dc-error').style.display = "block";
+}
+
 async function dialogue_config_save(){
-    user_config = {
-        "segmentation": {
-            "n_estimators": parseInt(get_object('dcs-n_estimators').value),
-            "max_depth": parseInt(get_object('dcs-max_depth').value),
-            "n_leaves": parseInt(get_object('dcs-n_leaves').value),
-            "train_ratio": get_object('dcs-train_ratio').value / 100,
-            "max_train_pixels": parseInt(get_object('dcs-max_train_pixels').value),
-            "include_context": get_object('dcs-include_context').checked,
-            "detect_edges": get_object('dcs-detect_edges').checked,
-            "suppression_filter_size": parseInt(get_object('dcs-suppression_filter_size').value),
-            "suppression_threshold": parseInt(get_object('dcs-suppression_threshold').value),
-            "suppression_default_class": parseInt(get_object('dcs-suppression_default_class').value)
-        }
+    // Clear error message:
+    document.getElementById('dc-error').style.display = "none";
+
+    let bands = [];
+
+    let include = document.getElementById('dcs-bands-include');
+    for (let option of include.options){
+        bands.push(option.value);
     }
 
-    vars.config = user_config;
+    if (bands.length == 0){
+        dialogue_config_show_error("[Segmentation] Need at least one band as input!");
+        return;
+    }
 
+    ai_model_config = {
+        "bands": bands,
+        "n_estimators": parseInt(get_object('dcs-n_estimators').value),
+        "max_depth": parseInt(get_object('dcs-max_depth').value),
+        "n_leaves": parseInt(get_object('dcs-n_leaves').value),
+        "train_ratio": get_object('dcs-train_ratio').value / 100,
+        "max_train_pixels": parseInt(get_object('dcs-max_train_pixels').value),
+        "use_context": get_object('dcs-use_context').checked,
+        "use_edge_filter": get_object('dcs-use_edge_filter').checked,
+        "use_meshgrid": get_object('dcs-use_meshgrid').checked,
+        "meshgrid_cells": get_object('dcs-meshgrid_cells').value,
+        "use_superpixels": get_object('dcs-use_superpixels').checked,
+        "suppression_filter_size": parseInt(get_object('dcs-suppression_filter_size').value),
+        "suppression_threshold": parseInt(get_object('dcs-suppression_threshold').value),
+        "suppression_default_class": parseInt(get_object('dcs-suppression_default_class').value)
+    }
+
+    vars.config['segmentation']['ai_model'] = ai_model_config;
+
+    save_config(vars.config);
+}
+
+function save_config(config){
     fetch(vars.url.user+'save_config', {
         method: "POST",
-        body: JSON.stringify(user_config)
+        body: JSON.stringify(config)
     })
+}
+
+function dialogue_config_include_bands(){
+    let include = document.getElementById('dcs-bands-include');
+    let exclude = document.getElementById('dcs-bands-exclude');
+    let options = Array.from(exclude.selectedOptions);
+    for (let option of options){
+        include.appendChild(option);
+    }
+}
+
+function dialogue_config_exclude_bands(){
+    let include = document.getElementById('dcs-bands-include');
+    let exclude = document.getElementById('dcs-bands-exclude');
+    let options = Array.from(include.selectedOptions);
+    for (let option of options){
+        exclude.appendChild(option);
+    }
 }
 
 function dialogue_login(){

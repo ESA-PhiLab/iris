@@ -1,36 +1,45 @@
 """Take care of holding the current project's configurations
 
 """
+from copy import deepcopy
 from glob import glob
+from numbers import Number
 import os
-from os.path import basename, dirname, exists, isabs, join, normpath
+from os.path import basename, dirname, exists, getmtime, isabs, join, normpath
+from pprint import pprint
 import re
 
 import flask
 import json
+from matplotlib import cm
 import numpy as np
 from skimage.io import imread
+from skimage.filters import sobel
+from skimage.segmentation import felzenszwalb
 import yaml
+import rasterio as rio
+
+from iris.utils import merge_deep_dicts
 
 class Project:
     def __init__(self):
         # Each user is going to get a personalised random sequence of images:
         self.random_state = np.random.RandomState(seed=0)
-        self.image_indices = None
+        self.image_order = None
+        self.image_ids = None
         self.name = None
-        self.user_id = None
-        self._re_images = None
         self.file = None
+        self.debug = False
 
     def load_from(self, filename):
+        if not isabs(filename):
+            filename = join(os.getcwd(), filename)
         self.file = filename
 
         if not filename.endswith('json') or filename.endswith('yaml'):
             raise Exception('[CONFIG] config file must be in JSON or YAML format!')
 
-        if not isabs(filename):
-            filename = join(os.getcwd(), filename)
-
+        # Load the project config:
         try:
             with open(filename, 'r') as stream:
                 if filename.endswith('json'):
@@ -40,17 +49,14 @@ class Project:
         except Exception as error:
             raise Exception('[CONFIG] Error in config file: '+ str(error))
 
+        # Load default config:
+        with open(join(dirname(__file__), "default_config.json")) as stream:
+            self.config = merge_deep_dicts(
+                json.load(stream), self.config
+            )
+
         if 'name' not in self.config:
             self.config['name'] = ".".join(basename(filename).split(".")[:-1])
-
-        if self.segmentation:
-            if 'segmentation' not in self.config:
-                raise Exception('[CONFIG] segmentation configuration is required for segmentation mode!')
-
-            self.config['segmentation']['mask_shape'] = (
-                self['segmentation']['mask_area'][2]-self['segmentation']['mask_area'][0],
-                self['segmentation']['mask_area'][3]-self['segmentation']['mask_area'][1],
-            )
 
         if isinstance(self['authentication_required'], str):
             if self['authentication_required'].lower == 'false':
@@ -64,6 +70,11 @@ class Project:
         self.set_image_seed(0)
 
         if self.segmentation:
+            self.config['segmentation']['mask_shape'] = (
+                self['segmentation']['mask_area'][2]-self['segmentation']['mask_area'][0],
+                self['segmentation']['mask_area'][3]-self['segmentation']['mask_area'][1],
+            )
+
             format = basename(self['segmentation']['path']).split('.')[-1].lower()
             encodings = {
                 'npy': ['integer', 'binary', 'rgb', 'rgba'],
@@ -85,26 +96,31 @@ class Project:
                     + ",".join(encodings[format])
                 )
 
-            self['segmentation']['score'] = self['segmentation'].get(
-                self['segmentation']['score'], "f1"
-            )
             if self['segmentation']['score'] not in ['f1', 'jaccard', 'accuracy']:
                 raise Exception('Unknown segmentation score!', self['segmentation']['score'])
 
         # Make sure the HTML is understood in the descriptions:
-        for view in self.config['views']:
+        for name, view in self.config['views'].items():
+            view['name'] = name
             view['description'] = flask.Markup(
                 view.get('description', view['name'])
             )
-            if isinstance(view['content'], list):
-                view['type'] = 'rgb'
-            else:
-                view['type'] = view['content']
+            if 'data' in view and isinstance(view['data'], str):
+                # a single channel image:
+                view['data'] = [view['data']]
+                view['cmap'] = view.get('cmap', 'jet')
 
         self._normalise_classes(self.config)
         for mode in ['segmentation', 'classification', 'detection']:
             if mode in self.config:
                 self._normalise_classes(self[mode])
+
+        if "host" not in self.config:
+            self['host'] = '127.0.0.1'
+        if "port" not in self.config:
+            self['port'] = 5000
+        if "debug" not in self.config:
+            self['debug'] = False
 
     def __getitem__(self, key):
         return self.config[key]
@@ -128,7 +144,7 @@ class Project:
         if self.segmentation:
             if not self['segmentation']['path']:
                 self.config['segmentation']['path'] = join(
-                    self['path'], 'segmentation', '{id}', 'mask.npy'
+                    self['path'], 'segmentation', '{id}', 'mask.png'
                 )
 
         # create the project path and the user configuration path
@@ -137,116 +153,260 @@ class Project:
 
         # Make all paths absolute:
         self['images']['path'] = self.make_absolute(self['images']['path'])
-        if "thumbnails" in self.config['images']:
-            self['images']['thumbnails'] = self.make_absolute(
-                self['images']['thumbnails']
-            )
-        if "metadata" in self.config['images']:
-            self['images']['metadata'] = self.make_absolute(
-                self['images']['metadata']
-            )
+        self['images']['thumbnails'] = self.make_absolute(
+            self['images'].get('thumbnails', False)
+        )
+        self['images']['metadata'] = self.make_absolute(
+            self['images'].get('metadata', False)
+        )
         if self.segmentation:
             self['segmentation']['path'] = self.make_absolute(
                 self['segmentation']['path']
             )
 
-        # pre-compile the regex for the image path to get a better performance.
-        # We will need it later to extract the image id:
-        id_pos = self['images']['path'].find("{id}")
-        if self['images']['path'].count('{id}') != 1:
+        if isinstance(self['images']['path'], dict):
+            image_paths = list(self['images']['path'].values())[0]
+        else:
+            image_paths = self['images']['path']
+
+        # We will need to extract the image id by using regex. Compile it here
+        # to get a better perfomance:
+        before, id_str, after = image_paths.partition("{id}")
+        if not id_str:
             raise Exception('[CONFIG] images:path must contain exactly one placeholder "{id}"!')
-        escaped_path = re.escape(self['images']['path'][:id_pos])
+        escaped_path = re.escape(before)
         escaped_path += "(?P<id>.+)"
-        escaped_path += re.escape(self['images']['path'][id_pos+4:])
+        escaped_path += re.escape(after)
+        regex_images = re.compile(escaped_path)
 
-        self._re_images = re.compile(escaped_path)
-
-        self.config['files'] = dict(
-            self._get_file_paths(image)
-            for image in glob(self['images']['path'].format(id="*"))
-        )
-
-        if not self.config['files']:
+        images = glob(image_paths.format(id="*"))
+        if not images:
             raise Exception(
-                f"[CONFIG] No images found in '{self['images']['path']}'.\n"
+                f"[CONFIG] No images found in '{image_paths.format(id='*')}'.\n"
                 "Did you set images:path to a valid, existing path?")
 
-        self.config['file_ids'] = list(sorted(self.config['files'].keys()))
-
-    def make_absolute(self, path):
-        if not path:
-            return path
-
-        if not isabs(path):
-            return normpath(join(dirname(self.file), path))
-
-    def _get_file_paths(self, image_path):
         try:
-            match = self._re_images.match(image_path)
-            if match is None:
-                raise Exception(
-                    f'[ERROR] Could not extract id\nfrom path"{image_path}"\nwith regex "{self._re_images}"!'
-                )
-            image_id = match.groups()[0]
-
-            files = {
-                'image': image_path,
-            }
-
-            if project.segmentation:
-                files['mask'] = self['segmentation']['path'].format(id=image_id)
-
-            thumbnail_path = self['images'].get('thumbnails', False)
-            if thumbnail_path:
-                thumbnail_path = thumbnail_path.format(id=image_id)
-            files['thumbnail'] = thumbnail_path
-            metadata_path = self['images'].get('metadata', False)
-            if metadata_path:
-                metadata_path = metadata_path.format(id=image_id)
-            files['metadata'] = metadata_path
-            return image_id, files
+            self.image_ids = list(sorted([
+                regex_images.match(image_path).groups()[0]
+                for image_path in images
+            ]))
         except Exception as error:
             raise Exception(
-                f'[ERROR] Could not prepare "{image_path}":\n{error}'
+                f'[ERROR] Could not extract id\nfrom path"{image_path}"\nwith regex "{regex_images}"!'
             )
 
+
+    def make_absolute(self, path):
+        """Make path absolute relatively from project path"""
+        if isinstance(path, dict):
+            return {
+                k: self.make_absolute(v)
+                for k, v in path.items()
+            }
+        elif isinstance(path, list):
+            return list(map(self.make_absolute, path))
+
+        if not path or isabs(path):
+            return path
+        else:
+            return normpath(join(dirname(self.file), path))
+
+    @property
     def segmentation(self):
-        return 'segmentation' in self.config['label_mode']
+        return 'path' in self.config.get('segmentation', [])
 
-    def get_start_image(self):
-        return self['file_ids'][self.image_indices[0]]
+    def get_start_image_id(self):
+        return self.image_ids[self.image_order[0]]
 
-    def get_image(self, image_id, channels=None):
-        filename = self['files'][image_id]['image']
+    def load_image(self, filename, bands=None):
+        """Load image from file
 
-        if filename.endswith('npy'):
-            array = np.load(filename)
+        Args:
+            filename:
+            bands: Defines which bands to load from file. Must be a list of
+                names starting with $, e.g. "$B1" or "$Sentinel2.B1"
+
+        Returns:
+            Returns a dictionary with the band names as keys and band array as
+            value.
+        """
+        # The user uses band identifiers (like 'B1', etc):
+        if bands is not None:
+            bands = list(map(
+                lambda s: int(s.replace("$B", ""))-1,
+                bands
+            ))
+
+        if filename.lower().endswith('npy'):
+            array = np.load(filename, mmap_mode='r', allow_pickle=False)
+            if bands is not None:
+                array = array[..., bands]
+        elif filename.lower().endswith('vrt'):
+            with rio.open(filename) as file:
+                array = file.read(bands)
+                array = np.moveaxis(array, 0, -1)
         else:
             array = imread(filename)
+            if bands is not None:
+                array = array[..., bands]
 
-        if isinstance(channels, list):
-            array = self.parse_channels(array, channels)
+        if bands is None:
+            bands = list(range(array.shape[-1]))
 
-        if issubclass(array.dtype.type, np.floating):
-            array = np.clip(array * 255., 0, 255).astype('uint8')
+        data = {
+            f"B{b+1}": array[..., i]
+            for i, b in enumerate(bands)
+        }
+        return data
 
-        return array
+    def get_image(self, image_id, bands=None):
+        """Get the image data as dictionary
 
-    def parse_channels(self, image, channels):
-        environment = {f"B{i+1}": image[..., i] for i in range(image.shape[-1])}
-        environment['np'] = np
+        Args:
+            image_id: Id of the image as string.
+            bands: Bands of the image file (or files) to select, e.g. "$B1" or
+                "$Sentinel2.B1".
 
-        user_bands = [
-            eval(channel, {"__builtins__": None}, environment)
-            for channel in channels
-        ]
+        Returns:
+            A dict with bands. The keys are either "$B1"..."$Bn" or
+            "$FileIdentifier.B1".
+        """
 
-        return np.moveaxis(np.stack(user_bands), 0, -1)
+        if isinstance(self['images']['path'], dict):
+            data = {}
+            for file_id, filename in self['images']['path'].items():
+                if bands is None:
+                    file_bands = None
+                else:
+                    file_bands = [
+                        band.replace(file_id+'.', '')
+                        for band in bands
+                        if band.startswith('$'+file_id+'.')
+                    ]
+                    if not file_bands:
+                        continue
+
+                image = self.load_image(
+                    filename.format(id=image_id), bands=file_bands
+                )
+                data[file_id] = image
+        else:
+            data = self.load_image(
+                self['images']['path'].format(id=image_id),
+                bands=bands
+            )
+            data = {
+                '$'+key: value
+                for key, value in data.items()
+            }
+
+        return data
+
+    def get_image_bands(self, image_id):
+        # TODO: probably we could do this faster:
+        image = self.get_image(image_id)
+
+        bands = []
+        for band in image.keys():
+            if isinstance(image[band], dict):
+                bands.extend([f'${band}.{subband}' for subband in image[band]])
+            else:
+                bands.append(f'${band}')
+        return bands
+
+    def get_image_path(self, image_id):
+        if isinstance(self['images']['path'], dict):
+            return {
+                k: v.format(id=image_id)
+                for k, v in self['images']['path'].items()
+            }
+        else:
+            return self['images']['path'].format(id=image_id)
+
+    def render_image(self, image_id, view, clip=True):
+        # Find all required variables
+        bands = re.findall('(?:\$\w+\.{0,1}\w+)', ";".join(view['data']))
+        image = self.get_image(image_id, bands=bands)
+        environment = self._get_render_environment(image)
+
+        rgb_bands = []
+        for i, expression_raw in enumerate(view['data']):
+            expression = re.sub(r'\$(\w+)\.(\w+)', r'\1["\2"]', expression_raw)
+            expression = re.sub(r'\$(\w+)', r'\1', expression)
+            try:
+                # Since one should never rely on evaluating an expression from
+                # untrusted sources, we will have to find a different solution
+                # to make it safe.
+                self._check_band_expression(expression)
+                rgb_bands.append(
+                    eval(expression, {"__builtins__": None}, environment)
+                )
+            except Exception as error:
+                print(
+                    f"Could not parse {i}th expression of {view['name']}\n",
+                    f"Raw expression: {expression_raw}\n",
+                    f"Python expression: {expression}\n",
+                    f"Error: {error}\n",
+                    "Environment:"
+                )
+                pprint(environment)
+
+        # Broadcast (single numbers are converted to an array with the size of
+        # image)
+        image_size = project['images']['shape'][0] * project['images']['shape'][1]
+        for i, band in enumerate(rgb_bands):
+            if isinstance(band, Number):
+                band = np.repeat(band, image_size)
+                band = band.reshape(*project['images']['shape'])
+
+            rgb_bands[i] = band
+
+        if len(rgb_bands) == 1:
+            rgb_bands = cm.get_cmap(view['cmap'])(rgb_bands)[..., :3]
+
+        rgb_bands = np.dstack(rgb_bands)
+
+        if clip and issubclass(rgb_bands.dtype.type, np.floating):
+            return np.clip(rgb_bands * 255., 0, 255).astype('uint8')
+
+        return rgb_bands
+
+
+    def _get_render_environment(self, image):
+        return {
+            'max': np.max,
+            'max': np.min,
+            'mean': np.mean,
+            'median': np.median,
+            'log': np.log,
+            'exp': np.exp,
+            'sin': np.sin,
+            'cos': np.cos,
+            'PI': np.pi,
+            'edges': sobel,
+            'superpixels': felzenszwalb,
+            **{
+                key.strip('$'): value
+                for key, value in image.items()
+            },
+        }
+
+    def _check_band_expression(self, expression):
+        forbidden_tokens = ['lambda', '__', 'except', 'eval', ';']
+
+        for forbidden in forbidden_tokens:
+            if forbidden in expression:
+                raise Exception(
+                    f"'{forbidden}' is not allowed in band expressions!\n"
+                    + f"Expression: {expression}"
+                )
 
     def get_metadata(self, image_id):
-        filename = self['files'][image_id].get('metadata', False)
+        filename = self['images'].get('metadata', False)
         if not filename:
-            return None
+            return {}
+
+        filename = filename.format(id=image_id)
 
         with open(filename, 'r') as stream:
             if filename.endswith('json'):
@@ -259,50 +419,62 @@ class Project:
         return metadata
 
     def get_thumbnail(self, image_id):
-        filename = self['files'][image_id]['thumbnail']
-        return imread(filename)
+        filename = self['images'].get('thumbnails', False)
+        if not filename:
+            return None
 
-    def get_user_config(self, default=False):
-        filename = join(self['path'], 'user_config', f'{self.user_id}.json')
-        if not exists(filename) or default:
-            filename = join(dirname(__file__), 'user/default_config.json')
+        return imread(filename.format(id=image_id))
 
-        with open(filename, 'r') as stream:
-            return json.load(stream)
+    def get_user_config(self, user_id):
+        filename = join(self['path'], 'user_config', f'{user_id}.json')
+        config = deepcopy(self.config)
 
-    def save_user_config(self, user_config):
-        filename = join(self['path'], 'user_config', f'{self.user_id}.json')
+        # Only if the user config is newer the system's config file, we use it
+        # for updates:
+        if exists(filename) and getmtime(self.file) <= getmtime(filename):
+            with open(filename, 'r') as stream:
+                user_config = json.load(stream)
+
+            config = merge_deep_dicts(config, user_config)
+            # Actually, it would be a security risk to allow some options to be
+            # set by the user (or by a potential attacker):
+            config['images'] = deepcopy(self.config['images'])
+            config['views'] = deepcopy(self.config['views'])
+            if "path" in self.config['segmentation']:
+                config['segmentation']['path'] = self.config['segmentation']['path']
+
+        return config
+
+    def save_user_config(self, user_id, user_config):
+        filename = join(self['path'], 'user_config', f'{user_id}.json')
 
         with open(filename, 'w') as stream:
             json.dump(user_config, stream)
 
     def get_next_image(self, image_id):
-        original_index = self.config['file_ids'].index(image_id);
+        original_index = self.image_ids.index(image_id);
 
-        index = self.image_indices.index(original_index)
+        index = self.image_order.index(original_index)
         index += 1
-        if index >= len(self.image_indices):
+        if index >= len(self.image_order):
             index = 0
 
-        return self['file_ids'][self.image_indices[index]]
+        return self.image_ids[self.image_order[index]]
 
     def get_previous_image(self, image_id):
-        original_index = self.config['file_ids'].index(image_id);
+        original_index = self.image_ids.index(image_id);
 
-        index = self.image_indices.index(original_index)
+        index = self.image_order.index(original_index)
         index -= 1
         if index < 0:
-            index = len(self.image_indices)-1
+            index = len(self.image_order)-1
 
-        return self['file_ids'][self.image_indices[index]]
-
-    def set_user_id(self, user_id):
-        self.user_id = user_id
+        return self.image_ids[self.image_order[index]]
 
     def set_image_seed(self, seed):
         self.random_state = np.random.RandomState(seed=seed)
-        self.image_indices = list(range(len(self.config['file_ids'])))
+        self.image_order = list(range(len(self.image_ids)))
 
-        self.random_state.shuffle(self.image_indices)
+        self.random_state.shuffle(self.image_order)
 
 project = Project()

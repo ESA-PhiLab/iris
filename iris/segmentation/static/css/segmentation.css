@@ -2,30 +2,3 @@ body {
     overflow: hidden;
     /* height: 100vh; */
 }
-
-.view-canvas {
-    border: 1px solid black;
-    background-color: transparent;
-    cursor: crosshair;
-    position: absolute; left: 0; top: 0;
-    -webkit-touch-callout: none; /* iOS Safari */
-    -webkit-user-select: none; /* Safari */
-     -khtml-user-select: none; /* Konqueror HTML */
-       -moz-user-select: none; /* Old versions of Firefox */
-        -ms-user-select: none; /* Internet Explorer/Edge */
-            user-select: none; /* Non-prefixed version, currently
-                                  supported by Chrome, Opera and Firefox */
-}
-
-.view-description {
-    overflow: auto; /* Enable scroll if needed */
-    color: white;
-    z-index: 20; /* Sit on top */
-    position: absolute;
-    left: 0;
-    top: 0;
-    text-align: center;
-    word-wrap: break-word;
-    font-size: 18px;
-    padding: auto;
-}
