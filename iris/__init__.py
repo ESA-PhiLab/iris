@@ -14,10 +14,9 @@ import yaml
 import iris.extensions
 from iris.project import project
 
-
 def get_demo_file(example=None):
     demo_file = join(
-        dirname(dirname(__file__)), "demo", "cloud-segmentation.json"
+        os.getcwd(), "demo", "cloud-segmentation.json"
     )
 
     return demo_file
