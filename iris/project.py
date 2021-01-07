@@ -105,10 +105,13 @@ class Project:
             view['description'] = flask.Markup(
                 view.get('description', view['name'])
             )
+            view['minmax'] = eval(view.get('minmax', "True"))
             if 'data' in view and isinstance(view['data'], str):
                 # a single channel image:
                 view['data'] = [view['data']]
                 view['cmap'] = view.get('cmap', 'jet')
+                
+
 
         self._normalise_classes(self.config)
         for mode in ['segmentation', 'classification', 'detection']:
@@ -362,8 +365,9 @@ class Project:
             rgb_bands[i] = band
         
         # min-max scale
-        min_max_scale = lambda z: (z - z.min())/(z.max() - z.min())
-        rgb_bands = list(map(min_max_scale, rgb_bands))
+        if view['minmax']:
+            min_max_scale = lambda z: (z - z.min())/(z.max() - z.min())
+            rgb_bands = list(map(min_max_scale, rgb_bands))
 
         if len(rgb_bands) == 1:
             rgb_bands = cm.get_cmap(view['cmap'])(rgb_bands)[..., :3]
