@@ -360,14 +360,18 @@ class Project:
                 band = band.reshape(*project['images']['shape'])
 
             rgb_bands[i] = band
+        
+        # min-max scale
+        min_max_scale = lambda z: (z - z.min())/(z.max() - z.min())
+        rgb_bands = list(map(min_max_scale, rgb_bands))
 
         if len(rgb_bands) == 1:
             rgb_bands = cm.get_cmap(view['cmap'])(rgb_bands)[..., :3]
-
+        
         rgb_bands = np.dstack(rgb_bands)
 
         if clip and issubclass(rgb_bands.dtype.type, np.floating):
-            return np.clip(rgb_bands * 255., 0, 255).astype('uint8')
+            return np.clip(rgb_bands * 255., 0, 255).astype('uint8')            
 
         return rgb_bands
 
