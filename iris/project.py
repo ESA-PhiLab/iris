@@ -220,7 +220,7 @@ class Project:
 
     def get_start_image_id(self):
         return self.image_ids[self.image_order[0]]
-
+    
     def load_image(self, filename, bands=None):
         """Load image from file
 
@@ -250,6 +250,8 @@ class Project:
                 array = np.moveaxis(array, 0, -1)
         else:
             array = imread(filename)
+            if len(array.shape) == 2:
+                array = array[:,:,np.newaxis]
             if bands is not None:
                 array = array[..., bands]
 
@@ -363,12 +365,12 @@ class Project:
                 band = band.reshape(*project['images']['shape'])
 
             rgb_bands[i] = band
-        
+                
         # min-max scale
         if view['minmax']:
             min_max_scale = lambda z: (z - z.min())/(z.max() - z.min())
             rgb_bands = list(map(min_max_scale, rgb_bands))
-
+        
         if len(rgb_bands) == 1:
             rgb_bands = cm.get_cmap(view['cmap'])(rgb_bands)[..., :3]
         
@@ -376,7 +378,7 @@ class Project:
 
         if clip and issubclass(rgb_bands.dtype.type, np.floating):
             return np.clip(rgb_bands * 255., 0, 255).astype('uint8')            
-
+        
         return rgb_bands
 
 
