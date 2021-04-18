@@ -10,6 +10,6 @@ Tool for manual image segmentation and classification of satellite imagery (or i
 * Platform independent app (runs on Linux, Windows and Mac OS)
 * Multi-user support: work in a team on your dataset and merge the results
 
-**The cloudSEN12 IRIS version was created for [@csaybar](https://github.com/csaybar). Acknowledgement for this fantastic tool should be always given to [ESA-PhiLab](https://github.com/ESA-PhiLab) devs**
+**The cloudSEN12 IRIS version was created for [@csaybar](https://github.com/csaybar). Acknowledgement for this fantastic tool should be always given to [ESA-PhiLab](https://github.com/ESA-PhiLab) devs.**
 
 **Visit the official iris Github page:  https://github.com/ESA-PhiLab/iris**
