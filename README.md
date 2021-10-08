@@ -1,5 +1,3 @@
-**Work in progress.**
-
 # IRIS - Intelligence foR Image Segmentation<sup>1</sup>
 <sup>1</sup>Yes, it is a <a href="https://en.wikipedia.org/wiki/Backronym">backronym</a>.
 
@@ -12,39 +10,6 @@ Tool for manual image segmentation and classification of satellite imagery (or i
 * Platform independent app (runs on Linux, Windows and Mac OS)
 * Multi-user support: work in a team on your dataset and merge the results
 
-<hr />
+**The cloudSEN12 IRIS version was created for [@csaybar](https://github.com/csaybar). Acknowledgement for this fantastic tool should be always given to [ESA-PhiLab](https://github.com/ESA-PhiLab) devs.**
 
-## Installation
-Since IRIS is written in python, you will need a python 3.7 environment to use this app.
-To install IRIS, go to your preferenced installation folder via your console and clone this repository by running:
-
-`git clone https://github.com/ESA-PhiLab/iris.git`.
-
-If you want to install the development version (less stable but more features), use this command:
-
-`git clone -b development https://github.com/ESA-PhiLab/iris.git`.
-
-Enter the iris directory with
-
-`cd iris`
-
-and install the app with pip
-
-`pip install .`
-
-This should install all necessary python packages automatically.
-
-## Quickstart
-### Usage
-
-You can start IRIS in two different modes:
-1) **demo:** Keen on trying out iris without any setup? Try `iris demo` and have fun with the demo by open `http://localhost:5000` with your browser (chrome or firefox).
-2) **label:** This will open a local browser application which helps you to perform manual segmentation of the images in your project. You will need a project file for this. Have a look at the demo folder or at the documentation below in this document for inspiration. After setting up the project file, start IRIS like this: `iris label PROJECT_FILE` and open `http://localhost:5000` with your browser (chrome or firefox).
-
-### Project file
-Before you can use IRIS, you have to provide a project file for your project (must be in yaml or json format). See [here](demo/cloud-segmentation.json) for an example.
-
-Please have a look at the different options for the configurations in the [documentation](docs/config.md).
-
-### Label interface
-Coming soon.
+**Visit the official iris Github page:  https://github.com/ESA-PhiLab/iris**

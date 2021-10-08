@@ -57,8 +57,7 @@ def requires_admin(func):
 def get(user_id):
     if user_id == 'current':
         user_id = flask.session['user_id']
-
-    user = User.query.get_or_404(user_id, "Unknown user!")
+    user = User.query.get_or_404(user_id)
 
     json_user = user.to_json()
 

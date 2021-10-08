@@ -14,7 +14,7 @@ from skimage.io import imread, imsave
 from skimage.filters import sobel
 from skimage.segmentation import felzenszwalb
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, f1_score, jaccard_similarity_score
+from sklearn.metrics import accuracy_score, f1_score, jaccard_score
 import yaml
 
 from iris.user import requires_auth
@@ -170,7 +170,7 @@ def merge_masks(image_id):
 
 def get_score(mask1, mask2):
     if project['segmentation']['score'] == 'jaccard':
-        return round(100 * jaccard_similarity_score(mask1, mask2))
+        return round(100 * jaccard_score(mask1, mask2))
     elif project['segmentation']['score'] == 'f1':
         return round(100 * f1_score(mask1, mask2, average='macro'))
     elif project['segmentation']['score'] == 'accuracy':
