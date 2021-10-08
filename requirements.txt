@@ -2,7 +2,7 @@ flask
 flask_compress
 flask-sqlalchemy
 numpy==1.17.4
-pyyaml==5.1.2
+pyyaml>=5.4
 lightgbm
 rasterio
 requests
