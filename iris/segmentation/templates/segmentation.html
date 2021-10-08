@@ -3,6 +3,8 @@
 {% block head %}
     <link rel="stylesheet" href="{{ url_for('segmentation.static', filename='css/segmentation.css') }}">
 
+    <script type="text/javascript" src="{{ url_for('main.static', filename='javascripts/views.js') }}"></script>
+    <script type="text/javascript" src="{{ url_for('segmentation.static', filename='javascripts/segmentation/views.js') }}"></script>
     <script type="text/javascript" src="{{ url_for('segmentation.static', filename='javascripts/segmentation.js') }}"></script>
     <script type="text/javascript">
 
@@ -24,14 +26,8 @@
                 'current_epoch': 0,
                 'max_epochs': 30,
             },
-            'classes': {{classes|tojson}},
-            'views': {{views|tojson}},
             'image_id': {{image_id|tojson}},
-            'images': new Array({{views|length}}),
-            'image_shape': {{image_shape|tojson}},
-            'mask_area': {{mask_area|tojson}},
-            'thumbnail_available': {{thumbnail_available|tojson}},
-            'metadata_available': {{metadata_available|tojson}},
+            'image_location': {{image_location|tojson}},
             'current_class': 0,
             'cursor_canvas': [0, 0],
             'cursor_image': [0, 0],
@@ -41,27 +37,22 @@
             },
             'show_mask': true,
             'mask_type': 'final',
-            'mask_highlight_edges': false,
-            'contrast': false,
-            'invert': false,
-            'brightness': 100,
-            'saturation': 100,
             'confusion_matrix': null,
             'tool': {
                 "type": 'draw',
                 'size': 6,
                 'sprite': null,
                 'pixels': null,
-            },
+                'resizing_mode': false
+            }
         };
 
-        // The size (shape) of the mask area:
-        vars.mask_shape = [
-            vars.mask_area[2] - vars.mask_area[0], vars.mask_area[3] - vars.mask_area[1]
-        ];
-
         function next_image(){
-            goto_url({{url_for('segmentation.next_image', image_id=image_id)|tojson}});
+            if (vars.show_dialogue_before_next_image){
+                dialogue_before_next_image();
+            } else {
+                goto_url({{url_for('segmentation.next_image', image_id=image_id)|tojson}});
+            }
         }
 
         function prev_image(){
@@ -74,7 +65,7 @@
 
 {% endblock %}
 {% block content %}
-    <ul class='toolbar'>
+    <ul class='toolbar' id="toolbar" style="visibility: hidden;">
         <li class="toolbutton icon_button" id='tb_previous_image' onclick="save_mask(prev_image);">
             <img src={{url_for('segmentation.static', filename='icons/previous.png')}} class="icon">
         </li>
@@ -84,6 +75,9 @@
         <li class="toolbutton icon_button" id='tb_save_mask' onclick="save_mask();">
             <img src={{url_for('segmentation.static', filename='icons/save_mask.png')}} class="icon" />
         </li>
+        <li class="toolbutton icon_button" id='tb_activate_action' onclick="activate_action(!vars.action_active);">
+            <img src={{url_for('segmentation.static', filename='icons/ok.png')}} class="icon" />
+        </li>
         <li class="toolbutton icon_button" id='tb_undo' onclick="undo();">
             <img src={{url_for('segmentation.static', filename='icons/undo.png')}} class="icon" />
         </li>
@@ -92,8 +86,12 @@
         </li>
         <li class="toolbar_separator"></li>
         <li class="toolbutton icon_button" id="tb_select_class" onclick='dialogue_class_selection();' style="width: 200px;">
-                <img src={{url_for('segmentation.static', filename='icons/class.png')}} class="icon"  style="float: left;"/>
-                <span id="tb_current_class" style="position: relative; left: -6px; top: 18px;">0</span>
+            <div>
+                <img src={{url_for('segmentation.static', filename='icons/class.png')}} class="icon" style="float: left;"/>
+            </div>
+            <div id="tb_current_class" style="float: left; line-height: 28px; font-size: 18px; font-weight: normal;">
+                No class
+            </div>
         </li>
         <li class="toolbar_separator"></li>
         <li class="toolbutton icon_button" id='tb_tool_move' onclick="set_tool('move');">
@@ -161,63 +159,12 @@
         </li>
     </ul>
 
-    <!-- Unfortunately, my css is really bad so we have to hardcode the different views here: -->
-    {% if views|length == 1 %}
-        <div style="margin: 10px 0px; width: 100%;">
-            <div style="position: relative;">
-                <div id="view-0">
-                    <canvas id="canvas-0-image" class="view-canvas"
-                        style="z-index: 0; width: 80vh; height: 80vh;"></canvas>
-                    <canvas id="canvas-0-mask" class="view-canvas"
-                        style="z-index: 1; width: 80vh; height: 80vh;"></canvas>
-                    <canvas id="canvas-0-preview" class="view-canvas"
-                        style="z-index: 2; width: 80vh; height: 80vh;"></canvas>
-                </div>
-            </div>
-    {% elif views|length == 2 %}
-        <div style="margin: 10px 0px; width: 100%;">
-        {% for view in views%}
-            <div style="position: relative; left: calc(70vh*{{ loop.index-1 }});">
-                {% if view.type == "bingmap" %}
-                    <iframe id="canvas-{{loop.index-1}}-iframe" style="z-index: 5" frameborder="1" scrolling="no">
-                    </iframe>
-                {% else %}
-                    <div id="view-{{ loop.index-1 }}">
-                        <canvas id="canvas-{{ loop.index-1 }}-image" class="view-canvas"
-                            style="z-index: 0; width: 70vh; height: 70vh;"></canvas>
-                        <canvas id="canvas-{{ loop.index-1 }}-mask" class="view-canvas"
-                            style="z-index: 1; width: 70vh; height: 70vh;"></canvas>
-                        <canvas id="canvas-{{ loop.index-1 }}-preview" class="view-canvas"
-                            style="z-index: 2; width: 70vh; height: 70vh;"></canvas>
-                    </div>
-                {% endif %}
-            </div>
-        {% endfor %}
-    {% else %}
-        <div style="margin: 10px 0px; width: 100%;">
-        {% for view in views%}
-            <div style="position: relative; left: calc(98vw/{{views|length}}*{{ loop.index-1 }});">
-                {% if view.type == "bingmap" %}
-                    <iframe id="canvas-{{loop.index-1}}-iframe" style="z-index: 3;" frameborder="1" scrolling="no">
-                    </iframe>
-                {% else %}
-                    <div id="view-{{ loop.index-1 }}">
-                        <canvas id="canvas-{{ loop.index-1 }}-image" class="view-canvas"
-                            style="z-index: 0; width: calc(98vw/{{views|length}}); height: calc(98vw/{{views|length}});"></canvas>
-                        <canvas id="canvas-{{ loop.index-1 }}-mask" class="view-canvas"
-                            style="z-index: 1; width: calc(98vw/{{views|length}}); height: calc(98vw/{{views|length}});"></canvas>
-                        <canvas id="canvas-{{ loop.index-1 }}-preview" class="view-canvas"
-                            style="z-index: 2; width: calc(98vw/{{views|length}}); height: calc(98vw/{{views|length}});"></canvas>
-                    </div>
-                {% endif %}
-            </div>
-        {% endfor %}
-    {% endif %}
-
+    <div id="views-container" style="margin: 10px 0px; width: 100%;">
+        <!-- This will be filled up by the ViewManager -->
     </div>
 
     <!-- <div class="info-box" style="position: fixed; bottom: 10; left: 10; float: left; display: flex; flex-direction: row;"> -->
-    <div class='statusbar' style="position: fixed; bottom: 10px; z-index: 10;">
+    <div id="statusbar" class='statusbar' style="visibility: hidden; position: fixed; bottom: 10px; z-index: 10;">
         <div class="statusbutton" onclick="dialogue_user();" id="user-info">
             <div style="float: left;">Login</div>
         </div>
@@ -242,7 +189,7 @@
         </div>
         <div class="info-box">
             <img style="float: left;" src={{url_for('segmentation.static', filename='icons/ai.png')}}></img>
-            <div style="float: left; margin-left: 10px;" id="ai-recommendation">AI is loading</div>
+            <div style="font-size: 16px; float: left; margin-left: 10px;" id="ai-recommendation">AI is loading</div>
         </div>
     </div>
 {% endblock %}

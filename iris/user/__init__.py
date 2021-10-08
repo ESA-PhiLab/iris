@@ -57,22 +57,43 @@ def requires_admin(func):
 def get(user_id):
     if user_id == 'current':
         user_id = flask.session['user_id']
-
-    user = User.query.get(user_id)
-    if user is None:
-        flask.make_response('Unknown user!', 404)
+    user = User.query.get_or_404(user_id)
 
     json_user = user.to_json()
 
     current_user_id = flask.session['user_id']
     if current_user_id == user_id or User.query.get(current_user_id).admin:
         # Only an admin or the user themselves can see the full data:
-        json_user['config'] = project.get_user_config()
+        json_user['config'] = project.get_user_config(user_id)
 
         return flask.jsonify(json_user)
     else:
         del json_user['email']
         return flask.jsonify(json_user)
+
+@user_app.route('/set/<user_id>', methods=['POST'])
+@requires_auth
+def set(user_id):
+    if user_id == 'current':
+        user_id = flask.session['user_id']
+
+    current_user_id = flask.session['user_id']
+    current_user = User.query.get(current_user_id)
+    if current_user_id != user_id and not current_user.admin:
+        return flask.make_response("Permission denied!", 403)
+
+    user = User.query.get_or_404(user_id);
+
+    for k, v in json.loads(flask.request.data).items():
+        if k == "admin":
+            user.admin = bool(v)
+        else:
+            return flask.make_response(f"Unknown parameter <i>{k}</i>!", 400)
+
+    db.session.add(user)
+    db.session.commit()
+
+    return flask.make_response("Saved new user info successfully")
 
 @user_app.route('/show/<user_id>', methods=['GET'])
 @requires_auth
@@ -119,28 +140,26 @@ def show(user_id):
 @user_app.route('/config', methods=['GET'])
 @requires_auth
 def config():
-    user_config = project.get_user_config()
-
-    try:
-        return flask.render_template(
-            'user/config.html', project=project.config,
-            config=user_config
-        )
-    except:
-        print('User config failed so fall back to default config!')
-
-    user_config = project.get_user_config(default=True)
+    config = project.get_user_config(flask.session['user_id'])
+    all_bands = project.get_image_bands(project.image_ids[0])
+    config['segmentation']['ai_model']['bands'] = {
+        band
+        for band in all_bands
+        if config['segmentation']['ai_model']['bands'] is None or band in config['segmentation']['ai_model']['bands']
+    }
 
     return flask.render_template(
-        'user/config.html', project=project.config, config=user_config,
-        error=True,
+        'user/config.html', config=config, all_bands=all_bands
     )
 
 @user_app.route('/save_config', methods=['POST'])
 @requires_auth
 def save_config():
     user_config = json.loads(flask.request.data)
-    project.save_user_config(user_config)
+    project.save_user_config(
+        flask.session['user_id'],
+        user_config
+    )
     return flask.make_response('Saved user config successfully!')
 
 
@@ -197,14 +216,8 @@ def logout():
     # remove the username from the session if it's there
     if 'user_id' in flask.session:
         flask.session.pop('user_id')
-    project.set_user_id(None)
 
     return flask.make_response("Successful logout!")
 
 def set_current_user(user):
     flask.session['user_id'] = user.id
-
-    project.set_user_id(user.id)
-
-    # Each user gets their personal random image selection:
-    project.set_image_seed(user.image_seed)

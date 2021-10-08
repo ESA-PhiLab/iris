@@ -4,6 +4,7 @@ flask-sqlalchemy
 numpy==1.17.4
 pyyaml==5.1.2
 lightgbm
+rasterio
 requests
 scipy
 scikit-image==0.16.2

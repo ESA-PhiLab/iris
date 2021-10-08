@@ -4,29 +4,82 @@ body {
     font-family: Arial, Helvetica, sans-serif;
 }
 
-button,.button {
-  background-color: #ffffff;
-  outline: none;
-  border: 2px;
-  border-style: solid;
-  border-radius: 4px;
-  border-color: black;
-  color: black;
-  text-align: center;
-  text-decoration: none;
-  display: inline-block;
-  font-weight: bold;
-  margin: 2px 2px;
-  padding: 8px 10px;
-  cursor: pointer;
-  -webkit-touch-callout: none; /* iOS Safari */
-  -webkit-user-select: none; /* Safari */
-   -khtml-user-select: none; /* Konqueror HTML */
+select {
+    display: block;
+    /* font-size: 16px; */
+    font-family: Arial, Helvetica, sans-serif;
+    font-weight: bold;
+    color: #000;
+    outline: none;
+    /* line-height: 1.3; */
+    margin: 2px 2px;
+    padding: 8px 10px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    border: 2px solid #000;
+    /* box-shadow: 0 1px 0 1px rgba(0,0,0,.04); */
+    border-radius: 4px;
+    -moz-appearance: none;
+    -webkit-appearance: none;
+    appearance: none;
+    background-color: #fff;
+    cursor: pointer;
+    -webkit-touch-callout: none; /* iOS Safari */
+    -webkit-user-select: none; /* Safari */
+    -khtml-user-select: none; /* Konqueror HTML */
      -moz-user-select: none; /* Old versions of Firefox */
       -ms-user-select: none; /* Internet Explorer/Edge */
           user-select: none; /* Non-prefixed version, currently
                                 supported by Chrome, Opera and Firefox */
-   transition: 0.3s;
+}
+select.with-arrow{
+    background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23007CB2%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E');
+    background-repeat: no-repeat, repeat;
+    background-position: right .7em top 50%, 0 0;
+    background-size: .65em auto, 100%;
+}
+select::-ms-expand {
+    display: none;
+}
+select:hover {
+    background-color: #dddddd;
+}
+select:focus {
+    border-color: #aaa;
+    box-shadow: 0 0 1px 3px rgba(59, 153, 252, .7);
+    box-shadow: 0 0 0 3px -moz-mac-focusring;
+    color: #222;
+    outline: none;
+}
+select option {
+    font-weight:normal;
+}
+
+button,.button {
+    background-color: #ffffff;
+    outline: none;
+    border: 2px;
+    border-style: solid;
+    border-radius: 4px;
+    border-color: black;
+    color: black;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-weight: bold;
+    margin: 2px 2px;
+    padding: 8px 10px;
+    cursor: pointer;
+    -webkit-touch-callout: none; /* iOS Safari */
+    -webkit-user-select: none; /* Safari */
+    -khtml-user-select: none; /* Konqueror HTML */
+     -moz-user-select: none; /* Old versions of Firefox */
+      -ms-user-select: none; /* Internet Explorer/Edge */
+          user-select: none; /* Non-prefixed version, currently
+                                supported by Chrome, Opera and Firefox */
+    transition-property: background-color;
+    transition-duration: 0.5s;
 }
 
 .toolbar {
@@ -100,6 +153,7 @@ img {
 .statusbutton,.inactive-statusbutton {
   padding: 10px;
   overflow: visible;
+  z-index: 30;
 }
 
 .statusbar_separator {
@@ -218,8 +272,9 @@ td.upper-left {
 }
 
 .icon {
-    filter: blur(0.1px);
     margin: 2px;
+    width: 24px;
+    height: 24px;
 }
 
 .key{
@@ -274,6 +329,9 @@ td.upper-left {
 .red{
     background-color: #bb0000;
 }
+.yellow{
+    background-color: #cdcd00;
+}
 
 /* Style the buttons that are used to open and close the accordion panel */
 .accordion {
@@ -291,7 +349,7 @@ td.upper-left {
  border-bottom-right-radius: 0px; */
  outline: none;
  overflow: hidden;
- transition: 0.4s;
+ transition: 1s;
  margin: 2px 0px;
 }
 
@@ -354,6 +412,7 @@ td.upper-left {
 .progress-bar {
   background-color: #fff;
   border: 2px solid black;
+  transition: 2s;
 }
 
 .progress {
@@ -362,4 +421,36 @@ td.upper-left {
   padding-bottom: 10px;
   background-color: black;
   color: white;
+}
+
+.view-canvas {
+    border: 1px solid black;
+    background-color: transparent;
+    cursor: crosshair;
+    position: absolute; left: 0; top: 0;
+    -webkit-touch-callout: none; /* iOS Safari */
+    -webkit-user-select: none; /* Safari */
+     -khtml-user-select: none; /* Konqueror HTML */
+       -moz-user-select: none; /* Old versions of Firefox */
+        -ms-user-select: none; /* Internet Explorer/Edge */
+            user-select: none; /* Non-prefixed version, currently
+                                  supported by Chrome, Opera and Firefox */
+}
+
+.view-description {
+    overflow: auto; /* Enable scroll if needed */
+    color: black;
+    z-index: 20; /* Sit on top */
+    left: 10px;
+    top: 40px;
+    text-align: center;
+    word-wrap: break-word;
+    font-size: 18px;
+    padding: auto;
+}
+
+.view-controls {
+    position: absolute;
+    z-index: 20;
+    visibility: hidden;
 }
