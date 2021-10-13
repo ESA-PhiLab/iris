@@ -1,4 +1,4 @@
-# IRIS - Intelligence foR Image Segmentation<sup>1</sup>
+# IRIS - Intelligently Reinforced Image Segmentation<sup>1</sup>
 <sup>1</sup>Yes, it is a <a href="https://en.wikipedia.org/wiki/Backronym">backronym</a>.
 
 <img src="preview/segmentation.png" />
