@@ -3,6 +3,7 @@
 ### Bugs (please suggest more if found)
 
 - [ ] Time spent is not logged or reported
+- [ ] Contrast/Inversion buttons toggle on but do not toggle off via mouseclick
 
 
 ### Aesthetics/wording/clarity
