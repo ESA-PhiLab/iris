@@ -140,6 +140,9 @@ Since this app was developed for multi-spectral satellite data (i.e. images with
     <li>
         *cmap:* If `data` contains only one string (monochrome image), you can set a matplotlib colormap name here to render that image.
     </li>
+    <li>
+        *clip:* By default, bands are stretched between 0 and 1, relative to their minimum and maximum values. By setting a value for clip, you control the percentile of pixels that are saturated at 0 and 1, which can be helpful if there are some extreme pixel values that reduce the contrast in other parts of the image.
+    </li>
 </ul>
 
 Iris can display up to 4 views until v0.1. From v0.2 it can display an arbitrary number of views.
@@ -207,7 +210,7 @@ This will create a folder next to the project file called `masks` containing the
 ```
 
 ### segmentation : mask_encoding
-The encodings of the final masks. Can be `integer`, `binary`, `rgb` or `rgba`. 
+The encodings of the final masks. Can be `integer`, `binary`, `rgb` or `rgba`.
 Note: not all mask formats support all encodings.
 
 <i>Example:</i>

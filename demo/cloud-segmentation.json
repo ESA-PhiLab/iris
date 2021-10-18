@@ -62,7 +62,8 @@
       "RGB": {
           "description": "Normal RGB image.",
           "type": "image",
-          "data": ["$Sentinel2.B5", "$Sentinel2.B3", "$Sentinel2.B2"]
+          "data": ["$Sentinel2.B5", "$Sentinel2.B3", "$Sentinel2.B2"],
+          "clip": "1"
       },
       "NRGB": {
           "description": "Near-Infrared RGB image.",
