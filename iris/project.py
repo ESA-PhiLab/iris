@@ -21,12 +21,7 @@ import rasterio as rio
 
 from iris.utils import merge_deep_dicts
 
-def linear_stretch(x):
-    rngv = np.quantile(x, [0.02,0.98])
-    temp = (x - rngv[0])/(rngv[1] - rngv[0])
-    temp[temp < 0] = 0
-    temp[temp > 1] = 1
-    return temp
+
 class Project:
     def __init__(self):
         # Each user is going to get a personalised random sequence of images:
@@ -116,8 +111,6 @@ class Project:
                 # a single channel image:
                 view['data'] = [view['data']]
                 view['cmap'] = view.get('cmap', 'jet')
-                
-
 
         self._normalise_classes(self.config)
         for mode in ['segmentation', 'classification', 'detection']:
@@ -226,7 +219,7 @@ class Project:
 
     def get_start_image_id(self):
         return self.image_ids[self.image_order[0]]
-    
+
     def load_image(self, filename, bands=None):
         """Load image from file
 
@@ -334,7 +327,7 @@ class Project:
         else:
             return self['images']['path'].format(id=image_id)
 
-    def render_image(self, image_id, view, clip=True):
+    def render_image(self, image_id, view):
         # Find all required variables
         bands = re.findall('(?:\$\w+\.{0,1}\w+)', ";".join(view['data']))
         image = self.get_image(image_id, bands=bands)
@@ -371,24 +364,25 @@ class Project:
                 band = band.reshape(*project['images']['shape'])
 
             rgb_bands[i] = band
-                
-        # min-max scale
-        if view['stretch'] == 'minmax':
-            min_max_scale = lambda z: (z - z.min())/(z.max() - z.min())
-            rgb_bands = list(map(min_max_scale, rgb_bands))
-        if view['stretch'] == 'linear':
-            rgb_bands = list(map(linear_stretch, rgb_bands))            
-        
+
+        # Stretch between 0->1, with percentile clip if specified in view
+        if 'clip' in view:
+            clip = float(view['clip'])
+            print(clip)
+            linear_scale = lambda z: 255*np.clip(
+                (z - np.percentile(z,clip))/(np.percentile(z,100-clip)-np.percentile(z,clip)),
+                0,
+                1
+                )
+        else:
+            linear_scale = lambda z: 255*(z - z.min())/(z.max()-z.min())
+        rgb_bands = list(map(linear_scale, rgb_bands))
+
         if len(rgb_bands) == 1:
             rgb_bands = cm.get_cmap(view['cmap'])(rgb_bands)[..., :3]
-        
+
         rgb_bands = np.dstack(rgb_bands)
-
-        if clip and issubclass(rgb_bands.dtype.type, np.floating):
-            return np.clip(rgb_bands * 255., 0, 255).astype('uint8')            
-        
-        return rgb_bands
-
+        return rgb_bands.astype('uint8')
 
     def _get_render_environment(self, image):
         return {
