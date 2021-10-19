@@ -252,14 +252,20 @@ button:hover,.button:hover,.toolbutton:hover,.statusbutton:hover{
 table {
   /* width: 100%; */
   border-collapse: collapse;
-  border-style: hidden;
+  border-color: #8D8D8D;
   margin: 2px 2px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.18);
+}
+
+table.striped tr:nth-child(even){
+  background-color: #FBF8E0; /* Cream rows */
 }
 
 td, th {
   border: 1px solid #000;
   padding: 8px;
   border-style: outset;
+  border-color: #9D9D9D;
 }
 
 th,td.first {
