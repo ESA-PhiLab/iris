@@ -2,22 +2,7 @@
     <tr style="font-weight: bold;">
         <th></th>
         <th>ID</th>
-        <th colspan="4">Segmentation</th>
-        <th colspan="4">Classification</th>
-        <th colspan="4">Detection</th>
-    </tr>
-    <tr>
-        <th></th>
-        <th></th>
-        <th>Score</th>
-        <th>Count</th>
-        <th>Difficulty</th>
-        <th>Time spent (h)</th>
-        <th>Score</th>
-        <th>Count</th>
-        <th>Difficulty</th>
-        <th>Time spent (h)</th>
-        <th>Score</th>
+        <th>Agreement score</th>
         <th>Count</th>
         <th>Difficulty</th>
         <th>Time spent (h)</th>
@@ -31,28 +16,6 @@
                 <th>{{stats.segmentation.count}}</th>
                 <th>{{stats.segmentation.difficulty}}</th>
                 <th>{{stats.segmentation.time_spent}}</th>
-            {% else %}
-                <th>-</th>
-                <th>-</th>
-                <th>-</th>
-                <th>-</th>
-            {% endif %}
-            {% if "classification" in stats %}
-                <th>{{stats.classification.score}}</th>
-                <th>{{stats.classification.count}}</th>
-                <th>{{stats.classification.difficulty}}</th>
-                <th>{{stats.classification.time_spent}}</th>
-            {% else %}
-                <th>-</th>
-                <th>-</th>
-                <th>-</th>
-                <th>-</th>
-            {% endif %}
-            {% if "classification" in stats %}
-                <th>{{stats.detection.score}}</th>
-                <th>{{stats.detection.count}}</th>
-                <th>{{stats.detection.difficulty}}</th>
-                <th>{{stats.detection.time_spent}}</th>
             {% else %}
                 <th>-</th>
                 <th>-</th>

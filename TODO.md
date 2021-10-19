@@ -13,8 +13,8 @@
   - [ ] Centre all columns in admin page
   - [ ] ?? Reword "pending" and "inactive" tags... new columns ??
   - [ ] ?? Redesign table lines/style ??
-  - [ ] Remove "classification"/"detection" tabs and related columns from "images" tab
-  - [ ] Reword "Segmentation" as "Masks"
+  - [x] Remove "classification"/"detection" tabs and related columns from "images" tab
+  - [x] Reword "Segmentation" as "Masks"
 - [ ] Segmentation view (main annotation view) cleanup
   - [ ] Reword "score" to "agreement"
   - [ ] Paintbrush movement creates horizontal/vertical artefacts
@@ -30,8 +30,8 @@
 - [ ] Add helper tips for each field on Preferences tab after ~1 second mouse hover
 - [ ] Add admin tab for data statistics visualisation over the whole dataset. E.g. class pie-chart, RF confusion matrix, input dimension importance, etc.
 - [ ] Add "iris export <options> PROJECT" command to save final versions of masks, and output some python-friendly (e.g. pandas) tables to look at dataset statistics
-  
-  
+
+
 ### Big future plans:
 
 - [ ] *CNN features*: Deep CNN feature extraction for spatial information gathering at each pixel. Feature map of CNN will be interpolated back to original resolution. User will be decide how many of the features are used with a slider in the Preferences tab, as using too many would create overfitting problems.
