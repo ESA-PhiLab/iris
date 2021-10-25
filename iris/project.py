@@ -369,20 +369,20 @@ class Project:
         if 'clip' in view:
             clip = float(view['clip'])
             print(clip)
-            linear_scale = lambda z: 255*np.clip(
+            linear_scale = lambda z: np.clip(
                 (z - np.percentile(z,clip))/(np.percentile(z,100-clip)-np.percentile(z,clip)),
                 0,
                 1
                 )
         else:
-            linear_scale = lambda z: 255*(z - z.min())/(z.max()-z.min())
+            linear_scale = lambda z: (z - z.min())/(z.max()-z.min())
         rgb_bands = list(map(linear_scale, rgb_bands))
 
         if len(rgb_bands) == 1:
             rgb_bands = cm.get_cmap(view['cmap'])(rgb_bands)[..., :3]
 
         rgb_bands = np.dstack(rgb_bands)
-        return rgb_bands.astype('uint8')
+        return (255*rgb_bands).astype('uint8')
 
     def _get_render_environment(self, image):
         return {
