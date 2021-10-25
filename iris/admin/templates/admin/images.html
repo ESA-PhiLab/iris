@@ -10,7 +10,7 @@
     {% for image_id, stats in images.items() %}
         <tr>
             <td><img src={{url_for("main.thumbnail", image_id=image_id, size="50x50")}} /></td>
-            <td>{{image_id}}</td>
+            <td><button onclick="goto_image('segmentation', '{{image_id}}');">{{image_id}}</button></td>
             {% if "segmentation" in stats %}
                 <th>{{stats.segmentation.score}}</th>
                 <th>{{stats.segmentation.count}}</th>
