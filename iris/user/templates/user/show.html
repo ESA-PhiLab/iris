@@ -28,7 +28,7 @@
         <table style="width:40%">
             <tr><td>Rank:</td><td>{{user.segmentation.rank}}</td></tr>
             <tr><td>Score:</td><td>{{user.segmentation.score}}</td></tr>
-            <tr><td>Pending score:</td><td>{{user.segmentation.score_pending}}</td></tr>
+            <tr><td>Unverified score:</td><td>{{user.segmentation.score_unverified}}</td></tr>
             <tr><td>Labelled images:</td><td>{{user.segmentation.n_masks}}</td></tr>
         </table>
         {% if user.segmentation.last_masks %}
@@ -44,7 +44,7 @@
                 <tr>
                     <td><button onclick="save_mask(); goto_image('segmentation', '{{mask.image_id}}');">{{mask.image_id}}</button></td>
                     <td>{{mask.score}}
-                        {% if mask.score_pending %}<span class="tag">pending</span>{% endif %}
+                        {% if mask.score_unverified %}<span class="tag">unverified</span>{% endif %}
                     </td>
                     <td>{{mask.last_modification}}</td>
                     <td>{{mask.time_spent}}</td>

@@ -25,7 +25,7 @@
         <option value="score" {% if order_by=="score" %} selected {% endif %}>Score</option>
         <option value="difficulty" {% if order_by=="difficulty" %} selected {% endif %}>Difficulty</option>
         <option value="active" {% if order_by=="active" %} selected {% endif %}>Active status</option>
-        <option value="pending" {% if order_by=="pending" %} selected {% endif %}>Pending</option>
+        <option value="unverified" {% if order_by=="unverified" %} selected {% endif %}>Unverified</option>
         <option value="time_spent" {% if order_by=="time_spent" %} selected {% endif %}>Time spent</option>
     </select>
 
@@ -48,8 +48,8 @@
             <td>{{action.username}}</td>
             <td>
                 {{action.score}}
-                {% if action.pending %}<span class="tag">pending</span>{% endif %}
-                {% if not action.active %}<span class="tag red">inactive</span>{% endif %}
+                {% if action.unverified %}<span style="position: absolute; right: 3px; bottom: -5px;" class="tag">unverified</span>{% endif %}
+                {% if not action.active %}<span style="position: absolute; right: 3px; top: -5px;" class="tag red">inactive</span>{% endif %}
             </td>
             <td>{{action.difficulty}}</td>
             <td>{{action.last_modification}}</td>

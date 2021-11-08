@@ -154,7 +154,7 @@ def merge_masks(image_id):
         else:
             action.score = get_score(merged_mask.ravel(), final_masks[..., u].ravel())
 
-        action.pending = len(users) <= project['segmentation']['pending_threshold']
+        action.unverified = len(users) <= project['segmentation']['unverified_threshold']
 
     db.session.commit()
 

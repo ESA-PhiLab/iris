@@ -48,7 +48,7 @@ def image_info(image_id):
         for t_action in t_actions:
             if t_action.user_id == user_id:
                 data[type]['current_user_score'] = t_action.score
-                data[type]['current_user_score_pending'] = t_action.pending
+                data[type]['current_user_score_unverified'] = t_action.unverified
                 break
 
     data['id'] = image_id

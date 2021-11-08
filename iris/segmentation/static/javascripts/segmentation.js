@@ -927,7 +927,7 @@ async function fetch_server_update(update_config=true){
             colour = "";
         }
         image_score = image_score.toString();
-        if (image.segmentation.current_user_score_pending){
+        if (image.segmentation.current_user_score_unverified){
             image_score += '?';
         }
         info_box += '<span style="position: absolute; right: -12px; top: -25px; align-text: right;" class="tag '+colour+'">'+image_score+'</span>';

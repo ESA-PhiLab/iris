@@ -15,7 +15,7 @@
       "mask_encoding": "rgb",
       "mask_area": [64, 64, 448, 448],
       "score": "f1",
-      "pending_threshold": 1,
+      "unverified_threshold": 1,
       "test_images": null
   },
   "classes": [
