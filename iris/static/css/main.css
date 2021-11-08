@@ -255,6 +255,7 @@ table {
   border-color: #8D8D8D;
   margin: 2px 2px;
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.18);
+  position: relative;
 }
 
 table.striped tr:nth-child(even){
@@ -266,6 +267,8 @@ td, th {
   padding: 8px;
   border-style: outset;
   border-color: #9D9D9D;
+  text-align: center;
+  position: relative;
 }
 
 th,td.first {
@@ -323,6 +326,7 @@ td.upper-left {
 .tag{
     background-color: #000000;
     color: white;
+    opacity: 0.75;
     border: none;
     border-radius: 4px;
     font-size: 14px;
