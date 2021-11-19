@@ -24,6 +24,7 @@
 
 ### Improvements/features:
 
+- [ ] Serve images to users based on which have the fewest annotators
 - [ ] Add easily configurable customisation for the questions at the end of each image ("difficulty" etc.) in project json
 - [ ] Add configurable default model preferences in project json
 - [ ] Add helper tips for each field on Preferences tab after ~1 second mouse hover
