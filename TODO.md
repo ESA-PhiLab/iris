@@ -8,11 +8,10 @@
 
 ### Aesthetics/wording/clarity
 
-- [ ] Admin page cleanup
-  - [ ] Header (users/images/etc.) make them buttons/drop-down menu, not a table row
-  - [ ] Centre all columns in admin page
-  - [ ] ?? Reword "pending" and "inactive" tags... new columns ??
-  - [ ] ?? Redesign table lines/style ??
+- [x] Admin page cleanup
+  - [x] Centre all columns in admin page
+  - [x] ?? Reword "pending" and "inactive" tags... new columns ??
+  - [x] ?? Redesign table lines/style ??
   - [x] Remove "classification"/"detection" tabs and related columns from "images" tab
   - [x] Reword "Segmentation" as "Masks"
 - [ ] Segmentation view (main annotation view) cleanup
