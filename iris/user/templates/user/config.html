@@ -15,7 +15,7 @@
                         <input
                             class="slider-widget"
                             id="dcs-n_estimators"
-                            type="range" min="50" max="200"
+                            type="range" min="10" max="200"
                             value="{{config.segmentation.ai_model.n_estimators}}"
                             oninput="this.previousElementSibling.innerHTML = this.value">
                     </div>
@@ -28,7 +28,7 @@
                         <input
                             class="slider-widget"
                             id="dcs-max_depth"
-                            type="range" min="10" max="100"
+                            type="range" min="5" max="100"
                             value="{{config.segmentation.ai_model.max_depth}}"
                             oninput="this.previousElementSibling.innerHTML = this.value">
                     </div>
@@ -41,7 +41,7 @@
                         <input
                             class="slider-widget"
                             id="dcs-n_leaves"
-                            type="range" min="10" max="100"
+                            type="range" min="5" max="100"
                             value="{{config.segmentation.ai_model.n_leaves}}"
                             oninput="this.previousElementSibling.innerHTML = this.value">
                     </div>
