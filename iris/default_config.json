@@ -21,7 +21,6 @@
             "suppression_filter_size": 5,
             "suppression_default_class": 0,
             "use_edge_filter": false,
-            "use_context": false,
             "use_superpixels": false,
             "use_meshgrid": false,
             "meshgrid_cells": "3x3"

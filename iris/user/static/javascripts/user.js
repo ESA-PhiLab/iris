@@ -48,7 +48,6 @@ async function dialogue_config_save(){
         "n_leaves": parseInt(get_object('dcs-n_leaves').value),
         "train_ratio": get_object('dcs-train_ratio').value / 100,
         "max_train_pixels": parseInt(get_object('dcs-max_train_pixels').value),
-        "use_context": get_object('dcs-use_context').checked,
         "use_edge_filter": get_object('dcs-use_edge_filter').checked,
         "use_meshgrid": get_object('dcs-use_meshgrid').checked,
         "meshgrid_cells": get_object('dcs-meshgrid_cells').value,

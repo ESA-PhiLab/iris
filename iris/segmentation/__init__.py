@@ -341,9 +341,6 @@ def predict_mask(image_id):
         ])
         inputs.append(edges)
 
-    if config['ai_model']['use_context']:
-        ...
-
     if config['ai_model']['use_meshgrid']:
         if config['ai_model']['meshgrid_cells'] == "pixelwise":
             x_size, y_size = image.shape[0], image.shape[1]
