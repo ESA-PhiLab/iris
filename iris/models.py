@@ -79,7 +79,7 @@ class Action(JsonSerializable, db.Model):
     time_spent = db.Column(db.Interval, default=timedelta())
     score = db.Column(db.Integer, default=0)
     unverified = db.Column(db.Boolean, default=True)
-    active = db.Column(db.Boolean, default=False)
+    complete = db.Column(db.Boolean, default=False)
     notes = db.Column(db.String(256), nullable=True)
     # Difficulty goes from 1 to 5, 3 is average
     difficulty = db.Column(db.Integer, index=True, default=3)

@@ -75,9 +75,6 @@
         <li class="toolbutton icon_button" id='tb_save_mask' onclick="save_mask();">
             <img src={{url_for('segmentation.static', filename='icons/save_mask.png')}} class="icon" />
         </li>
-        <li class="toolbutton icon_button" id='tb_activate_action' onclick="activate_action(!vars.action_active);">
-            <img src={{url_for('segmentation.static', filename='icons/ok.png')}} class="icon" />
-        </li>
         <li class="toolbutton icon_button" id='tb_undo' onclick="undo();">
             <img src={{url_for('segmentation.static', filename='icons/undo.png')}} class="icon" />
         </li>
@@ -175,11 +172,11 @@
             <div class="info-box-top">{{image_id}}</div>
             <div class="info-box-bottom">image-ID</div>
         </div>
-        <div class="inactive-statusbutton">
+        <div class="complete-statusbutton">
             <div id="different-classes" class="info-box-top">0</div>
             <div class="info-box-bottom">Classes</div>
         </div>
-        <div class="inactive-statusbutton">
+        <div class="complete-statusbutton">
                 <div id="drawn-pixels" class="info-box-top">0</div>
                 <div class="info-box-bottom">Drawn pixels</div>
         </div>

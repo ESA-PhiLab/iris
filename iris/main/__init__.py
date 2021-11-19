@@ -73,8 +73,8 @@ def set_action_info(action_id):
             action.difficulty = int(v)
         elif k == "notes":
             action.notes = v
-        elif k == "active":
-            action.active = bool(v)
+        elif k == "complete":
+            action.complete = bool(v)
         else:
             return flask.make_response(f"Unknown parameter <i>{k}</i>!", 400)
 

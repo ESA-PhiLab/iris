@@ -91,7 +91,7 @@ button,.button {
     align-items: stretch;
 }
 
-.toolbutton,.inactive-toolbutton,.statusbutton,.inactive-statusbutton {
+.toolbutton,.complete-toolbutton,.statusbutton,.complete-statusbutton {
   background-color: #ffffff;
   outline: none;
   border: 2px;
@@ -125,7 +125,7 @@ img {
     padding: 0px;
 }
 
-.inactive-toolbutton,.inactive-statusbutton{
+.complete-toolbutton,.complete-statusbutton{
     cursor: default;
 }
 
@@ -150,7 +150,7 @@ img {
     font-size: 18px;
 }
 
-.statusbutton,.inactive-statusbutton {
+.statusbutton,.complete-statusbutton {
   padding: 10px;
   overflow: visible;
   z-index: 30;
