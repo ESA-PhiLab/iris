@@ -1,4 +1,5 @@
 {
+    "port": 5000,
     "authentication_required": true,
     "images": {
         "thumbnails": false,
@@ -7,7 +8,7 @@
     "segmentation": {
         "mask_encoding": "rgb",
         "score": "f1",
-        "pending_threshold": 1,
+        "unverified_threshold": 1,
         "test_images": null,
         "ai_model": {
             "bands": null,

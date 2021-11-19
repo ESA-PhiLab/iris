@@ -56,12 +56,12 @@ class User(JsonSerializable, db.Model):
         masks = Action.query.filter_by(user=self, type="segmentation").all()
         data['segmentation'] = {
             'score': 0,
-            'score_pending': 0,
+            'score_unverified': 0,
             'n_masks': len(masks)
         }
         for mask in masks:
-            if mask.pending:
-                data['segmentation']['score_pending'] += mask.score
+            if mask.unverified:
+                data['segmentation']['score_unverified'] += mask.score
             else:
                 data['segmentation']['score'] += mask.score
 
@@ -78,8 +78,8 @@ class Action(JsonSerializable, db.Model):
     )
     time_spent = db.Column(db.Interval, default=timedelta())
     score = db.Column(db.Integer, default=0)
-    pending = db.Column(db.Boolean, default=True)
-    active = db.Column(db.Boolean, default=False)
+    unverified = db.Column(db.Boolean, default=True)
+    complete = db.Column(db.Boolean, default=False)
     notes = db.Column(db.String(256), nullable=True)
     # Difficulty goes from 1 to 5, 3 is average
     difficulty = db.Column(db.Integer, index=True, default=3)

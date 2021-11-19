@@ -91,7 +91,7 @@ button,.button {
     align-items: stretch;
 }
 
-.toolbutton,.inactive-toolbutton,.statusbutton,.inactive-statusbutton {
+.toolbutton,.complete-toolbutton,.statusbutton,.complete-statusbutton {
   background-color: #ffffff;
   outline: none;
   border: 2px;
@@ -125,7 +125,7 @@ img {
     padding: 0px;
 }
 
-.inactive-toolbutton,.inactive-statusbutton{
+.complete-toolbutton,.complete-statusbutton{
     cursor: default;
 }
 
@@ -150,7 +150,7 @@ img {
     font-size: 18px;
 }
 
-.statusbutton,.inactive-statusbutton {
+.statusbutton,.complete-statusbutton {
   padding: 10px;
   overflow: visible;
   z-index: 30;
@@ -252,14 +252,23 @@ button:hover,.button:hover,.toolbutton:hover,.statusbutton:hover{
 table {
   /* width: 100%; */
   border-collapse: collapse;
-  border-style: hidden;
+  border-color: #8D8D8D;
   margin: 2px 2px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.18);
+  position: relative;
+}
+
+table.striped tr:nth-child(even){
+  background-color: #FBF8E0; /* Cream rows */
 }
 
 td, th {
   border: 1px solid #000;
   padding: 8px;
   border-style: outset;
+  border-color: #9D9D9D;
+  text-align: center;
+  position: relative;
 }
 
 th,td.first {
@@ -317,6 +326,7 @@ td.upper-left {
 .tag{
     background-color: #000000;
     color: white;
+    opacity: 0.75;
     border: none;
     border-radius: 4px;
     font-size: 14px;

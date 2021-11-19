@@ -25,13 +25,13 @@
     <input id="ascending" type="checkbox" {% if ascending %} checked {% endif %} onclick="update_page();">Ascending?</input>
 </p>
 
-<table style="width: 100%;">
+<table class=striped style="width: 100%;">
     <tr style="font-weight: bold;">
         <td>ID</td>
         <td>Username</td>
-        <td>Segmentation score</td>
-        <td>Segmentation masks</td>
-        <td>E-Mail address</td>
+        <td>Score</td>
+        <td>Masks</td>
+        <td>Email address</td>
         <td>Creation date</td>
         <td>Admin</td>
     </tr>
@@ -39,10 +39,10 @@
         <tr>
             <td>{{user.id}}</td>
             <td>
-                {% if user.admin %}<span class="tag">admin</span>{% endif %}
                 {{user.name}}
+                {% if user.admin %}<span style="position: absolute; right: 3px;" class="tag">admin</span>{% endif %}
             </td>
-            <td>{{user.segmentation.score}} ({{user.segmentation.score_pending}})</td>
+            <td>{{user.segmentation.score}} ({{user.segmentation.score_unverified}})</td>
             <td>{{user.segmentation.n_masks}}</td>
             <td>{{user.email}}</td>
             <td>{{user.created}}</td>

@@ -12,9 +12,6 @@ let commands = {
     "save_mask": {
         "key": "S", "description": "Save this mask",
     },
-    "activate_action": {
-        "description": "Activate if you think your mask is ready for evaluation.",
-    },
     "undo": {
         "key": "U", "description": "Undo last modification",
     },
@@ -927,7 +924,7 @@ async function fetch_server_update(update_config=true){
             colour = "";
         }
         image_score = image_score.toString();
-        if (image.segmentation.current_user_score_pending){
+        if (image.segmentation.current_user_score_unverified){
             image_score += '?';
         }
         info_box += '<span style="position: absolute; right: -12px; top: -25px; align-text: right;" class="tag '+colour+'">'+image_score+'</span>';
@@ -1207,7 +1204,7 @@ async function dialogue_before_next_image(){
     </div>
     <p>Do you have any comments about this segmentation (max. 256 characters)?</p>
     <textarea id="dbni-notes" style="width: 100%">${action.notes}</textarea>
-    <p><input id="dbni-activate_action" type="checkbox" ${((action.active) ? 'checked' : '')}> I think this mask is complete and ready for evaluation.</p>
+    <p><input id="dbni-complete_action" type="checkbox" ${((action.complete) ? 'checked' : '')}> I think this mask is complete and ready for evaluation.</p>
     <p>
     <button onclick='dialogue_before_next_image_save_and_continue(${action.id});'>Save and continue</button>
     <button onclick='hide_dialogue();'>Go back to the mask</button>
@@ -1220,10 +1217,12 @@ function dialogue_before_next_image_save_and_continue(action_id){
     vars.show_dialogue_before_next_image=false;
 
     action_info = {
-        "active": get_object('dbni-activate_action').checked,
+        "complete": get_object('dbni-complete_action').checked,
         "difficulty": parseInt(get_object('dbni-difficulty').value),
         "notes": get_object('dbni-notes').value
     }
+
+    console.log('action',action_info.complete)
 
     fetch(`${vars.url.main}set_action_info/${action_id}`, {
         method: "POST",

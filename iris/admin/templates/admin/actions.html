@@ -24,18 +24,19 @@
         <option value="user_id" {% if order_by=="user_id" %} selected {% endif %}>User</option>
         <option value="score" {% if order_by=="score" %} selected {% endif %}>Score</option>
         <option value="difficulty" {% if order_by=="difficulty" %} selected {% endif %}>Difficulty</option>
-        <option value="active" {% if order_by=="active" %} selected {% endif %}>Active status</option>
-        <option value="pending" {% if order_by=="pending" %} selected {% endif %}>Pending</option>
+        <option value="complete" {% if order_by=="complete" %} selected {% endif %}>Active status</option>
+        <option value="unverified" {% if order_by=="unverified" %} selected {% endif %}>Unverified</option>
         <option value="time_spent" {% if order_by=="time_spent" %} selected {% endif %}>Time spent</option>
     </select>
 
     <input id="ascending" type="checkbox" {% if ascending %} checked {% endif %} onclick="update_page();">Ascending?</input>
 </p>
 
-<table style="width: 100%">
+<table class=striped style="width: 100%">
     <tr style="font-weight: bold;">
         <td>Image</td>
         <td>User</td>
+        <td>Completion status</td>
         <td>Score</td>
         <td>Difficulty</td>
         <td>Last modification</td>
@@ -47,9 +48,14 @@
             <td><button onclick="goto_image('segmentation', '{{action.image_id}}');">{{action.image_id}}</button></td>
             <td>{{action.username}}</td>
             <td>
-                {{action.score}}
-                {% if action.pending %}<span class="tag">pending</span>{% endif %}
-                {% if not action.active %}<span class="tag red">inactive</span>{% endif %}
+                {% if action.complete %}complete
+                {% else %}incomplete
+                {% endif %}
+            </td>
+            <td>
+                {% if not action.unverified %}{{action.score}}
+                {% else %}Needs more users
+                {% endif %}
             </td>
             <td>{{action.difficulty}}</td>
             <td>{{action.last_modification}}</td>
