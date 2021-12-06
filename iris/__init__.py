@@ -82,7 +82,14 @@ def create_default_admin(app, db):
 
     print('Welcome to IRIS! No admin user was detected so please enter a new admin password.')
     password_again = None
-    password = getpass('New admin password: ')
+    password_valid = False
+    while not password_valid:
+        password = getpass('New admin password: ')
+        if password=='' or ' ' in password:
+            print('Password cannot be blank, and must not contain a space.')
+        else:
+            password_valid = True
+
     while password != password_again:
         password_again = getpass('Retype admin password: ')
 

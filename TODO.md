@@ -4,8 +4,8 @@
 
 - [ ] Time spent is not logged or reported
 - [ ] Contrast/Inversion buttons toggle on but do not toggle off via mouseclick
-- [ ] User "admin" can revoke their admin status, this should not be possible
-- [ ] Prompt to create password for user "admin" accepts blank strings, making it impossible to then log in
+- [x] User "admin" can revoke their admin status, this should not be possible
+- [x] Prompt to create password for user "admin" accepts blank strings, making it impossible to then log in
 
 
 ### Aesthetics/wording/clarity
