@@ -26,7 +26,7 @@ def parse_cmd_line():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "mode", type=str,
-        help="Specify the mode you want to start iris, can be either *segmentation* or *demo*."
+        help="Specify the mode you want to start iris, can be either *label* or *demo*."
     )
     parser.add_argument(
         "project", type=str, nargs='?',
