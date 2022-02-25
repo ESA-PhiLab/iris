@@ -11,3 +11,16 @@ Tool for manual image segmentation and classification of satellite imagery (or i
 * Multi-user support: work in a team on your dataset and merge the results
 
 **Visit the official iris Github page:  https://github.com/ESA-PhiLab/iris**
+
+
+## Use
+
+### setup projects
+
+Make projects:
+
+    python oxeobin/cli.py make-project
+    
+Sync projects:
+
+    python oxeobin/cli.py sync-project /home/lucas/iris/projects/s2-test-sentinel-2 gs://oxeo-water/prod test-s2-gt

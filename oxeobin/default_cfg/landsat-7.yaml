@@ -1,0 +1,79 @@
+authentication_required: true
+classes:
+- colour:
+  - 255
+  - 255
+  - 0
+  - 0
+  description: Clear pixels where water is not present.
+  name: Not-Water
+  user_colour:
+  - 0
+  - 255
+  - 255
+  - 70
+- colour:
+  - 0
+  - 140
+  - 255
+  - 70
+  description: Clear pixels where water is present.
+  name: Water
+- colour:
+  - 0
+  - 255
+  - 0
+  - 70
+  description: Opaque clouds occluding the land or water beneath.
+  name: Thick Cloud
+- colour:
+  - 0
+  - 0
+  - 0
+  - 70
+  description: Pixels where no data was captured.
+  name: No Data
+images:
+  metadata: images/{id}/metadata.json
+  path:
+    landsat_7: images/{id}/landsat-7.npy
+  shape:
+  - 666
+  - 666
+  thumbnails: images/{id}/thumbnail.png
+name: MyProject-landsat-7
+segmentation:
+  mask_area:
+  - 0
+  - 0
+  - 666
+  - 666
+  mask_encoding: rgb
+  path: images/{id}/mask.png
+  score: f1
+  test_images: null
+  unverified_threshold: 1
+view_groups:
+  default:
+  - Cirrus
+  - RGB
+  - NDWI
+views:
+  Cirrus:
+    cmap: jet
+    data: $landsat_7.B5**0.8*5
+    description: Cirrus and high clouds are red.
+    type: image
+  NDWI:
+    cmap: jet
+    data: ($landsat_7.B3 - $landsat_7.B5)/($landsat_7.B3 + $landsat_7.B5)
+    description: Normalised-Difference Water Index
+    type: image
+  RGB:
+    clip: '1'
+    data:
+    - $landsat_7.B3
+    - $landsat_7.B2
+    - $landsat_7.B1
+    description: Normal RGB image.
+    type: image
