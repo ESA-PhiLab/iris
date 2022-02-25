@@ -13,3 +13,6 @@ zarr
 gcsfs
 tqdm
 gunicorn
+pandas
+shapely
+pyproj
