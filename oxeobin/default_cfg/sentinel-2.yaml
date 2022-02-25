@@ -1,0 +1,116 @@
+authentication_required: true
+classes:
+- colour:
+  - 255
+  - 255
+  - 0
+  - 0
+  description: Clear pixels where water is not present.
+  name: Not-Water
+  user_colour:
+  - 0
+  - 255
+  - 255
+  - 70
+- colour:
+  - 0
+  - 140
+  - 255
+  - 70
+  description: Clear pixels where water is present.
+  name: Water
+- colour:
+  - 0
+  - 255
+  - 0
+  - 70
+  description: Opaque clouds occluding the land or water beneath.
+  name: Thick Cloud
+- colour:
+  - 0
+  - 0
+  - 0
+  - 70
+  description: Pixels where no data was captured.
+  name: No Data
+images:
+  metadata: images/{id}/metadata.json
+  path:
+    sentinel_2: images/{id}/sentinel-2.npy
+  shape:
+  - 1000
+  - 1000
+  thumbnails: images/{id}/thumbnail.png
+name: MyProject-sentinel-2
+segmentation:
+  mask_area:
+  - 0
+  - 0
+  - 1000
+  - 1000
+  mask_encoding: rgb
+  path: images/{id}/mask.png
+  score: f1
+  test_images: null
+  unverified_threshold: 1
+view_groups:
+  default:
+  - Cirrus
+  - RGB
+  - NDWI
+views:
+  Bing:
+    description: Aerial Imagery
+    type: bingmap
+  Cirrus:
+    cmap: jet
+    data: $sentinel_2.B11**0.8*5
+    description: Cirrus and high clouds are red.
+    type: image
+  Cirrus-Edges:
+    cmap: gray
+    data: edges($sentinel_2.B11**0.8*5)*1.5
+    description: Edges in the cirrus band
+    type: image
+  NDWI:
+    cmap: jet
+    data: ($sentinel_2.B3 - $sentinel_2.B8)/($sentinel_2.B3 + $sentinel_2.B8)
+    description: Normalised-Difference Water Index
+    type: image
+  Edges:
+    cmap: gray
+    data: edges($sentinel_2.B2+$sentinel_2.B3+$sentinel_2.B4)
+    description: Edges in the panchromatic bands
+    type: image
+  NRGB:
+    data:
+    - $sentinel_2.B5*1.5
+    - $sentinel_2.B3*1.5
+    - $sentinel_2.B2*1.5
+    description: Near-Infrared RGB image.
+    type: image
+  RGB:
+    clip: '1'
+    data:
+    - $sentinel_2.B4
+    - $sentinel_2.B3
+    - $sentinel_2.B2
+    description: Normal RGB image.
+    type: image
+  Snow:
+    data:
+    - $sentinel_2.B1
+    - $sentinel_2.B12
+    - $sentinel_2.B13
+    description: Small ice crystals in high-level clouds appear reddish-orange or
+      peach, and thick ice snow looks vivid red (or red-orange). Bare soil appears
+      bright cyan and vegetation seem greenish in the image. Water on the ground is
+      very dark as it absorbs the SWIR and the red, but small (liquid) water drops
+      in the clouds scatter the light equally in both visible and the SWIR, and therefore
+      it appears white. Water Sediments are displayed as dark red.
+    type: image
+  Superpixels:
+    cmap: jet
+    data: superpixels($sentinel_2.B2+$sentinel_2.B3+$sentinel_2.B4, sigma=4, min_size=100)
+    description: Superpixels in the panchromatic bands
+    type: image
