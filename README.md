@@ -19,7 +19,7 @@ Tool for manual image segmentation and classification of satellite imagery (or i
 
 Make projects:
 
-    python oxeobin/cli.py make-project
+    python oxeobin/cli.py make-project landsat-8 18_L_10000_24_895,18_L_10000_25_891 test 10 gs://oxeo-water/prod 8000
     
 Sync projects:
 

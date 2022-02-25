@@ -11,13 +11,13 @@ def cli():
 @click.argument('constellation')
 @click.argument('tiles')
 @click.argument('name')
-@click.argument('n_samples')
+@click.argument('n_samples', type=int)
 @click.argument('storage_root')
 @click.argument('port')
 @click.option('--sampling', type=str, default='random')
 @click.option('--projects_root', type=str, default=os.path.join(os.getcwd(),'projects'))
 @click.option('--cfg', default=None)
-def make_project(constellation, tiles, name, n_samples, storage_root, host, sampling, projects_root, cfg):
+def make_project(constellation, tiles, name, n_samples, storage_root, port, sampling, projects_root, cfg):
     """ 
     Set up a new labelling project.
     
@@ -47,7 +47,7 @@ def make_project(constellation, tiles, name, n_samples, storage_root, host, samp
         name=name,
         n_samples=n_samples,
         storage_root=storage_root,
-        host=host,
+        port=port,
         sampling=sampling,
         projects_root=projects_root,
         cfg=cfg

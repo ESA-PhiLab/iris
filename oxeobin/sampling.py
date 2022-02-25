@@ -17,7 +17,7 @@ NORM_CONSTELLATION = {
     'sentinel-2':6000,
     'landsat-8':18000,
     'landsat-7':200,
-    'landsat-5':{0:250,1:200,2:200,3:200,4:200,5:200,6:200,7:200},
+    'landsat-5':{0:340,1:200,2:200,3:200,4:200,5:200,6:200,7:200},
 }
 
 VIS_BANDS = {
@@ -105,7 +105,7 @@ def transfer_data(storage_root,records, image_root, constellation):
         fname = '-'.join([str(r['idx']), r['tile'], str(r['tile_idx']), r['datetime'].isoformat()[0:10]])
         
         # get data
-        data = z_tiles[r['tile']][r['tile_idx'],:,:,:].transpose(1,2,0)
+        data = z_tiles[r['tile']][r['tile_idx'],:,:,:].transpose(1,2,0).astype(float)
 
         
         # norm data

@@ -66,7 +66,7 @@ views:
     type: image
   NDWI:
     cmap: jet
-    data: ($landsat_7.B3 - $landsat_7.B5)/($landsat_7.B3 + $landsat_7.B5)
+    data: ($landsat_7.B2 - $landsat_7.B4)/($landsat_7.B2 + $landsat_7.B4)
     description: Normalised-Difference Water Index
     type: image
   RGB:

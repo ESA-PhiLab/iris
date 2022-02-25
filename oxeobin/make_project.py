@@ -19,6 +19,7 @@ class ProjectBuilder:
         name: str,
         n_samples: int,
         storage_root: str,
+        port: int = 8000,
         sampling: str = 'random',
         projects_root: str = os.path.join(os.getcwd(),'projects'),
         cfg: Optional[str] = None,
@@ -80,7 +81,7 @@ if __name__=="__main__":
     ProjectBuilder(
         constellation='sentinel-2',
         tiles=["18_L_10000_24_895","18_L_10000_25_891"],
-        name='s2-test',
+        name='test',
         n_samples=10,
         storage_root='gs://oxeo-water/prod',
     ).build()
