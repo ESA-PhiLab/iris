@@ -54,9 +54,9 @@ def run_app():
     # webbrowser.open('http://localhost:5000/segmentation')
     app.run(debug=project.debug, host=project['host'], port=project['port'])
 
-def create_app(project_file, args):
+def create_app(project_file):
     project.load_from(project_file)
-    project.debug = args['debug']
+    project.debug = False
 
     # Create the flask app:
     app = flask.Flask(__name__)
@@ -121,15 +121,12 @@ def register_extensions(app):
     from iris.user import user_app
     app.register_blueprint(user_app, url_prefix="/user")
 
-if len(sys.argv) > 1:
-    args = parse_cmd_line()
+if os.environ.get("PROJECTFILE") is None:
+    project_file = get_demo_file()
 else:
-    args = {
-        'debug': False
-    }
-    args['project'] = get_demo_file()
+    project_file = os.environ.get("PROJECTFILE")
 
-app, db = create_app(args['project'], args)
+app, db = create_app(project_file)
 from iris.models import User, Action
 
 db.create_all()
