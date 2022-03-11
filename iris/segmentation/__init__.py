@@ -61,7 +61,8 @@ def next_image():
     project.set_image_seed(user.image_seed)
 
     image_id = project.get_next_image(
-        flask.request.args.get('image_id', project.get_start_image_id())
+        flask.request.args.get('image_id', project.get_start_image_id()),
+        user
     )
 
     return flask.redirect(
