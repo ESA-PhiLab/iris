@@ -3,7 +3,7 @@ from random import randint
 
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from iris import db, project
+from iris import db
 
 class JsonSerializable:
     def to_json(self):
