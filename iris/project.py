@@ -461,7 +461,7 @@ class Project:
         with open(filename, 'w') as stream:
             json.dump(user_config, stream)
 
-    def get_next_image(self, image_id):
+    def get_next_image(self, image_id, user_id):
 
         original_index = self.image_ids.index(image_id)
         index = self.image_order.index(original_index)
@@ -471,7 +471,7 @@ class Project:
         # when a user asks for the next image. Then it will swap this image
         # into the existing order to make it come up next.
         if self.config['segmentation']['prioritise_unmarked_images']:
-            from iris.models import Action, User
+            from iris.models import Action
             actions = Action.query.all()
             # Same order as self.image_order (NOT self.image_ids)
             mask_count = [0]*len(self.image_order)
@@ -484,6 +484,17 @@ class Project:
                             )
                             )
                             ] += 1
+
+                if user_id.id == action.user_id:
+                    print('HIT')
+                    mask_count[
+                        self.image_order.index(
+                            self.image_ids.index(
+                                action.image_id
+                                )
+                                )
+                                ] += 9999
+
             min_labellers = min(mask_count)
             # iterate through images until one is found with fewest existing masks
             next_image_found = False
