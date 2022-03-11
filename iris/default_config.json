@@ -8,6 +8,7 @@
     "segmentation": {
         "mask_encoding": "rgb",
         "score": "f1",
+        "prioritise_unmarked_images":true,
         "unverified_threshold": 1,
         "test_images": null,
         "ai_model": {
