@@ -366,7 +366,6 @@ class Project:
         # Stretch between 0->1, with percentile clip if specified in view
         if 'clip' in view:
             clip = float(view['clip'])
-            print(clip)
             linear_scale = lambda z: np.clip(
                 (z - np.percentile(z,clip))/(np.percentile(z,100-clip)-np.percentile(z,clip)),
                 0,
@@ -486,7 +485,6 @@ class Project:
                             ] += 1
 
                 if user_id.id == action.user_id:
-                    print('HIT')
                     mask_count[
                         self.image_order.index(
                             self.image_ids.index(
