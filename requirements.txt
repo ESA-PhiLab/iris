@@ -1,7 +1,7 @@
 flask==2.0.2
 flask_compress==1.10.1
 flask-sqlalchemy==2.5.1
-numpy==1.21.2
+numpy==1.22.0
 pyyaml==5.4.1
 lightgbm==3.3.0
 rasterio==1.2.10
