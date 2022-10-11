@@ -37,7 +37,7 @@ def parse_cmd_line():
         help="start the app in debug mode"
     )
     parser.add_argument(
-        "-p","--production", action="store_true"
+        "-p","--production", action="store_true",
         help="Use production WSGI server")
     args = parser.parse_args()
 
