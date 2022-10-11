@@ -36,6 +36,7 @@ def parse_cmd_line():
         "-d", "--debug", action="store_true",
         help="start the app in debug mode"
     )
+    parser.add_argument("-p","--production", action="store_true")
     args = parser.parse_args()
 
     if args.mode == "demo":
@@ -50,9 +51,13 @@ def parse_cmd_line():
 
 def run_app():
     create_default_admin(app, db)
-
-    # webbrowser.open('http://localhost:5000/segmentation')
-    app.run(debug=project.debug, host=project['host'], port=project['port'])
+    if args['production']:
+        import gevent.pywsgi
+        app_server = gevent.pywsgi.WSGIServer((project['host'], project['port']), app)
+        print('IRIS is being served in production mode at http://{}:{}'.format(project['host'], project['port']))
+        app_server.serve_forever()
+    else:
+        app.run(debug=project.debug, host=project['host'], port=project['port'])
 
 def create_app(project_file, args):
     project.load_from(project_file)
