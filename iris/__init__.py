@@ -36,7 +36,9 @@ def parse_cmd_line():
         "-d", "--debug", action="store_true",
         help="start the app in debug mode"
     )
-    parser.add_argument("-p","--production", action="store_true")
+    parser.add_argument(
+        "-p","--production", action="store_true"
+        help="Use production WSGI server")
     args = parser.parse_args()
 
     if args.mode == "demo":
