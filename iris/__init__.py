@@ -129,9 +129,6 @@ def register_extensions(app):
 if len(sys.argv) > 1:
     args = parse_cmd_line()
 else:
-    args = {
-        'debug': False
-    }
     args['project'] = get_demo_file()
 
 app, db = create_app(args['project'], args)
