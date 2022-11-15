@@ -5,7 +5,6 @@ from os.path import dirname, join
 
 import flask
 from sqlalchemy import func
-from validate_email import validate_email
 
 from iris import db
 from iris.models import Action, User
@@ -65,11 +64,7 @@ def get(user_id):
     if current_user_id == user_id or User.query.get(current_user_id).admin:
         # Only an admin or the user themselves can see the full data:
         json_user['config'] = project.get_user_config(user_id)
-
-        return flask.jsonify(json_user)
-    else:
-        del json_user['email']
-        return flask.jsonify(json_user)
+    return flask.jsonify(json_user)
 
 @user_app.route('/set/<user_id>', methods=['POST'])
 @requires_auth
@@ -172,11 +167,7 @@ def register():
         return flask.make_response('Username is a required field!', 400)
     if User.query.filter(User.name == data['username']).first() is not None:
         return flask.make_response('Username already exists!', 400)
-    if data.get("email", False):
-        if len(data['email']) > 128:
-            return flask.make_response('E-mail address is too long!', 400)
-        if User.query.filter(User.email == data['email']).first() is not None:
-            return flask.make_response('E-mail already exists!', 400)
+
     if not data['password']:
         return flask.make_response('Password is a required field!', 400)
     if len(data['password']) > 64:
@@ -184,7 +175,6 @@ def register():
 
     new_user = User(
         name=data['username'],
-        email=data['email'],
         admin=False,
     )
     new_user.set_password(data['password'])

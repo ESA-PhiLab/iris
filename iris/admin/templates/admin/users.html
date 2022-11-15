@@ -31,7 +31,6 @@
         <td>Username</td>
         <td>Score</td>
         <td>Masks</td>
-        <td>Email address</td>
         <td>Creation date</td>
         <td>Admin</td>
     </tr>
@@ -44,7 +43,6 @@
             </td>
             <td>{{user.segmentation.score}} ({{user.segmentation.score_unverified}})</td>
             <td>{{user.segmentation.n_masks}}</td>
-            <td>{{user.email}}</td>
             <td>{{user.created}}</td>
             <td>
                 {% if user.name != "admin"%}

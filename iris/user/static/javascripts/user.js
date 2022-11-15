@@ -143,10 +143,6 @@ function dialogue_register(){
             <td><b>Retype Password:</b></td>
             <td><input type=password id="register-password-again"></td>
         </tr>
-        <tr>
-            <td><b>E-Mail (optional for password recovery):</b></td>
-            <td><input type=email id="register-email"></td>
-        </tr>
     </table>
     <p style="color: red; font-weight: bold;" id="register-error"></p>
     <button onclick="register();">Register</button>
@@ -159,7 +155,6 @@ async function register(){
     let username = get_object('register-username');
     let password = get_object('register-password');
     let password_again = get_object('register-password-again');
-    let email = get_object('register-email');
 
     if (password.value != password_again.value){
         get_object('register-error').innerHTML = 'The passwords are not identical!';
@@ -171,7 +166,6 @@ async function register(){
         body: JSON.stringify({
             "username": username.value,
             "password": password.value,
-            "email": email.value,
         })
     });
 

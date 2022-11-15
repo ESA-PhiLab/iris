@@ -23,7 +23,6 @@ class JsonSerializable:
 class User(JsonSerializable, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(64), index=True, unique=True)
-    email = db.Column(db.String(128), index=True, nullable=True)
     password_hash = db.Column(db.String(128), default="")
     created = db.Column(
         db.DateTime, index=True, default=datetime.utcnow
