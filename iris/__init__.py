@@ -78,7 +78,7 @@ def create_app(project_file, args):
     # Database stuff:
     app.config['SQLALCHEMY_DATABASE_URI'] = \
         'sqlite:///' + join(project['path'], 'iris.db')
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
     # Register the extensions:
     db.init_app(app)
