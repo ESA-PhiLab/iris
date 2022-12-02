@@ -1,6 +1,5 @@
 {
   "name": "cloud-segmentation",
-  "authentication_required": true,
   "images": {
       "path": {
           "Sentinel1": "images/{id}/s1.tif",

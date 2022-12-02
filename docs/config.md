@@ -4,7 +4,6 @@ To use IRIS, you need to define a project file in JSON or YAML format. A full-wo
 
 - [Project file configurations](#project-file-configurations)
   * [name](#name)
-  * [authentication_required](#authentication_required)
   * [port](#port)
   * [host](#host)
   * [images](#images)
@@ -18,14 +17,6 @@ Optional name for this project.
 <i>Example:</i>
 ```
 "name": "cloud-segmentation"
-```
-
-## authentication_required
-Defines whether you want to use IRIS with or without user authentication (latter is not yet implemented).
-
-<i>Example:</i>
-```
-"authentication_required": true
 ```
 
 ## port
