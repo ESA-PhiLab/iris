@@ -7,11 +7,10 @@ import sys
 import webbrowser
 
 import flask
-from flask_sqlalchemy import SQLAlchemy
 import numpy as np
 import yaml
 
-import iris.extensions
+import iris.extensions import db
 from iris.project import project
 
 def get_demo_file(example=None):
@@ -67,6 +66,9 @@ def create_app(project_file, args):
 
     # Create the flask app:
     app = flask.Flask(__name__)
+
+    #TODO: Move app.config stuff to a config pyfile ?
+
     # app.config['TESTING'] = True
     app.config['EXPLAIN_TEMPLATE_LOADING'] = True
 
@@ -77,9 +79,11 @@ def create_app(project_file, args):
     app.config['SQLALCHEMY_DATABASE_URI'] = \
         'sqlite:///' + join(project['path'], 'iris.db')
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
-    db = SQLAlchemy(app)
 
-    return app, db
+    # Register the extensions:
+    db.init_app(app)
+
+    return app
 
 def create_default_admin(app, db):
     # Add a default admin account:
