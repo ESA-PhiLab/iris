@@ -1,10 +1,12 @@
 # Project file configurations
 
-To use iris, you need to define a project file in JSON or YAML format. A full-working example can be found [here](../demo/cloud-segmentation.json).
+To use IRIS, you need to define a project file in JSON or YAML format. A full-working example can be found [here](../demo/cloud-segmentation.json).
 
 - [Project file configurations](#project-file-configurations)
   * [name](#name)
-  * [authentication_required](#authentication-required)
+  * [authentication_required](#authentication_required)
+  * [port](#port)
+  * [host](#host)
   * [images](#images)
   * [classes](#classes)
   * [views](#views)
@@ -26,8 +28,21 @@ Defines whether you want to use IRIS with or without user authentication (latter
 "authentication_required": true
 ```
 
+## port
+Set the port which IRIS is served on. Defaults to 5000.
+<i>Example:</i>
+```
+"port": 6060
+```
+## host
+Set the host IP address for IRIS. The default value 127.0.0.1 means IRIS will only be visible on the local machine. If you want to expose IRIS publicly as a web application, we recommend setting the host to 0.0.0.0 and adjusting your router / consulting with your network administrators accordingly.
+<i>Example:</i>
+```
+"host": 0.0.0.0
+```
+
 ## images
-A dictionary which defines the inputs.
+A dictionary which defines the inputs. 
 
 <i>Example:</i>
 ```
@@ -145,7 +160,7 @@ Since this app was developed for multi-spectral satellite data (i.e. images with
     </li>
 </ul>
 
-Iris can display up to 4 views until v0.1. From v0.2 it can display an arbitrary number of views.
+IRIS can display up to 4 views until v0.1. From v0.2 it can display an arbitrary number of views.
 
 <i>Example:</i>
 ```
@@ -186,7 +201,7 @@ Iris can display up to 4 views until v0.1. From v0.2 it can display an arbitrary
 ```
 
 ## view_groups
-Views are displayed in groups. In the GUI of iris, you will be able to switch between different groups quickly.
+Views are displayed in groups. In the GUI of IRIS, you will be able to switch between different groups quickly.
 The group `default` must always be set, further groups are optional.
 
 ```
