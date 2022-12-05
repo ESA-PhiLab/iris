@@ -57,12 +57,6 @@ class Project:
         if 'name' not in self.config:
             self.config['name'] = ".".join(basename(filename).split(".")[:-1])
 
-        if isinstance(self['authentication_required'], str):
-            if self['authentication_required'].lower == 'false':
-                self['authentication_required'] = False
-            else:
-                self['authentication_required'] = True
-
         self._init_paths_and_files(filename)
 
         # Default seed

@@ -14,7 +14,7 @@ setup(
     name='iris',
     description="Tool for manual image annotation",
     packages=find_packages(),
-    python_requires="~=3.6",
+    python_requires=">=3.8",
     include_package_data=True,
     entry_points={
         "console_scripts": "iris = iris:run_app",

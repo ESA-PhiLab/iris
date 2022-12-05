@@ -15,7 +15,7 @@ class TestCore:
         addresses = [
             # admin
             'admin/users', 'admin/images', 'admin/actions/segmentation',
-            'admin/actions/classification', 'admin/actions/detection',
+            'admin/actions/detection',
             # user
             'user/get/current', 'user/show/current', 'user/config',
             'user/save_config',

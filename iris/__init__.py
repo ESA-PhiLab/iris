@@ -7,11 +7,10 @@ import sys
 import webbrowser
 
 import flask
-from flask_sqlalchemy import SQLAlchemy
 import numpy as np
 import yaml
 
-import iris.extensions
+from iris.extensions import db, compress
 from iris.project import project
 
 def get_demo_file(example=None):
@@ -52,7 +51,7 @@ def parse_cmd_line():
     return vars(args)
 
 def run_app():
-    create_default_admin(app, db)
+    create_default_admin(app)
     if args['production']:
         import gevent.pywsgi
         app_server = gevent.pywsgi.WSGIServer((project['host'], project['port']), app)
@@ -65,25 +64,24 @@ def create_app(project_file, args):
     project.load_from(project_file)
     project.debug = args['debug']
 
+
     # Create the flask app:
     app = flask.Flask(__name__)
-    # app.config['TESTING'] = True
-    app.config['EXPLAIN_TEMPLATE_LOADING'] = True
 
-    # We need this secret key to encrypt cookies
-    app.secret_key = os.urandom(16)
-
-    # Database stuff:
+    app.config.from_pyfile('config.py')
     app.config['SQLALCHEMY_DATABASE_URI'] = \
         'sqlite:///' + join(project['path'], 'iris.db')
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
-    db = SQLAlchemy(app)
 
-    return app, db
+    # Register the extensions:
+    db.init_app(app)
+    compress.init_app(app)
 
-def create_default_admin(app, db):
+    return app
+
+def create_default_admin(app):
     # Add a default admin account:
-    admin = User.query.filter_by(name='admin').first()
+    with app.app_context():
+        admin = User.query.filter_by(name='admin').first()
     if admin is not None:
         return
 
@@ -105,18 +103,12 @@ def create_default_admin(app, db):
         admin=True,
     )
     admin.set_password(password)
-    db.session.add(admin)
-    db.session.commit()
+    with app.app_context():
+        db.session.add(admin)
+        db.session.commit()
 
 def register_extensions(app):
-    # Reduce the amount of transferred data by compressing it:
-    iris.extensions.Compress(app)
-    app.config['COMPRESS_MIMETYPES'] = [
-        'text/html', 'text/css', 'text/xml',
-        'application/json', 'application/octet-stream',
-        'application/javascript'
-    ]
-
+    
     from iris.main import main_app
     app.register_blueprint(main_app)
     from iris.segmentation import segmentation_app
@@ -136,11 +128,12 @@ else:
     }
     args['project'] = get_demo_file()
 
-app, db = create_app(args['project'], args)
+app = create_app(args['project'], args)
 from iris.models import User, Action
 
-db.create_all()
-db.session.commit()
+with app.app_context():
+    db.create_all()
+    db.session.commit()
 
 register_extensions(app)
 
