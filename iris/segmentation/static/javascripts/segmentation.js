@@ -89,7 +89,15 @@ function init_segmentation(){
     // Before we start, we check for the login, etc.
     vars.next_action = init_views;
     fetch_server_update(update_config=true);
-}
+};
+
+function newuser_help_popup(){
+    // Open the help menu if the user is new (no saved masks):
+    if (vars.user.segmentation.n_masks == 0 && vars.just_logged_in == true){
+        dialogue_help();
+        vars.just_logged_in = false;
+    };
+};
 
 async function init_views(){
     show_loader("Loading views...");
@@ -138,6 +146,7 @@ async function init_views(){
 
     get_object("toolbar").style.visibility = "visible";
     get_object("statusbar").style.visibility = "visible";
+    newuser_help_popup();
 }
 
 function init_events(){
@@ -882,6 +891,7 @@ async function fetch_server_update(update_config=true){
     let response = await fetch(vars.url.user+"get/current");
     if (response.status == 403) {
         dialogue_login();
+        vars.just_logged_in=true;
         return;
     }
     let user = await response.json();
