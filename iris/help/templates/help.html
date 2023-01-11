@@ -11,17 +11,36 @@
 <body>
     <div class="tab">
         <button class="tablinks checked" onclick="open_tab(this, 'help', 'welcome');">Welcome</button>
-        <button class="tablinks" onclick="open_tab(this, 'help', 'page');">{{page}}</button>
+        <button class="tablinks" onclick="open_tab(this, 'help', 'faqs');">FAQs</button>
         <button class="tablinks" onclick="open_tab(this, 'help', 'hotkeys');">Hotkeys</button>
         <button class="tablinks" onclick="open_tab(this, 'help', 'about');">About</button>
     </div>
 
     <div id='welcome' class='iris-tabs-help tabcontent' style='display:block'>
-        Welcome to IRIS, a labelling tool for Sentinel-2 imagery.
+        <p>Welcome to IRIS, a labelling tool for Sentinel-2 imagery!</p>
+
+        <p>
+        If you're new here. Please take a moment to read this page. It will introduce you to some 
+        of the basic functionality of IRIS. If you ever want to return to this page later simply 
+        click <b>help</b><button class="icon_button" onclick=""><img src="{{url_for('segmentation.static', filename='icons/help.png')}}" height="15" width="15"/></button>
+        at the top-right of the IRIS interface.
+        </p>
+
+
+        <h3>Basic Overview</h3>
+
+        <p>The IRIS interface consists of three main parts, starting from the top of the screen:</p>
+
+        <ul>
+            <li><b>The Toolbar:</b> Contains all the tools for drawing and editing masks, as well as manipulating and moving around the image</li>
+            <li><b>The Views:</b> A set of visualisations of the data to be labelled</li>
+            <li><b>The Info Panel:</b> An area where useful information about the project and your labelling work is displayed</li>
+        </ul>
+
     </div>
 
     <div id='hotkeys' class='iris-tabs-help tabcontent'>
-        <table>
+        <table class=striped>
             <tr><td><b>Command</b></td><td><b>Key</b></td></tr>
             {% for key, description in hotkeys.items() %}
                 <tr><td>{{description}}</td>
@@ -31,14 +50,26 @@
         </table>
     </div>
 
-    <div id='page' class='iris-tabs-help tabcontent'>
-    {{page_content}}
+    <div id='faqs' class='iris-tabs-help tabcontent'>
+        <h2>Annotating Images</h2>
+        <h4>How can I change the size of the pencil?</h4>
+        Press <span class="key">Shift</span> while scrolling the mouse wheel.
+        <h4>I would like to undo some changes. How can I do that?</h4>
+        Use either the undo<button class="icon_button" onclick=""><img src="{{url_for('segmentation.static', filename='icons/undo.png')}}" height="15" width="15"/></button><b>/</b><span class="key">U</span> command  or the eraser<button class="icon_button" onclick=""><img src="{{url_for('segmentation.static', filename='icons/eraser.png')}}" height="15" width="15"/></button>/<span class="key">E</span>.
+        <h4>How can I select another class for drawing?</h4>
+        Use either the number hotkeys (<span class="key">1..9</span>) or click <button class="icon_button" onclick="dialogue_class_selection();"><img src="{{url_for('segmentation.static', filename='icons/class.png')}}" height="15" width="15"/></button> in the toolbar.
+        <h2>Saving and Loading</h2>
+        <h4>Does IRIS save my progress?</h4>
+        It is possible to lose your progress whilst annotating in IRIS, if you navigate away from the page or close the browser without doing one of the following:
+        <ul>
+            <li>Clicking save<button class="icon_button" onclick=""><img src="{{url_for('segmentation.static', filename='icons/save_mask.png')}}" height="15" width="15"/></button> at the top-left of the IRIS interface. This will allow you to come back to the same image and mask later, as if you had never stopped working on it.</li>
+            <li>Going to the next or previous image.</li>
     </div>
 
     <div id='about' class='iris-tabs-help tabcontent'>
         IRIS was developed by
         <p>John Mrziglod, &Phi;-lab, European Space Agency</p>
-        <p>Alistair Francis, University College London</p>
+        <p>Alistair Francis, &Phi;-lab, European Space Agency</p>
         <hr />
         Find more information on
         <a href="https://github.com/ESA-PhiLab/iris" target="_blank">

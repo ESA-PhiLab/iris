@@ -4,82 +4,107 @@ reasons, i.e. array_2d[y][x] is going to be array_1d[y*row_length+x]*/
 
 let commands = {
     "previous_image": {
-        "key": "Backspace", "description": "Save this image and open previous one",
+        "key": "Backspace",
+        "description": "Save this image and open previous one"
     },
     "next_image": {
-        "key": "Return", "description": "Save this image and open next one",
+        "key": "Return",
+        "description": "Save this image and open next one"
     },
     "save_mask": {
-        "key": "S", "description": "Save this mask",
+        "key": "S",
+        "description": "Save this mask"
     },
     "undo": {
-        "key": "U", "description": "Undo last modification",
+        "key": "U",
+        "description": "Undo last modification"
     },
     "redo": {
-        "key": "R", "description": "Redo modification",
+        "key": "R",
+        "description": "Redo modification"
     },
-    'select_class': {
-        "key": "1 .. 9", "description": "Select class for drawing",
+    "select_class": {
+        "key": "1 .. 9",
+        "description": "Select class for drawing"
     },
-    'tool_move': {
-        "key": "W", "description": "Pan your current view by dragging and moving the cursor",
+    "tool_move": {
+        "key": "W",
+        "description": "Pan your current view by dragging and moving the cursor"
     },
-    'tool_reset_views': {
-        "key": "Z", "description": "Reset the view in the canvases",
+    "tool_reset_views": {
+        "key": "Z",
+        "description": "Reset the view in the canvases"
     },
-    'tool_draw': {
-        "key": "D", "description": "Draw pixels on the mask",
+    "tool_draw": {
+        "key": "D",
+        "description": "Draw pixels on the mask"
     },
-    'tool_eraser': {
-        "key": "E", "description": "Erase previously drawn pixels",
+    "tool_eraser": {
+        "key": "E",
+        "description": "Erase previously drawn pixels"
     },
     "reset_mask": {
-        "key": "N", "description": "Clear the whole mask",
+        "key": "N",
+        "description": "Clear the whole mask"
     },
     "predict_mask": {
-        "key": "A", "description": "Use the AI to help you filling out the mask",
+        "key": "A",
+        "description": "Use the AI to help you filling out the mask"
     },
     "toogle_mask": {
-        "key": "Space", "description": "Toggle mask on/off",
+        "key": "Space",
+        "description": "Toggle mask on/off"
     },
     "mask_final": {
-        "key": "F", "description": "Show the final mask combined from your pixels and the predictions by the AI",
+        "key": "F",
+        "description": "Show the final mask combined from your pixels and the predictions by the AI"
     },
     "mask_user": {
-        "key": "G", "description": "Show your drawn pixels only",
+        "key": "G",
+        "description": "Show your drawn pixels only"
     },
     "mask_errors": {
-        "key": "H", "description": "Show where the AI failed to predict correctly",
+        "key": "H",
+        "description": "Show where the AI failed to predict correctly"
     },
     // "mask_highlight_edges": {
     //     "key": "B", "description": "Highlight edges on the masks",
     // },
     "toggle_contrast": {
-        "key": "C", "description": "Toggle contrast on/off",
+        "key": "C", 
+        "description": "Toggle contrast on/off"
     },
     "toggle_invert": {
-        "key": "I", "description": "Toggle inversion on/off",
+        "key": "I", 
+        "description": "Toggle inversion on/off"
     },
     "brightness_up": {
-        "key": "Arrow-Up", "description": "Increase brightness (+10%)",
+        "key": "Arrow-Up", 
+        "description": "Increase brightness (+10%)"
     },
     "brightness_down": {
-        "key": "Arrow-Down", "description": "Decrease brightness (-10%)",
+        "key": "Arrow-Down", 
+        "description": "Decrease brightness (-10%)"
     },
     "saturation_up": {
-        "key": "Arrow-Right", "description": "Increase saturation (+50%)",
+        "key": "Arrow-Right",
+        "description": "Increase saturation (+50%)"
     },
     "saturation_down": {
-        "key": "Arrow-Left", "description": "Decrease saturation (-50%)",
+        "key": "Arrow-Left",
+        "description": "Decrease saturation (-50%)"
     },
     "reset_filters": {
-        "key": "X", "description": "Reset all image filters",
+        "key": "X",
+        "description": "Reset all image filters"
     },
     "show_view_controls": {
-        "key": "V", "description": "Toogle display of view controls on/off"
+        "key": "V",
+        "description":"Toogle display of view controls on/off"
     },
     "next_view_group": {
-        "key": "B", "description": "Switch to next group view"
+        "key": "B",
+        "description": "Switch to next group view"
     }
 };
 
@@ -89,17 +114,17 @@ function init_segmentation(){
     // Before we start, we check for the login, etc.
     vars.next_action = init_views;
     fetch_server_update(update_config=true);
-};
+}
 
 function newuser_help_popup(){
     // Open the help menu if the user is new (no saved masks):
     if (vars.user.segmentation.n_masks == 0 && vars.just_logged_in == true){
         dialogue_help();
         vars.just_logged_in = false;
-    };
-};
+    }
+}
 
-async function init_views(){
+function init_views(){
     show_loader("Loading views...");
     vars.vm = new ViewManager(
         get_object('views-container'),
@@ -111,11 +136,11 @@ async function init_views(){
     vars.vm.addStandardLayer(
         MaskLayer,
         (view) => view.type != "bingmap"
-    )
+    );
     vars.vm.addStandardLayer(
         PreviewLayer,
         (view) => view.type != "bingmap"
-    )
+    );
 
     // It much faster to change some pixel values on a sprite and draw it then
     // to the canvas once than redrawing each pixel to the canvas directly.
@@ -1079,9 +1104,7 @@ async function dialogue_help(){
         vars.url.help, {
             method: "POST",
             body: JSON.stringify({
-                "hotkeys": hotkeys,
-                "page": "Segmentation",
-                "page_content": "segmentation/help.html"
+                "hotkeys": hotkeys
             })
         }
     );
