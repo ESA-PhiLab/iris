@@ -138,10 +138,10 @@
         <li class="toolbutton icon_button" id='tb_saturation_down' onclick="change_saturation(up=false);">
             <img src={{url_for('segmentation.static', filename='icons/saturation_down.png')}} class="icon" />
         </li>
-        <li class="toolbutton icon_button" id='tb_toggle_contrast' onclick="set_contrast(!vars.contrast);">
+        <li class="toolbutton icon_button" id='tb_toggle_contrast' onclick="set_contrast(!vars.vm.filters.contrast);">
             <img src={{url_for('segmentation.static', filename='icons/contrast.png')}} class="icon" />
         </li>
-        <li class="toolbutton icon_button" id='tb_toggle_invert' onclick="set_invert(!vars.invert);">
+        <li class="toolbutton icon_button" id='tb_toggle_invert' onclick="set_invert(!vars.vm.filters.invert);">
             <img src={{url_for('segmentation.static', filename='icons/invert.png')}} class="icon" />
         </li>
         <li class="toolbutton icon_button" id="tb_reset_filters" onclick='reset_filters();'>
