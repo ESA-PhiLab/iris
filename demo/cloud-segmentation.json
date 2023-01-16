@@ -38,16 +38,11 @@
       "name": "Cloud Shadows",
       "description": "All pixels contaminated by cloud shadows (not terrain shadows).",
       "colour": [255, 0, 0, 70]
-    },
-    {
-      "name": "No data",
-      "description": "Reserved for no data pixels, e.g. pixels outside of the satellite's swath.",
-      "colour": [50, 50, 255, 70]
     }
   ],
   "views": {
       "Cirrus": {
-          "description": "Cirrus and high clouds are red.",
+          "description": "Cirrus band. High clouds are often picked up as red.",
           "type": "image",
           "data": "$Sentinel2.B11**0.8*5",
           "cmap": "jet"
@@ -65,7 +60,7 @@
           "clip": "1"
       },
       "NRGB": {
-          "description": "Near-Infrared RGB image.",
+          "description": "Near-Infrared+GB image.",
           "type": "image",
           "data": ["$Sentinel2.B5*1.5", "$Sentinel2.B3*1.5", "$Sentinel2.B2*1.5"]
       },
@@ -97,7 +92,7 @@
       }
   },
   "view_groups": {
-      "default": ["Cirrus", "RGB", "Snow"],
+      "default": ["RGB", "Snow", "Cirrus"],
       "radar": ["Sentinel-1"]
   }
 }
