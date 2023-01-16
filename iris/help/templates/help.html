@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
@@ -17,13 +18,14 @@
     </div>
 
     <div id='welcome' class='iris-tabs-help tabcontent' style='display:block'>
-        <p>Welcome to IRIS, a labelling tool for Sentinel-2 imagery!</p>
+        <h3>Welcome to <a href="https://github.com/esa-philab/IRIS" target="_blank">IRIS</a>, a labelling tool for satellite imagery and datacubes!</h3>
 
         <p>
-        If you're new here. Please take a moment to read this page. It will introduce you to some 
+        If you're new here, please take a moment to read this page. It will introduce you to some 
         of the basic functionality of IRIS. If you ever want to return to this page later simply 
         click <b>help</b><button class="icon_button" onclick=""><img src="{{url_for('segmentation.static', filename='icons/help.png')}}" height="15" width="15"/></button>
-        at the top-right of the IRIS interface.
+        at the top-right of the IRIS interface. We recommend that you read through the following step-by-step, and go check out and explore what is described as you go along. 
+        As you do that, the <b>Hotkeys</b> tab above may be a useful companion.
         </p>
 
 
@@ -36,6 +38,66 @@
             <li><b>The Views:</b> A set of visualisations of the data to be labelled</li>
             <li><b>The Info Panel:</b> An area where useful information about the project and your labelling work is displayed</li>
         </ul>
+
+        <p>
+            As an annotator in IRIS, your job is to create a <i>segmentation mask</i> for the images you are shown. Painting all those pixels could take you a lot of time, but luckily you 
+            get to work alongside an <i>AI assistant</i>, which tries to predict the classes of areas which you haven't labelled yourself. You will be iteratively
+            labelling areas in the image with the different classes you find (what those classes are depends on the project your working on, but you can find a list of them by pressing the 
+            <button class="icon_button" onclick="dialogue_class_selection();"><img src="{{url_for('segmentation.static', filename='icons/class.png')}}" height="15" width="15"/></button> 
+            button in the toolbar). The AI assistant (a Random Forest model) will then try to predict the classes of areas which you haven't labelled yourself. You can then correct areas
+            that it gets wrong, and see if it improves when you retrain the model. You can find some tips and best practices for interacting with the AI assistant in the FAQs.
+        </p>
+
+        <p>
+            In your project, you may find multiple images displayed side by side (known as <i>views</i>). This is because IRIS can label data that are not just the standard red-green-blue images we are used to,
+            but also images with multiple different bands. These could be different spectral channels (e.g. Infrared), or different information entirely, like maps, elevation data, or 
+            anything else that you can put on a 2D surface. The creators of a project can define as many views as they like, using those different data sources. IRIS gives you the ability to switch between the
+            different pre-defined views, and create whole groups of views that you can switch between easily.
+        </p>
+
+
+        <h3>Getting Started</h3>
+
+        <p>In the following, a typical workflow for a user will be described. Feel free to go sequentially through the points and try them for yourself.</p>
+
+        <h4>1. Look around!</h4>
+        <p>
+            Use the zoom <span class='key'>Scrollwheel</span> and navigation<span class='key'>W</span> tools to take a closer look at the data in front of you. Select a few different views (<span class='key'>V</span>)
+            and see what they look like. Is it too dark? Too bright? You can use the brightness, saturation and contrast controls located in the toolbar to help you!
+        </p>
+
+        <h4>2. Select a class</h4>
+        <p>
+            Now that you've had a look around, you've probably noticed a few things you'd like to start labelling. Select a class from the list of classes in the toolbar. You can also use the <span class='key'>1..9</span> keys.
+        </p>
+
+        <h4>3. Start painting!</h4>
+        <p>
+            Using the draw tool, and adjusting the paintbrush size with <span class='key'>Shift+scrollwheel</span>, try painting a few pixels from two or three different classes. Keep it simple, just a few is fine! The classes 
+            you draw will be highlighted in different colours. If you don't see anything, it might be because that class is defined without a colour. You can still see your annotations though, in the <i>user mask</i>
+            <button class="icon_button" onclick=""><img src="{{url_for('segmentation.static', filename='icons/mask_user.png')}}" height="15" width="15"/></button>/<span class='key'>G</span>.
+        </p>
+
+        <h4>4. Train your AI assistant</h4>
+        <p>
+            Now that you've labelled a few pixels, you can train your AI assistant. Click the <button class="icon_button" onclick=""><img src="{{url_for('segmentation.static', filename='icons/ai.png')}}" height="15" width="15"/></button>/<span class='key'>A</span>
+            button in the toolbar, and see what happens! You can use the spacebar to toggle the mask's visibility.
+        </p>
+
+        <h4>5. Correct your AI assistant</h4>
+        <p>
+            Using all the navigation, visualisation, and labelling skills you've just practiced, go ahead and make a few corrections to what the AI predicted. It probably made some mistakes in areas of the image that are 
+            different to the areas you originally labelled. That's fine! You can just keep retraining and correcting your AI assistant as you go!
+        </p>
+
+        <h4>6. Save your work</h4>
+        <p>
+            When you're done, don't forget to save your work! You can do this by clicking the <button class="icon_button" onclick=""><img src="{{url_for('segmentation.static', filename='icons/save_mask.png')}}" height="15" width="15"/></button>/<span class='key'>S</span>
+            button in the toolbar. You can then come back and finish the image any time you like. Or, you can move on to the next image in the project by clicking the <button class="icon_button" onclick=""><img src="{{url_for('segmentation.static', filename='icons/next.png')}}" height="15" width="15"/></button>/<span class='key'>Enter</span>
+            button.
+        </p>
+
+        For more tips and advanced use, check out the FAQs.
 
     </div>
 
@@ -51,19 +113,83 @@
     </div>
 
     <div id='faqs' class='iris-tabs-help tabcontent'>
+        <br>
         <h2>Annotating Images</h2>
-        <h4>How can I change the size of the pencil?</h4>
+        <h3>I'm painting pixels, but nothing's happening!</h3>
+        <p>
+            In some projects (including, for example, IRIS' demo) there is a class that is in some sense the background or default, which one does not want to visualise with a coloured overlay. For example, in the case of cloud masking with satellite imagery, pixels
+            for which we can clearly see the surface, and for which no cloud is present, it is much easier to visualise as a clear colour. Upon loading, IRIS defaults to showing you an overlay of the <i>final mask</i> which may use no colour for one of the classes. However,
+            you can switch to the <i>user mask</i> by pressing <button class="icon_button" onclick=""><img src="{{url_for('segmentation.static', filename='icons/mask_user.png')}}" height="15" width="15"/></button><b>/</b><span class="key">G</span>. In the <i>user mask</i>, 
+            one should be able to see more clearly where annotations by the user have been made.
+        </p>
+
+        <p>
+            If there is still nothing showing, then make sure you are using the <i>draw tool</i><button class="icon_button" onclick=""><img src="{{url_for('segmentation.static', filename='icons/pencil.png')}}" height="15" width="15"/></button><b>/</b><span class="key">D</span>, and
+            that your mask is is set to be visible <button class="icon_button" onclick=""><img src="{{url_for('segmentation.static', filename='icons/show_mask.png')}}" height="15" width="15"/></button><b>/</b><span class="key">Space</span>
+        </p>
+
+        <h3>How can I change the size of the pencil?</h3>
         Press <span class="key">Shift</span> while scrolling the mouse wheel.
-        <h4>I would like to undo some changes. How can I do that?</h4>
+        <h3>I would like to undo some changes. How can I do that?</h3>
         Use either the undo<button class="icon_button" onclick=""><img src="{{url_for('segmentation.static', filename='icons/undo.png')}}" height="15" width="15"/></button><b>/</b><span class="key">U</span> command  or the eraser<button class="icon_button" onclick=""><img src="{{url_for('segmentation.static', filename='icons/eraser.png')}}" height="15" width="15"/></button>/<span class="key">E</span>.
-        <h4>How can I select another class for drawing?</h4>
+        <h3>How can I select another class for drawing?</h3>
         Use either the number hotkeys (<span class="key">1..9</span>) or click <button class="icon_button" onclick="dialogue_class_selection();"><img src="{{url_for('segmentation.static', filename='icons/class.png')}}" height="15" width="15"/></button> in the toolbar.
+        
+        
+        <br><br>
         <h2>Saving and Loading</h2>
-        <h4>Does IRIS save my progress?</h4>
+        <h3>Does IRIS save my progress when I leave?</h3>
         It is possible to lose your progress whilst annotating in IRIS, if you navigate away from the page or close the browser without doing one of the following:
         <ul>
             <li>Clicking save<button class="icon_button" onclick=""><img src="{{url_for('segmentation.static', filename='icons/save_mask.png')}}" height="15" width="15"/></button> at the top-left of the IRIS interface. This will allow you to come back to the same image and mask later, as if you had never stopped working on it.</li>
             <li>Going to the next or previous image.</li>
+        </ul>
+        <h3>How are images ordered?</h3>
+            The IRIS project can be set up with two different image ordering modes:
+            <ul>
+                <li><b>Random:</b> Images are shown in a random order, with the order fixed for each different user (meaning you will always find images in the same order when you come back).</li>
+                <li><b>Prioritise least annotated:</b> Images that are the least annotated are prioritised, so that you are shown images which need more annotations. This can change the order of images dynamically.</li>
+            </ul>
+            The project administrator can change the image ordering mode on the server by editing the project's configuration files, this cannot be altered by a user.
+        <h3>What is the questionnaire that appears after I have finished an image?</h3>
+        <p>
+            The short questionnaire offers you an opportunity to make any notes about the image. This may be useful at a later point for quality control or organisation. The difficulty bar is a useful way to qualitatively rate
+            how you think the labelling went. Checking the box to say that your mask is complete will mark that image as complete for you, and you will not be shown that image again (although if you exhaust all available images 
+            then the completed ones may be shown to you again). If you do not check the box, then IRIS will keep track of the fact that you would still like to work on this image later.
+        </p>
+
+        <br><br>
+        <h2>Interacting with the AI</h2>
+        <h3>The AI doesn't seem to be learning what I want it to learn</h3>
+        <p>
+            The AI Assistant in IRIS can be a powerful tool when used correctly.There are several ways one can help the AI model to perform better, however, it will always have limitations in certain situations
+            which may have to be resolved through manual intervention, rather than using the model's predictions. Some of the ways to help the AI are:
+        </p>
+            
+        <ul>
+            <li><b>Providing high quality labels</b> helps the model by guiding it in its learning process. If the model is struggling to learn over a specific kind of area in the image, try to provide examples
+            from those areas. Counterintuitively, more training data is not always better. Try to provide the model with a diverse set of pixels, rather than a large number of pixels from the same class and the same
+            colour/type of pixel in the image. </li> 
+            <li><b>Altering the model parameters</b> can have a big effect on the model's performance. When training data are too few, an overly large model can overfit and produce strange outputs. Meanwhile, if 
+            many difficult and diverse labels are given, then the model may struggle to learn the complex relationships between input and output if it is too small. These parameters can be adjusted from the Preferences
+            menu in the top-right of the IRIS interface (the cog icon)<button class="icon_button" onclick=""><img src="{{url_for('segmentation.static', filename='icons/preferences.png')}}" height="15" width="15"/></button>.</li> 
+            <li><b>Changing the bands</b> used by the model can stop the model from overfitting to input data that is not particularly relevant to the annotations of that image. Like the model's parameters, the bands can be included
+            and excluded in the Preferences menu.</li> 
+            <li><b>Post-processing the results</b> with the <i>suppression filter</i> can remove the small (a few pixels wide) areas that the AI assistant picks up. This can be useful to make the mask appear more smooth. However,
+            it should be used with caution, if those small regions are important for the dataset's application.</li>
+        </ul>
+
+        <h3>The information panel keeps telling me to provide more pixels of a certain class</h3>
+        <p>
+            The AI assistant computes a confusion matrix using a percentage of the labels you provide, to see how well it is doing in matching your annotations. If the model is struggling with a specific class, then it will prompt 
+            you to label more of it. However, what often happens is that the class it desires more labels from is just the most difficult class to label in the image. In this case, the tooltip will continue to ask for more of that
+            class indefinitely, even if a large number of labels is provided. Don't worry if this happens, the AI assistant is never quite satisfied with what you give it, or its own performance!
+        </p>
+        <h3>I keep labelling more pixels, but the accuracy displayed in the information panel is decreasing!</h3>
+        <p>
+            This is perfectly natural. If you are selecting areas to label based on mistakes the model is making, then you are continuously creating a harder and harder set of pixels for the model to learn from and validate itself
+            with. If anything, a model performance of close to 100% should be more concerning than a lower one, as it may be overfitting to the training data.
+        </p>
     </div>
 
     <div id='about' class='iris-tabs-help tabcontent'>
