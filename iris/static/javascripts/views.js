@@ -252,14 +252,18 @@ class ViewPort{
         this.button_add.onclick = () => {vm.addView(view.name, id);};
         this.controls.appendChild(this.button_add);
 
-        this.button_remove = document.createElement('button');
-        this.button_remove.classList.add("view-controls");
-        this.button_remove.innerHTML = "-";
-        this.button_remove.style.right = "50px";
-        this.button_remove.style.top = "10px";
-        this.button_remove.onclick = () => {vm.removeView(id);};
-        this.controls.appendChild(this.button_remove);
-
+        // Don't allow user to remove final view from group
+        if (vm.getCurrentViews().length>1){
+            this.button_remove = document.createElement('button');
+            this.button_remove.classList.add("view-controls");
+            this.button_remove.innerHTML = "-";
+            this.button_remove.style.right = "50px";
+            this.button_remove.style.top = "10px";
+            this.button_remove.onclick = () => {vm.removeView(id);};
+            this.controls.appendChild(this.button_remove);
+        } else {
+            this.button_remove = null;
+        }
         this.select_view = document.createElement('select');
         this.select_view.classList.add("view-controls");
         this.select_view.classList.add("with-arrow");
