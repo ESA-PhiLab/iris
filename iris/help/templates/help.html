@@ -55,6 +55,11 @@
             different pre-defined views, and create whole groups of views that you can switch between easily.
         </p>
 
+        <p>
+            After you get to annotating, the mask that you and your AI assistant create will be displayed as an overlay on top of the image. This is so that you can see simultaneously your labels and what they correspond
+            to in the data below. Each class will have been assigned a colour by your project administrator. 
+        </p>
+
         <br>
         <h2>Getting Started</h2>
 
@@ -115,10 +120,10 @@
             You and your AI assistant will be more effective as a team if you keep in mind it's strengths and weaknesses. Here are some tips and tricks to get the best out of your new colleague.
         </p>
         
-        <h4>1. Input Output</h4>
+        <h4>1. Input -> Output</h4>
         <p>
             The model only learns from what you give it, so diverse labels will help the model learn about all the different areas in the image, don't just stick to annotating one kind of mistake. Quality over quantity is preferred,
-            as errors in the labels can confuse the model. 
+            as errors in the labels can confuse the model. What you put in is what you get out!
         </p>
 
         <p>
@@ -127,7 +132,7 @@
             <button class="icon_button" onclick=""><img src="{{url_for('segmentation.static', filename='icons/preferences.png')}}" height="15" width="15"/></button>, you can add a post-processing step which filters out small areas with
             different classes. This effectively smooths your output spatially, and may help if you have lots of noisy model errors that are difficult to correct manually.
         </p>
-        <h4>2. Taking advice</h4>
+        <h4>2. Listening Skills</h4>
         
         <p>
             Your AI assistant might suggest a class to annotate more of in the right-hand side box of the Information Panel, this can be a useful tip to follow if you're not sure what to do. It gives this advice based on its assessment of how it
@@ -135,12 +140,10 @@
         </p>
         <p>
             An accuracy score and confusion matrix can also be found in the Information Panel (once the model is trained). This gives you an idea of how well the model is performing, on a set of pixels held out from training. This doesn't necessarily indicate
-            its performance in areas you haven't annotated: we can't know that. However, it can give you an idea of how well the model is performing in general, and how well it is performing in the classes you have annotated. If you think its struggling and has
-            a low accuracy, you can also try changing the model parameters in the Preferences menu <button class="icon_button" onclick=""><img src="{{url_for('segmentation.static', filename='icons/preferences.png')}}" height="15" width="15"/></button>.
+            its performance in areas you haven't annotated: we can't know that. However, it can give you some measure of the model's success. If you think its struggling and has
+            a low accuracy, you can also try changing the model parameters in the Preferences menu <button class="icon_button" onclick=""><img src="{{url_for('segmentation.static', filename='icons/preferences.png')}}" height="15" width="15"/></button>. Low accuracy
+            isn't necessarily a bad thing, and you will usually find the accuracy <i>decreasing</i> over time, because you are adding more and more difficult labels.
         </p>
-
-        
-
 
         For more tips and advanced use, check out the FAQs.
 
