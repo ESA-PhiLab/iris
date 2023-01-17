@@ -1352,6 +1352,7 @@ async function predict_mask(){
     // We need to keep track of how many pixels we already have sampled.
     // Furthermore, we keep also a ratio of pixels as testing dataset:
     let n_samples = {};
+    let test_n_samples = {};
     for (let user_class of user_classes){
         // Set the current number of samples (0) and the maximum
         n_samples[user_class] = {
@@ -1361,6 +1362,10 @@ async function predict_mask(){
                 vars.config.segmentation.ai_model.max_train_pixels
             )
         };
+        test_n_samples[user_class] = {
+            "current": 0,
+            "max": Infinity
+        };
     }
 
     // Here we decide whether we send a pixel for training to the server or keep
@@ -1368,6 +1373,8 @@ async function predict_mask(){
     let test_indices = new Array();
     let train_user_pixels = new Array();
     let train_user_labels = new Array();
+    let test_user_pixels = new Array();
+    let test_user_labels = new Array();
     for (let i of all_indices){
         let class_id = all_user_labels[i];
         if (n_samples[class_id].current < n_samples[class_id].max){
@@ -1375,8 +1382,10 @@ async function predict_mask(){
             train_user_labels.push(class_id);
             n_samples[class_id].current += 1;
         } else {
-            // We will remember that we need these pixels later for testing:
             test_indices.push(i);
+            test_user_pixels.push(all_user_pixels[i]);
+            test_user_labels.push(class_id);
+            test_n_samples[class_id].current += 1;
         }
     }
 
@@ -1387,7 +1396,7 @@ async function predict_mask(){
                 method: "POST",
                 body: JSON.stringify({
                     "user_pixels": train_user_pixels,
-                    "user_labels": train_user_labels,
+                    "user_labels": train_user_labels
                 })
             }
         );
@@ -1414,15 +1423,15 @@ async function predict_mask(){
     for (let user_class of user_classes){
         tp[user_class] = 0;
     }
-    for (let i of all_indices){
+    let n_test_samples = {}; 
+    for (let i of test_indices){
         let mask_index = all_user_pixels[i];
         cm[all_user_labels[i]][results.data[mask_index]] += 1;
-
         if (all_user_labels[i] == results.data[mask_index]){
             tp[all_user_labels[i]] += 1;
 
             // Correct:
-            // vars.errors_mask[mask_index] = 1;
+            vars.errors_mask[mask_index] = 1;
         } else {
             // Incorrect:
             vars.errors_mask[mask_index] = 2;
@@ -1431,7 +1440,7 @@ async function predict_mask(){
     let acc_prod = user_classes.length;
     let acc_sum = 0;
     for (let label of user_classes){
-        let acc = tp[label] / (vars.n_user_pixels[label]);
+        let acc = tp[label] / test_n_samples[label].current;
         acc_prod *= acc;
         acc_sum += acc;
     }
