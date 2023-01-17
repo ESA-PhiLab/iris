@@ -56,9 +56,24 @@
         </p>
 
         <p>
-            After you get to annotating, the mask that you and your AI assistant create will be displayed as an overlay on top of the image. This is so that you can see simultaneously your labels and what they correspond
-            to in the data below. Each class will have been assigned a colour by your project administrator. 
+            After you get to annotating, the mask that you and your AI assistant create will be displayed as an overlay on top of the image. This is so that you can simultaneously see your labels and what they correspond
+            to in the data below. Each class will have been assigned a colour by your project administrator. One detail of IRIS that is useful to keep in mind is that there are different versions of the mask available to 
+            visualise:
         </p>
+
+        <ul>
+            <li><b>The final mask<button class="icon_button" onclick=""><img src="{{url_for('segmentation.static', filename='icons/mask_final.png')}}" height="15" width="15"/></button>:</b>
+            shows a combination of your annotations and model predictions. This is the view that corresponds to the final saved mask, when you complete your work. Your annotations are always favoured against the model.</li>
+            <li><b>The user mask </b><button class="icon_button" onclick=""><img src="{{url_for('segmentation.static', filename='icons/mask_user.png')}}" height="15" width="15"/></button>:</b>
+            shows only the pixels you have manually annotated. A project will often define one class to be invisible in the final mask (as a way of symbolising some kind of background class), but you should still be able to see the manual labels
+            that you've drawn of that class in the user mask view. This can be useful for checking where you've already annotated, and when erasing annotations.</li>
+             
+            <li><b>The error mask<button class="icon_button" onclick=""><img src="{{url_for('segmentation.static', filename='icons/mask_errors.png')}}" height="15" width="15"/></button>:</b> shows the pixels that the 
+            model has predicted correctly (in green) and incorrectly (in red) for the pixels that are used for validating the models (this view does not include pixels that the model was trained on). This is a useful
+            way to see where the model is making mistakes, and where you should focus your labelling efforts.</li>
+
+
+        </ul>
 
         <br>
         <h2>Getting Started</h2>
@@ -90,7 +105,7 @@
         <h4>5. Display the mask</h4>
         <p>
             IRIS's mask comes from a combination of hand-drawn labels, and AI-generated predictions. When you begin annotating an image, these will be blank, but when they are populated they are displayed as a semi-transparent overlay above 
-            the image views. You can view either the combined predictions between human and model, known as the final mask <button class="icon_button" onclick=""><img src="{{url_for('segmentation.static', filename='icons/mask_final.png')}}" height="15" width="15"/></button>/(<span class='key'>F</span>),
+            the image views. You can view either the combined predictions between human and model, known as the final mask <button class="icon_button" onclick=""><img src="{{url_for('segmentation.static', filename='icons/mask_final.png')}}" height="15" width="15"/></button>/<span class='key'>F</span>,
             or only the annotations you've made, known as the user mask <button class="icon_button" onclick=""><img src="{{url_for('segmentation.static', filename='icons/mask_user.png')}}" height="15" width="15"/></button>/<span class='key'>G</span>. 
             Try selecting the user mask mode before you begin annotating.
         </p>
@@ -122,8 +137,8 @@
         
         <h4>1. Input -> Output</h4>
         <p>
-            The model only learns from what you give it, so diverse labels will help the model learn about all the different areas in the image, don't just stick to annotating one kind of mistake. Quality over quantity is preferred,
-            as errors in the labels can confuse the model. What you put in is what you get out!
+            The model only learns from what you give it, so diverse labels will help the model learn about all the different areas in the image, don't just stick to annotating one area of the image, or correcting one kind of mistake.
+            Quality over quantity is preferred, as errors in the labels can confuse the model. What you put in is what you get out!
         </p>
 
         <p>
@@ -145,7 +160,7 @@
             isn't necessarily a bad thing, and you will usually find the accuracy <i>decreasing</i> over time, because you are adding more and more difficult labels.
         </p>
 
-        For more tips and advanced use, check out the FAQs.
+        For more tips and advanced use suggestions, check out the FAQs.
 
     </div>
 
@@ -206,7 +221,7 @@
             then the completed ones may be shown to you again). If you do not check the box, then IRIS will keep track of the fact that you would still like to work on this image later.
         </p>
 
-        <br><br>
+        <br>
         <h2>Interacting with the AI</h2>
         <h3>The AI doesn't seem to be learning what I want it to learn</h3>
         <p>
