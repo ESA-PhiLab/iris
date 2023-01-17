@@ -1,11 +1,12 @@
 class ViewManager{
-    constructor(container, views, view_groups, view_url){
+    constructor(container, views, view_groups, view_url, image_aspect_ratio=1){
         this.container = container;
         this.views = views;
         this.ports = [];
         this.view_groups = view_groups;
         this.current_group = 'default';
         this.view_url = view_url;
+        this.image_aspect_ratio = image_aspect_ratio;
         this.image_id = null;
         this.image_location = [0, 0];
         this.filters = {
@@ -97,19 +98,58 @@ class ViewManager{
         vars.config.view_groups = this.view_groups;
         save_config(vars.config);
     }
-    updateSize(){
-        // Views are always squared and we want to make sure we have enough
-        // vertical space
-        let size = Math.min(
-            round_number(window.innerWidth / this.getCurrentViews().length),
-            window.innerHeight - 100,
-        );
-        size -= 10;
 
+    calculateViewWidthHeight(){
+
+        let horizontal_spacing = 10;
+        let vertical_spacing = 150;
+
+        let allowed_width = round_number(
+            (window.innerWidth - horizontal_spacing) / this.getCurrentViews().length
+        );
+        let allowed_height = window.innerHeight - vertical_spacing;
+
+        let ideal_width = Math.min(
+            allowed_width,
+            allowed_height * this.image_aspect_ratio,
+        );
+
+        let ideal_height = Math.min(
+            ideal_width / this.image_aspect_ratio,
+            allowed_height
+        );
+        // ideal_height -= 200;
+        
+        // if limited horizontally, does not scale
+        // if limited vertically, scales DOWN by that factor
+        let scale_from_vertical_limit = Math.max(
+            1,
+            ideal_height / allowed_height
+            );
+
+            
+        let width = round_number(ideal_width / scale_from_vertical_limit);
+        let height = round_number(width / this.image_aspect_ratio);
+        
+
+        console.log('allowed_width', allowed_width)
+        console.log('allowed_height', allowed_height)
+        console.log("ideal_width", ideal_width)
+        console.log("ideal_height", ideal_height)
+        console.log("scale_from_vertical_limit", scale_from_vertical_limit)
+        console.log("width", width)
+        console.log("height", height)
+
+            
+        return [width, height];
+    }
+
+    updateSize(){
+        let [width, height] = this.calculateViewWidthHeight();
         let column = 0;
         for (let view_port of this.ports){
-            view_port.setSize(size, size);
-            view_port.setPosition(size*column, 0);
+            view_port.setSize(width, height);
+            view_port.setPosition(width*column, 0);
             column += 1;
         }
     }
@@ -320,12 +360,8 @@ class CanvasLayer extends ViewLayer{
         let canvas = document.createElement('canvas');
         canvas.classList.add("view-canvas");
 
-        // Here we set the resolution of the canvas in pixels. By setting
-        // it to the actual size of the canvas (apparently .scrollWidth gives
-        // the actual screen size in pixels) we make sure there are no blurring
-        // effects.
-        canvas.width = 300;
-        canvas.height = 300;
+        // Here we set the resolution of the canvas in pixels.
+        [canvas.width,canvas.height] = vm.calculateViewWidthHeight();
 
         // To avoid any blurring of the images or masks, we disable smoothing
         var context = canvas.getContext("2d");

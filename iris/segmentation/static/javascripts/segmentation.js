@@ -129,7 +129,8 @@ function init_views(){
     vars.vm = new ViewManager(
         get_object('views-container'),
         vars.config.views, vars.config.view_groups,
-        vars.url.main+"image/"
+        vars.url.main+"image/",
+        image_aspect_ratio=vars.image_shape[0]/vars.image_shape[1]
     );
 
     // Add standard layers to all view ports if the view type is not "bingmap":
@@ -462,7 +463,7 @@ function constrain_view(ctx, scale, dx, dy){
         // it to the default view
 
         transforms.a = ctx.canvas.width / vars.image_shape[0];
-        transforms.d = ctx.canvas.width / vars.image_shape[0];
+        transforms.d = ctx.canvas.height / vars.image_shape[1];
         transforms.b = 0;
         transforms.c = 0;
         transforms.e = 0;
