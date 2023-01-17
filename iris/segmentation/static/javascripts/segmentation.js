@@ -1423,7 +1423,7 @@ async function predict_mask(){
     for (let user_class of user_classes){
         tp[user_class] = 0;
     }
-    let n_test_samples = {}; 
+    
     for (let i of test_indices){
         let mask_index = all_user_pixels[i];
         cm[all_user_labels[i]][results.data[mask_index]] += 1;

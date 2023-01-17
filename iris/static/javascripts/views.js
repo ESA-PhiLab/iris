@@ -113,12 +113,10 @@ class ViewManager{
             allowed_width,
             allowed_height * this.image_aspect_ratio,
         );
-
         let ideal_height = Math.min(
             ideal_width / this.image_aspect_ratio,
             allowed_height
         );
-        // ideal_height -= 200;
         
         // if limited horizontally, does not scale
         // if limited vertically, scales DOWN by that factor
@@ -127,19 +125,8 @@ class ViewManager{
             ideal_height / allowed_height
             );
 
-            
         let width = round_number(ideal_width / scale_from_vertical_limit);
         let height = round_number(width / this.image_aspect_ratio);
-        
-
-        console.log('allowed_width', allowed_width)
-        console.log('allowed_height', allowed_height)
-        console.log("ideal_width", ideal_width)
-        console.log("ideal_height", ideal_height)
-        console.log("scale_from_vertical_limit", scale_from_vertical_limit)
-        console.log("width", width)
-        console.log("height", height)
-
             
         return [width, height];
     }
