@@ -17,6 +17,4 @@ def index():
     return flask.render_template(
         'help.html',
         hotkeys=data.get('hotkeys', False),
-        page=data.get('page', False),
-        page_content=flask.Markup(flask.render_template(data['page_content']))
     )

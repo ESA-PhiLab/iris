@@ -323,8 +323,8 @@ def predict_mask(image_id):
 
     # Select only the masking area:
     mask_area = (
-        slice(config['mask_area'][0], config['mask_area'][2]),
         slice(config['mask_area'][1], config['mask_area'][3]),
+        slice(config['mask_area'][0], config['mask_area'][2]),
         slice(None, None, None)
     )
     mask_size = config['mask_shape'][0] * config['mask_shape'][1]
