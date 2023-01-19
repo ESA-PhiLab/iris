@@ -1,6 +1,6 @@
 # Project file configurations
 
-To use IRIS, you need to define a project file in JSON or YAML format. A full-working example can be found [here](../demo/cloud-segmentation.json).
+To use IRIS, you need to define a project file in JSON or YAML format. A full-working example can be found [here](../demo/cloud-segmentation.json). The following will outline each of the fields one can use to change the behaviour of IRIS. If fields are not explicitly given in a project's configuration file, then they will take the values found in the [default configuration file](../iris/default_config.json).
 
 - [Project file configurations](#project-file-configurations)
   * [name](#name)
