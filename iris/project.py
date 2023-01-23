@@ -359,12 +359,21 @@ class Project:
 
         # Stretch between 0->1, with percentile clip if specified in view
         if 'clip' in view:
+            if 'vmin' in view or 'vmax' in view:
+                raise ValueError("Cannot specify both 'clip' and 'vmin'/'vmax' in view")
             clip = float(view['clip'])
             linear_scale = lambda z: np.clip(
                 (z - np.percentile(z,clip))/(np.percentile(z,100-clip)-np.percentile(z,clip)),
                 0,
                 1
                 )
+        elif 'vmin' in view or 'vmax' in view:
+            if 'vmin' in view and 'vmax' in view:
+                linear_scale = lambda z: np.clip((z - view['vmin'])/(view['vmax']-view['vmin']), 0, 1)
+            elif 'vmin' in view:
+                linear_scale = lambda z: np.clip((z - view['vmin'])/(z.max()-view['vmin']), 0, 1)
+            elif 'vmax' in view:
+                linear_scale = lambda z: np.clip((z - z.min())/(view['vmax']-z.min()), 0, 1)
         else:
             linear_scale = lambda z: (z - z.min())/(z.max()-z.min())
         rgb_bands = list(map(linear_scale, rgb_bands))
