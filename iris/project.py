@@ -186,7 +186,7 @@ class Project:
             ]))
         except Exception as error:
             raise Exception(
-                f'[ERROR] Could not extract id\nfrom path"{image_path}"\nwith regex "{regex_images}"!'
+                f'[ERROR] Could not extract id\nfrom path"{image_paths}"\nwith regex "{regex_images}"!'
             )
 
 
@@ -307,7 +307,7 @@ class Project:
             if isinstance(image[band], dict):
                 bands.extend([f'${band}.{subband}' for subband in image[band]])
             else:
-                bands.append(f'${band}')
+                bands.append(f'{band}')
         return bands
 
     def get_image_path(self, image_id):

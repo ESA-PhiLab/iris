@@ -137,11 +137,10 @@ def show(user_id):
 def config():
     config = project.get_user_config(flask.session['user_id'])
     all_bands = project.get_image_bands(project.image_ids[0])
-    config['segmentation']['ai_model']['bands'] = {
-        band
-        for band in all_bands
-        if config['segmentation']['ai_model']['bands'] is None or band in config['segmentation']['ai_model']['bands']
-    }
+
+    # If no specific bands set for model, use all bands:
+    if config['segmentation']['ai_model']['bands'] is None:
+        config['segmentation']['ai_model']['bands'] = all_bands
 
     return flask.render_template(
         'user/config.html', config=config, all_bands=all_bands
