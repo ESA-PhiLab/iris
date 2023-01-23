@@ -149,9 +149,10 @@ Since this app was developed for multi-spectral satellite data (i.e. images with
     <li>
         *clip:* By default, bands are stretched between 0 and 1, relative to their minimum and maximum values. By setting a value for clip, you control the percentile of pixels that are saturated at 0 and 1, which can be helpful if there are some extreme pixel values that reduce the contrast in other parts of the image.
     </li>
+    <li>
+        *vmin/vmax* If you know the precise values you would like to clip the pixel values to, (rather than a percentile), then you can specify these with vmin and/or vmax. This cannot be used for the same view as `clip`.
+    </li>
 </ul>
-
-IRIS can display up to 4 views until v0.1. From v0.2 it can display an arbitrary number of views.
 
 <i>Example:</i>
 ```
