@@ -210,7 +210,7 @@ class ViewManager{
         }
         this.show_controls = show;
     }
-    toogleControls(){
+    toggleControls(){
         this.showControls(!vars.vm.show_controls);
     }
 }

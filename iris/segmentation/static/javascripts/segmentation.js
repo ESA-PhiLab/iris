@@ -51,7 +51,7 @@ let commands = {
         "key": "A",
         "description": "Use the AI to help you filling out the mask"
     },
-    "toogle_mask": {
+    "toggle_mask": {
         "key": "Space",
         "description": "Toggle mask on/off"
     },
@@ -100,7 +100,7 @@ let commands = {
     },
     "show_view_controls": {
         "key": "V",
-        "description":"Toogle display of view controls on/off"
+        "description":"Toggle display of view controls on/off"
     },
     "next_view_group": {
         "key": "B",
@@ -269,7 +269,7 @@ function key_down(event){
     } else if (key == "KeyN"){
         dialogue_reset_mask();
     } else if (key == "KeyV"){
-        vars.vm.toogleControls();
+        vars.vm.toggleControls();
     } else if (key == "KeyB"){
         vars.vm.showNextGroup();
     } else if (event.shiftKey){
@@ -898,9 +898,9 @@ function show_mask(visible){
     }
 
     if (vars.show_mask){
-        get_object("tb_toogle_mask").classList.add("checked");
+        get_object("tb_toggle_mask").classList.add("checked");
     } else {
-        get_object("tb_toogle_mask").classList.remove("checked");
+        get_object("tb_toggle_mask").classList.remove("checked");
     }
 }
 

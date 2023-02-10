@@ -220,7 +220,7 @@ function open_tab(tab_button, tabs_class, tab_id) {
     tab_button.classList.add("checked");
 }
 
-function toogle_display(button) {
+function toggle_display(button) {
     /* Toggle between adding and removing the "active" class,
     to highlight the button that controls the panel */
     button.classList.toggle("checked");
