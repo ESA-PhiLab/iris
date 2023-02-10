@@ -210,7 +210,7 @@ class ViewManager{
         }
         this.show_controls = show;
     }
-    toogleControls(){
+    toggleControls(){
         this.showControls(!vars.vm.show_controls);
     }
 }
@@ -419,6 +419,9 @@ class RGBLayer extends CanvasLayer{
         ctx.drawImage(
             image, 0, 0, image.width, image.height
         );
+
+        // Set mask visibility based on current vars.show_mask
+        show_mask(vars.show_mask);
     }
 }
 
