@@ -32,7 +32,7 @@
 - [ ] Add helper tips for each field on Preferences tab after ~1 second mouse hover
 - [ ] Add admin tab for data statistics visualisation over the whole dataset. E.g. class pie-chart, RF confusion matrix, input dimension importance, etc.
 - [ ] Add "iris export <options> PROJECT" command to save final versions of masks, and output some python-friendly (e.g. pandas) tables to look at dataset statistics
-
+- [ ] Add automatic config checker to spot common logic errors. Currently many typos/errors in config do not lead to a good error message.
 
 ### Big future plans:
 
