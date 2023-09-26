@@ -40,6 +40,8 @@ Having run the demo, you can then create a personalised config file, based on _d
 iris label <your-config-file>
 ```
 
+It is recommended to use a keyboard and mouse with scrollwheel for IRIS. Currently, control via trackpad is limited and awkward.
+
 ### Docker
 
 You can also use Docker to deploy IRIS. First, build an image (run from IRIS's root directory). Then, you can use docker run to launch IRIS. However, please note that port-forwarding is needed (here we use port 80 as an example for a typical http setup, but the port number can be set in your IRIS config file) and the directory to your project also needs to be given as a volume to docker.
