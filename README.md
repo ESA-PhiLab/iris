@@ -51,5 +51,8 @@ docker build --tag iris .
 docker run -p 80:80 -v <dataset_path>:/dataset/ --rm -it iris label /dataset/cloud-segmentation.json
 ```
 
+### Run on Github Codespaces
+To run in a [Github codespace](https://docs.github.com/en/codespaces/overview) fork this repository, then in the Github UI select `Code/Codespaces/Open in codespace`. Run `pip install -e .` and then `iris demo`. You will see a popup that there is an app on port 5000, click the link to open a new window showing Iris 🎉
+
 
 **Visit the official iris Github page:  https://github.com/ESA-PhiLab/iris**
