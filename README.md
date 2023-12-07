@@ -20,7 +20,7 @@ cd iris
 python setup.py install
 ```
 
-If you are altering the IRIS source code then you made find it easier to install like below, to avoid having to reinstall it every time a change is made
+If you are altering the IRIS source code then you may find it easier to install like below, to avoid having to reinstall it every time a change is made
 ```
 pip install -e ./
 ```
