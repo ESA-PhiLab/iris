@@ -272,7 +272,7 @@ def save_mask(image_id):
     # The user mask denotes who classified the pixels in the mask:
     #   if true: the user classified the pixel
     #   if false: the AI classified the pixel
-    user_mask = data[1+mask_length:-1].astype(np.bool)
+    user_mask = data[1+mask_length:-1].astype(bool)
     user_mask = user_mask.reshape(project['segmentation']['mask_shape'][::-1])
 
     final_mask_file, user_mask_file = get_mask_filenames(image_id, user_id)

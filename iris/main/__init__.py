@@ -2,6 +2,7 @@ import io
 import json
 
 import flask
+import markupsafe
 import numpy as np
 from PIL import Image as PILImage
 from skimage.transform import resize
@@ -92,7 +93,7 @@ def metadata(image_id):
 
     if flask.request.args.get('safe_html', False):
         metadata = {
-            k: flask.Markup(str(v))
+            k: markupsafe.Markup(str(v))
             for k, v in metadata.items()
         }
 
