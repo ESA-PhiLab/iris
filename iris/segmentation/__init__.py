@@ -377,13 +377,13 @@ def predict_mask(image_id):
         tree_learner='data',
         learning_rate=0.05,
         n_estimators=config['ai_model']['n_estimators'],
-        silent=True,
         n_jobs=10,
     )
+    early_stopping = lgb.early_stopping(4, verbose=False)
     gbm.fit(
         inputs[train_indices, :], train_labels,
         eval_set=[(inputs[val_indices, :], val_labels)],
-        early_stopping_rounds=4, verbose=0
+        callbacks=[early_stopping]
     )
 
     # predict the mask for the whole image:
