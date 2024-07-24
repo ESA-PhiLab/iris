@@ -1,7 +1,7 @@
 from copy import deepcopy
 
 import flask
-
+import markupsafe
 
 
 class View:
@@ -12,8 +12,8 @@ class View:
 
     def to_json(self):
         return {
-            'name': flask.Markup(self.name),
-            'description': flask.Markup(self.description),
+            'name': markupsafe.Markup(self.name),
+            'description': markupsafe.Markup(self.description),
         }
 
 def merge_deep_dicts(d1, d2):

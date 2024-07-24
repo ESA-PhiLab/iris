@@ -2,6 +2,7 @@ from collections import defaultdict
 from datetime import timedelta
 
 import flask
+import markupsafe
 from sqlalchemy import func
 
 from iris.user import requires_admin, requires_auth
@@ -44,7 +45,7 @@ def users():
     users_json = [user.to_json() for user in users]
 
     html = flask.render_template('admin/users.html', users=users_json, order_by=order_by, ascending=ascending)
-    return flask.render_template('admin/index.html', user=user, page=flask.Markup(html))
+    return flask.render_template('admin/index.html', user=user, page=markupsafe.Markup(html))
 
 @admin_app.route('/actions/<type>', methods=['GET'])
 @requires_auth
@@ -74,7 +75,7 @@ def actions(type):
         'admin/actions.html', action_type=type, actions=actions_json,
         image_stats=image_stats, order_by=order_by, ascending=ascending
     )
-    return flask.render_template('admin/index.html', user=user, page=flask.Markup(html))
+    return flask.render_template('admin/index.html', user=user, page=markupsafe.Markup(html))
 
 @admin_app.route('/images', methods=['GET'])
 @requires_auth
@@ -117,4 +118,4 @@ def images():
     html = flask.render_template(
         'admin/images.html', images=images, order_by=order_by, ascending=ascending
     )
-    return flask.render_template('admin/index.html', user=user, page=flask.Markup(html))
+    return flask.render_template('admin/index.html', user=user, page=markupsafe.Markup(html))

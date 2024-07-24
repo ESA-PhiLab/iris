@@ -20,7 +20,7 @@ cd iris
 python setup.py install
 ```
 
-If you are altering the IRIS source code then you made find it easier to install like below, to avoid having to reinstall it every time a change is made
+If you are altering the IRIS source code then you may find it easier to install like below, to avoid having to reinstall it every time a change is made
 ```
 pip install -e ./
 ```
@@ -34,11 +34,13 @@ Once installed, you can run the demo version of IRIS
 iris demo
 ```
 
-Having run the demo, you can then create a personalised config file, based on _demo/cloud-segmentation.json_. With your own config file, you can then instantiate your own custom project. <a href="https://github.com/ESA-PhiLab/iris/blob/master/docs/config.m">Here is a guide</a> on how to write your own config file.
+Having run the demo, you can then create a personalised config file, based on _demo/cloud-segmentation.json_. With your own config file, you can then instantiate your own custom project. <a href="https://github.com/ESA-PhiLab/iris/blob/master/docs/config.md">Here is a guide</a> on how to write your own config file.
 
 ```
 iris label <your-config-file>
 ```
+
+It is recommended to use a keyboard and mouse with scrollwheel for IRIS. Currently, control via trackpad is limited and awkward.
 
 ### Docker
 
@@ -48,6 +50,9 @@ You can also use Docker to deploy IRIS. First, build an image (run from IRIS's r
 docker build --tag iris .
 docker run -p 80:80 -v <dataset_path>:/dataset/ --rm -it iris label /dataset/cloud-segmentation.json
 ```
+
+### Run on Github Codespaces
+To run in a [Github codespace](https://docs.github.com/en/codespaces/overview) fork this repository, then in the Github UI select `Code/Codespaces/Open in codespace`. Run `pip install -e .` and then `iris demo`. You will see a popup that there is an app on port 5000, click the link to open a new window showing Iris 🎉
 
 
 **Visit the official iris Github page:  https://github.com/ESA-PhiLab/iris**

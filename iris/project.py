@@ -10,6 +10,8 @@ from pprint import pprint
 import re
 
 import flask
+import markupsafe
+
 import json
 from matplotlib import cm
 import numpy as np
@@ -95,7 +97,7 @@ class Project:
         # Make sure the HTML is understood in the descriptions:
         for name, view in self.config['views'].items():
             view['name'] = name
-            view['description'] = flask.Markup(
+            view['description'] = markupsafe.Markup(
                 view.get('description', view['name'])
             )
             view['stretch'] = view.get('stretch', 'linear')
