@@ -15,7 +15,10 @@ Tool for manual image segmentation of satellite imagery (or images in general). 
 Clone the repository, navigate to the directory, and install the package and its dependencies. We recommend doing this inside an environment such as conda, with python 3.8 or 3.9.
 
 ```
-git clone git@github.com:ESA-PhiLab/iris.git
+# true upstream
+# git clone git@github.com:ESA-PhiLab/iris.git
+# pseudo-upstream for GT CSSE collaboration
+git clone https://github.com/gt-sse-center/iris
 cd iris
 python setup.py install
 ```
