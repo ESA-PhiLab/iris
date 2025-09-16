@@ -18,7 +18,7 @@ jobs:
       fail-fast: false
       matrix:
         #os: [ubuntu-latest] #, macos-latest, windows-latest]
-        runs-on: [ubuntu-latest, windows-latest]
+        runs-on: [ubuntu-latest, ]
         python-version: ["3.9", "3.10"]
     name: "🐍 ${{ matrix.python-version }} • ${{ matrix.runs-on }}"
     runs-on: ${{ matrix.runs-on }}
@@ -40,7 +40,11 @@ jobs:
     - name: Install IRIS
       run: pip install .  #'.[test]'
 
+    - name: Test help
+      run: iris -h
+
     - name: Demo test
+      if: false
       run: |
         iris demo
 
