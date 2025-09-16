@@ -323,7 +323,7 @@ class Project:
 
     def render_image(self, image_id, view):
         # Find all required variables
-        bands = re.findall('(?:\$\w+\.{0,1}\w+)', ";".join(view['data']))
+        bands = re.findall(r'(?:\$\w+\.{0,1}\w+)', ";".join(view['data']))
         image = self.get_image(image_id, bands=bands)
         environment = self._get_render_environment(image)
 
