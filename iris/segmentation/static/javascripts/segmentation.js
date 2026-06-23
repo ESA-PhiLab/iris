@@ -35,6 +35,10 @@ let commands = {
         "key": "Z",
         "description": "Reset the view in the canvases"
     },
+    "tool_bbox": {
+        "key": "B",
+        "description": "Draw bounding boxes"
+    },
     "tool_draw": {
         "key": "D",
         "description": "Draw pixels on the mask"
@@ -159,6 +163,9 @@ function init_views(){
     // Load mask:
     load_mask();
 
+    //load YOLO file
+    load_yolo();
+
     vars.vm.setImage(vars.image_id, vars.image_location);
     vars.vm.showGroup();
 
@@ -221,6 +228,7 @@ function key_down(event){
         show_mask(!vars.show_mask);
     } else if (key == "KeyS"){
         save_mask();
+        save_yolo();
     } else if (key == "Enter"){
         save_mask(next_image);
     } else if (key == "Backspace"){
@@ -260,6 +268,8 @@ function key_down(event){
         if (class_id < vars.classes.length){
             set_current_class(class_id);
         }
+    } else if (key == "KeyB"){
+        set_tool("bbox")
     } else if (key == "KeyD"){
         set_tool("draw");
     } else if (key == "KeyE"){
@@ -310,7 +320,7 @@ function set_current_class(class_id){
     get_object("tb_select_class").style["background-color"] = css_colour;
 
     // Convenience - automatically change to drawing tool after selecting class:
-    set_tool("draw");
+    // set_tool("draw");
 }
 
 function set_contrast(visible){
@@ -342,6 +352,14 @@ function set_tool(tool){
     get_object("tb_tool_"+tool).classList.add("checked");
 
     vars.tool.type = tool;
+
+    // set default tool size
+    if (tool == "bbox") {
+        vars.tool.size = 1
+    }
+    else {
+        vars.tool.size = 6
+    }
 
     render_preview();
 }
@@ -390,7 +408,14 @@ function mouse_move(event){
 
     // mouse left button must be pressed to draw
     if (event.buttons == 1 && vars.tool.type != 'move'){
-        user_draws_on_mask();
+        if (vars.tool.type == "bbox") {
+            vars.box_end = [...vars.cursor_image];
+            update_bounding_box();
+        }
+        else {
+            vars.box_end = null;
+            user_draws_on_mask();
+        }
     }
 
     // Show a preview of the pencil:
@@ -403,6 +428,7 @@ function mouse_down(event){
     if (event.buttons == 1 && vars.tool.type != 'move'){
         user_draws_on_mask();
         vars.drag_start = null;
+        vars.box_start = [...vars.cursor_image];
     } else if (
         event.buttons == 2
         || event.buttons == 4
@@ -413,7 +439,11 @@ function mouse_down(event){
 }
 
 function mouse_up(event){
+    if (vars.tool.type) create_bounding_box();
     vars.drag_start = null;
+    vars.box_start = null;
+    vars.box_end = null;
+    render_preview();
 }
 
 function mouse_enter(event){
@@ -630,12 +660,10 @@ function redo(){
     render_mask();
 }
 
-function user_draws_on_mask(){
-    /*The user draws to the mask
-
+function get_canvas_coordinates() {
+    /*Translate mouse coordinates to canvas coordinates
     Returns:
-        * list([x0, y0, xn, yn]) - bounding_box in canvas coordinates
-
+        * list([x0, y0, x1, x2]) - canvas coordinates of the cursor
     */
 
     // Just get one canvas
@@ -677,17 +705,22 @@ function user_draws_on_mask(){
     y_start = Math.max(round_number(canvas_bounds[0].y), y_start);
     y_end = Math.min(round_number(canvas_bounds[1].y), y_end);
 
-    // Transform into mask coordinates:
-    x_start -= vars.mask_area[0];
-    x_end -= vars.mask_area[0];
-    y_start -= vars.mask_area[1];
-    y_end -= vars.mask_area[1];
+    return [x_start, x_end, y_start, y_end]
+}
 
-    // Make sure we do not draw outside of the masking area:
-    x_start = Math.max(0, x_start);
-    x_end = Math.min(vars.mask_shape[0]-1, x_end);
-    y_start = Math.max(0, y_start);
-    y_end = Math.min(vars.mask_shape[1]-1, y_end);
+function user_draws_on_mask(){
+    /*The user draws to the mask
+
+    Returns:
+        * list([x0, y0, xn, yn]) - bounding_box in canvas coordinates
+
+    */
+
+    let coords = get_canvas_coordinates();
+    let x_start = coords[0]
+    let x_end = coords[1]
+    let y_start = coords[2]
+    let y_end = coords[3]
 
     for (let x = x_start; x < x_end; x++) {
         for (let y = y_start; y < y_end; y++) {
@@ -724,6 +757,35 @@ function user_draws_on_mask(){
     update_history();
 
     vars.show_dialogue_before_next_image = true;
+}
+
+function update_bounding_box() {
+    let coords = get_canvas_coordinates();
+    let x_start = coords[0]
+    let y_start = coords[2]
+    vars.box_end = [x_start, y_start]
+}
+
+function create_bounding_box() {
+    /*Add bounding box to mask*/
+    if (vars.box_start != null && vars.box_end != null) {
+        let box_area = [vars.box_start[0], vars.box_start[1], vars.box_end[0]-vars.box_start[0], vars.box_end[1]-vars.box_start[1]]
+        if (vars.mask_type == 'final' || vars.mask_type == 'user'){
+            let hidden_ctx = vars.hidden_mask.getContext('2d');
+            hidden_ctx.clearRect(...box_area);
+            hidden_ctx.fillStyle = rgba2css(get_current_class_colour());
+            hidden_ctx.fillRect(...box_area);
+            render_mask(box_area)
+        }
+
+        if (vars.current_class > 0) vars.yolo.push([vars.current_class - 1, ...box_area]);
+
+        // Part of the history (undo-redo) system. When new pixels are drawn, we
+        // delete all saved future elements in the history stack and add the
+        // current masks to the history
+        discard_future();
+        update_history();
+    }
 }
 
 function reload_hidden_mask(){
@@ -1158,6 +1220,27 @@ async function load_mask(){
     update_history();
 }
 
+async function load_yolo() {
+    show_loader("Loading YOLO...");
+
+    var results = await download(
+        vars.url.segmentation+"load_yolo/" + vars.image_id
+    );
+
+    if (results.response.status != 200 && results.response.status != 404) {
+        hide_loader();
+
+        let error = await results.response.text();
+        show_dialogue(
+            "error",
+            "Could not load the yolo file from the server!\n" + error
+        );
+        return;
+    }
+
+    vars.yolo = results.data;
+}
+
 async function download(url, init=null, html_object=null){
     if (init === null){
         var response = await fetch(url);
@@ -1312,6 +1395,42 @@ async function save_mask_finished(response, call_afterwards){
         show_dialogue(
             "error",
             "<p>Could not save the mask due to an internal problem!</p>" + error
+        )
+    }
+}
+
+async function save_yolo(call_afterwards=null) {
+    show_message('Saving YOLO file...');
+    if (vars.yolo === null){
+        if(call_afterwards !== null){
+          call_afterwards();
+        }
+        return;
+    }
+    console.log(vars.yolo)
+
+    fetch(vars.url.segmentation+"save_yolo/" + vars.image_id, {
+        method: "POST",
+        body: vars.yolo,
+        headers: {
+            "Content-Type": "text/csv"
+        }
+    }).then((response) => {save_yolo_finished(response, call_afterwards);});
+}
+
+async function save_yolo_finished(response, call_afterwards){
+    fetch_server_update();
+
+    if (response.status === 200) {
+        show_message('YOLO file saved', 1000);
+        if(call_afterwards !== null){
+          call_afterwards();
+        }
+    } else {
+        let error = await response.text();
+        show_dialogue(
+            "error",
+            "<p>Could not save the YOLO file due to an internal problem!</p>" + error
         )
     }
 }

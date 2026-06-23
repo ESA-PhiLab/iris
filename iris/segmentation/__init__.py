@@ -241,7 +241,7 @@ def load_mask(image_id):
 def save_mask(image_id):
     user_id = flask.session.get('user_id')
 
-    print('SAVING BY', user_id)
+    print('SAVING MASK BY USER', user_id)
 
     t = time.time()
     data = np.frombuffer(flask.request.data, dtype=np.uint8)
@@ -411,3 +411,46 @@ def predict_mask(image_id):
     )
     response.headers.set('Content-Type', 'application/octet-stream')
     return response
+
+@segmentation_app.route('/load_yolo/<image_id>')
+@requires_auth
+def load_yolo(image_id):
+    """Read the yolo file"""
+    labels = []
+    filename = project['YOLO']['path'].format(id=image_id)
+    if exists(filename):
+        lines = open((filename), "r").read().strip().split("\n")
+        for line in lines:
+            contents = line.split(" ")
+            labels.append[contents[0], contents[1], contents[2], contents[3], contents[4]]
+    return labels
+
+@segmentation_app.route("/save_yolo/<image_id>", methods=["POST"])
+@requires_auth
+def save_yolo(image_id):
+    user_id = flask.session.get('user_id')
+
+    print('SAVING YOLO BY USER', user_id)
+
+    t = time.time()
+    # data = np.frombuffer(flask.request.data, dtype=str)
+    data = flask.request.data
+    print(f'transfer time: {time.time()-t:.2f}s')
+
+    data = data.decode("utf-8").split(",")
+    data_list = []
+    if len(data) % 5 ==0:
+        for i in range(0, len(data), 5):
+            data_list.append([data[i], data[i+1], data[i+2], data[i+3], data[i+4]])
+
+    filename = project['YOLO']['path'].format(id=image_id)
+    full_path = join(dirname(project['path']), filename)
+    if not exists(dirname(full_path)):
+        os.makedirs(dirname(full_path))
+    save_file = open(full_path, "a")
+    save_file.truncate(0)
+    for line in data_list:
+        save_file.write(" ".join(line))
+
+    # We need this to send a successful response to the client
+    return flask.make_response('YOLO file successfully saved!')

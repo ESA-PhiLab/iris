@@ -100,5 +100,23 @@ class PreviewLayer extends CanvasLayer{
             ...vars.mask_shape
         );
         ctx.stroke();
+
+        // Draw preliminary bounding box
+        if (vars.box_start != null && vars.box_end != null) {
+            ctx.beginPath();
+            ctx.lineWidth = "1";
+            ctx.strokeStyle = "rgb(180, 180, 180)";
+            ctx.setLineDash([5, 5]);
+            ctx.rect(
+                vars.box_start[0], vars.box_start[1],
+                vars.box_end[0] - vars.box_start[0], vars.box_end[1] - vars.box_start[1]
+            );
+            ctx.stroke();
+            ctx.fillStyle = "rgba(180, 180, 180, 0.3)";
+            ctx.fillRect(
+                vars.box_start[0], vars.box_start[1],
+                vars.box_end[0] - vars.box_start[0], vars.box_end[1] - vars.box_start[1]
+            );
+        }
     }
 }

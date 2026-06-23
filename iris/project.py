@@ -210,6 +210,10 @@ class Project:
     @property
     def segmentation(self):
         return 'path' in self.config.get('segmentation', [])
+    
+    @property
+    def yolo_path(self):
+        return self.config.YOLO.path
 
     def get_start_image_id(self):
         return self.image_ids[self.image_order[0]]
