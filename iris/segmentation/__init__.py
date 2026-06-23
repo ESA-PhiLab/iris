@@ -418,11 +418,12 @@ def load_yolo(image_id):
     """Read the yolo file"""
     labels = []
     filename = project['YOLO']['path'].format(id=image_id)
-    if exists(filename):
-        lines = open((filename), "r").read().strip().split("\n")
+    full_path = join(dirname(project['path']), filename)
+    if exists(full_path):
+        lines = open((full_path), "r").read().strip().split("\n")
         for line in lines:
             contents = line.split(" ")
-            labels.append[contents[0], contents[1], contents[2], contents[3], contents[4]]
+            labels.append([contents[0], contents[1], contents[2], contents[3], contents[4]])
     return labels
 
 @segmentation_app.route("/save_yolo/<image_id>", methods=["POST"])
@@ -450,7 +451,7 @@ def save_yolo(image_id):
     save_file = open(full_path, "a")
     save_file.truncate(0)
     for line in data_list:
-        save_file.write(" ".join(line))
+        save_file.write(" ".join(line) + "\n")
 
     # We need this to send a successful response to the client
     return flask.make_response('YOLO file successfully saved!')

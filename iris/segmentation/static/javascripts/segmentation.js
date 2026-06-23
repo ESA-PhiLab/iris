@@ -192,6 +192,7 @@ function init_events(){
       event.preventDefault();
 
       save_mask();
+      save_yolo();
 
       // Chrome requires returnValue to be set.
       event.returnValue = '';
@@ -230,9 +231,11 @@ function key_down(event){
         save_mask();
         save_yolo();
     } else if (key == "Enter"){
-        save_mask(next_image);
+        save_mask();
+        save_yolo(next_image);
     } else if (key == "Backspace"){
-        save_mask(prev_image);
+        save_mask();
+        save_yolo(previous_image)
     } else if (key == "KeyU"){
         undo();
     } else if (key == "KeyR"){
@@ -705,6 +708,18 @@ function get_canvas_coordinates() {
     y_start = Math.max(round_number(canvas_bounds[0].y), y_start);
     y_end = Math.min(round_number(canvas_bounds[1].y), y_end);
 
+    // Transform into mask coordinates:
+    x_start -= vars.mask_area[0];
+    x_end -= vars.mask_area[0];
+    y_start -= vars.mask_area[1];
+    y_end -= vars.mask_area[1];
+
+    // Make sure we do not draw outside of the masking area:
+    x_start = Math.max(0, x_start);
+    x_end = Math.min(vars.mask_shape[0]-1, x_end);
+    y_start = Math.max(0, y_start);
+    y_end = Math.min(vars.mask_shape[1]-1, y_end);
+
     return [x_start, x_end, y_start, y_end]
 }
 
@@ -768,7 +783,15 @@ function update_bounding_box() {
 
 function create_bounding_box() {
     /*Add bounding box to mask*/
+
     if (vars.box_start != null && vars.box_end != null) {
+        for (let x = Math.min(vars.box_start[0], vars.box_end[0]); x < Math.max(vars.box_start[0], vars.box_end[0]); x++) {
+            for (let y = Math.min(vars.box_start[1], vars.box_end[1]); y < Math.max(vars.box_start[1], vars.box_end[1]); y++) {
+                vars.mask[y*vars.mask_shape[0]+x] = vars.current_class;
+                vars.user_mask[y*vars.mask_shape[0]+x] = 1;
+            }
+        }
+
         let box_area = [vars.box_start[0], vars.box_start[1], vars.box_end[0]-vars.box_start[0], vars.box_end[1]-vars.box_start[1]]
         if (vars.mask_type == 'final' || vars.mask_type == 'user'){
             let hidden_ctx = vars.hidden_mask.getContext('2d');
@@ -777,6 +800,8 @@ function create_bounding_box() {
             hidden_ctx.fillRect(...box_area);
             render_mask(box_area)
         }
+
+        update_drawn_pixels();
 
         if (vars.current_class > 0) vars.yolo.push([vars.current_class - 1, ...box_area]);
 
@@ -972,6 +997,7 @@ function login_finished(){
 
 function logout_finished(){
     save_mask();
+    save_yolo();
     goto_url(vars.url.segmentation+'?image_id='+vars.image_id);
 }
 
