@@ -285,13 +285,20 @@ function key_down(event){
         vars.vm.toggleControls();
     } else if (key == "KeyB"){
         vars.vm.showNextGroup();
-    } else if (event.shiftKey){
+    } else if (key == "AltLeft"){
         vars.tool.resizing_mode = true;
+    } else if (key == "ShiftLeft") {
+        vars.shift_down = true;
     }
 }
 
 function key_up(event){
-    vars.tool.resizing_mode = event.shiftKey;
+    let key = event.code;
+    if (key == "AltLeft") {
+        vars.tool.resizing_mode = false;
+    } else if (key = "ShiftLeft") {
+        vars.shift_down = false;
+    }
 }
 
 function change_brightness(up){
@@ -381,7 +388,7 @@ function get_tool_offset(){
 
 function mouse_wheel(event){
     var delta = Math.max(-1, Math.min(1, (event.wheelDelta || -event.detail)));
-    if (vars.tool.resizing_mode){
+    if (vars.tool.resizing_mode && vars.tool.type != "bbox"){
         // Change size of tool:
         vars.tool.size += delta * 0.5 * vars.tool.size;
         vars.tool.size = round_number(Math.max(
@@ -397,12 +404,9 @@ function mouse_wheel(event){
 
 function mouse_move(event){
     update_cursor_coords(this, event);
-    if (
-        (event.buttons == 2
-        || event.buttons == 4
-        || (event.buttons == 1 && vars.tool.type == 'move'))
-        && vars.drag_start !== null
-    ){
+
+    // if move has been started (this means the mouse button and shift key checks are already done)
+    if (vars.drag_start !== null) {
         move(
             vars.cursor_image[0]-vars.drag_start[0],
             vars.cursor_image[1]-vars.drag_start[1]
@@ -428,16 +432,14 @@ function mouse_move(event){
 function mouse_down(event){
     update_cursor_coords(this, event);
 
-    if (event.buttons == 1 && vars.tool.type != 'move'){
+    if (vars.tool.type == "move" || event.buttons == 2 || event.buttons == 4 || (event.buttons == 1 && ! vars.shift_down)) {
+        // begin move
+        vars.drag_start = [...vars.cursor_image];
+    } else if (event.buttons == 1 && vars.shift_down) {
+        //draw on canvas
         user_draws_on_mask();
         vars.drag_start = null;
         vars.box_start = [...vars.cursor_image];
-    } else if (
-        event.buttons == 2
-        || event.buttons == 4
-        || (event.buttons == 1 && vars.tool.type == 'move')
-    ){
-        vars.drag_start = [...vars.cursor_image];
     }
 }
 

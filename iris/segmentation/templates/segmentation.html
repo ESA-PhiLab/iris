@@ -31,9 +31,9 @@
             'current_class': 0,
             'cursor_canvas': [0, 0],
             'cursor_image': [0, 0],
-            'drag_start' : [0, 0],
-            'box_start': [0, 0],
-            'box_end': [0, 0],
+            'drag_start' : null,
+            'box_start': null,
+            'box_end': null,
             'n_user_pixels': {
                 'total': 0,
             },
@@ -46,7 +46,8 @@
                 'sprite': null,
                 'pixels': null,
                 'resizing_mode': false
-            }
+            },
+            'shift_down': false
         };
 
         function next_image(){
