@@ -110,7 +110,7 @@ let commands = {
         "key": "B",
         "description": "Switch to next group view"
     },
-    "delete_box": {
+    "delete_bounding_box": {
         "key": "Delete (with box selected)",
         "description": "Delete the selected bounding box"
     }
@@ -173,6 +173,12 @@ async function init_views(){
 
     //load YOLO file
     await load_yolo();
+
+    // Part of the history (undo-redo) system. When new pixels are drawn, we
+    // delete all saved future elements in the history stack and add the
+    // current masks to the history
+    discard_future();
+    update_history();
 
     vars.vm.setImage(vars.image_id, vars.image_location);
     vars.vm.showGroup();
@@ -299,7 +305,7 @@ function key_down(event){
         vars.shift_down = true;
     } else if (key == "Delete") {
         if (vars.selected_box != null) {
-            delete_box();
+            delete_bounding_box();
         }
     }
 }
@@ -448,12 +454,14 @@ function mouse_down(event){
     if (vars.tool.type == "move" || event.buttons == 2 || event.buttons == 4 || (event.buttons == 1 && ! vars.shift_down)) {
         vars.drag_start = [...vars.cursor_image];
     }
-    // else, if mouse button 1 is pressed with shift start drawing
-    else if (event.buttons == 1 && vars.shift_down) {
-        //draw on canvas
+    // else, if mouse button 1 is pressed with shift and bounding_box tool is selected start box
+    else if (event.buttons == 1 && vars.shift_down && vars.tool.type == "bbox") {
+        vars.box_start = [...vars.cursor_image];
+    }
+    // else, if mouse button 1 is pressed with shift start drawing on canvas
+    else if (event.buttons == 1 && vars.shift_down && vars.tool.type != "bbox") {
         user_draws_on_mask();
         vars.drag_start = null;
-        vars.box_start = [...vars.cursor_image];
     }
 
     // check if a bounding box was clicked
@@ -654,11 +662,13 @@ function discard_future(){
 function update_history(){
     vars.history.mask.push(vars.mask.slice());
     vars.history.user_mask.push(vars.user_mask.slice());
+    vars.history.yolo.push(vars.yolo.slice());
 
     if (vars.history.mask.length > vars.history.max_epochs){
         // Remove the oldest timestamp
         vars.history.mask.shift();
         vars.history.user_mask.shift();
+        vars.history.yolo.shift();
     }
     vars.history.current_epoch = vars.history.mask.length - 1;
 }
@@ -676,6 +686,7 @@ function undo(){
 
     vars.mask = vars.history.mask[vars.history.current_epoch].slice();
     vars.user_mask = vars.history.user_mask[vars.history.current_epoch].slice();
+    vars.yolo = vars.history.yolo[vars.history.current_epoch].slice();
 
     update_drawn_pixels();
     reload_hidden_mask();
@@ -695,6 +706,7 @@ function redo(){
 
     vars.mask = vars.history.mask[vars.history.current_epoch].slice();
     vars.user_mask = vars.history.user_mask[vars.history.current_epoch].slice();
+    vars.yolo = vars.history.yolo[vars.history.current_epoch].slice();
 
     update_drawn_pixels();
     reload_hidden_mask();
@@ -999,7 +1011,7 @@ function reset_filters(){
     vars.vm.render();
 }
 
-function delete_box() {
+function delete_bounding_box() {
     let box = vars.yolo[vars.selected_box]
     // extend box by 1 pixel on each side
     let box_x = box[1] - 1;
@@ -1021,6 +1033,9 @@ function delete_box() {
     console.log(vars.yolo)
     vars.selected_box = null;
     render_selected();
+
+    discard_future();
+    update_history();
 }
 
 // TODO: how to get the action_id without sending an additional request?
@@ -1310,12 +1325,6 @@ async function load_mask(){
     set_mask_type(vars.mask_type);
     hide_loader();
     update_drawn_pixels();
-
-    // Part of the history (undo-redo) system. When new pixels are drawn, we
-    // delete all saved future elements in the history stack and add the
-    // current masks to the history
-    discard_future();
-    update_history();
 }
 
 async function load_yolo() {
