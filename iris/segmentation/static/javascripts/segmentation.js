@@ -430,9 +430,8 @@ function mouse_move(event){
             vars.cursor_image[1]-vars.drag_start[1]
         );
     }
-
     // mouse left button must be pressed to draw
-    if (event.buttons == 1 && vars.tool.type != 'move'){
+    else if (event.buttons == 1 && vars.tool.type != 'move'){
         if (vars.tool.type == "bbox") {
             vars.box_end = [...vars.cursor_image];
             update_bounding_box();
@@ -497,12 +496,11 @@ function mouse_up(event){
 
 function mouse_enter(event){
     update_cursor_coords(this, event);
-    if (
-        event.buttons == 2
-        || event.buttons == 4
-        || (event.buttons == 1 && vars.tool.type == 'move')
-    ){
+    if (event.buttons == 2 || event.buttons == 4 || (event.buttons == 1 && ! vars.shift_down)) {
         vars.drag_start = [...vars.cursor_image];
+    }
+    else {
+        vars.drag_start = null;
     }
 }
 
