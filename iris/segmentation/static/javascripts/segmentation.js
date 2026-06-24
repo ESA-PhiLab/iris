@@ -132,7 +132,7 @@ function newuser_help_popup(){
     }
 }
 
-function init_views(){
+async function init_views(){
     show_loader("Loading views...");
     vars.vm = new ViewManager(
         get_object('views-container'),
@@ -169,10 +169,10 @@ function init_views(){
     hidden_ctx.imageSmoothingEnabled = false;
 
     // Load mask:
-    load_mask();
+    await load_mask();
 
     //load YOLO file
-    load_yolo();
+    await load_yolo();
 
     vars.vm.setImage(vars.image_id, vars.image_location);
     vars.vm.showGroup();
@@ -462,10 +462,10 @@ function mouse_down(event){
         let mouse_y = vars.cursor_image[1]
         let hit_box = false;
         for (let i=0; i<vars.yolo.length; i++) {
-            let x = parseInt(vars.yolo[i][1])
-            let y = parseInt(vars.yolo[i][2])
-            let width = parseInt(vars.yolo[i][3])
-            let height = parseInt(vars.yolo[i][4])
+            let x = vars.yolo[i][1]
+            let y = vars.yolo[i][2]
+            let width = vars.yolo[i][3]
+            let height = vars.yolo[i][4]
             if (mouse_x >= x && mouse_x <= x+width && mouse_y >= y && mouse_y <= y+height) {
                 vars.selected_box = i;
                 hit_box = true;
@@ -761,26 +761,25 @@ function get_canvas_coordinates() {
     return [x_start, x_end, y_start, y_end]
 }
 
-function user_draws_on_mask(){
-    /*The user draws to the mask
-
-    Returns:
-        * list([x0, y0, xn, yn]) - bounding_box in canvas coordinates
-
+function draw_box_to_mask(x_start, x_end, y_start, y_end, override_class=null) {
+    /* 
+    Colour pixels in the designated box in the mask
+    uses the currently selected class by default, can be overridden by passing a class as override_call
     */
 
-    let coords = get_canvas_coordinates();
-    let x_start = coords[0]
-    let x_end = coords[1]
-    let y_start = coords[2]
-    let y_end = coords[3]
+    let class_id;
+    if (override_class) {
+        class_id = override_class;
+    } else {
+        class_id = vars.current_class;
+    }
 
     for (let x = x_start; x < x_end; x++) {
         for (let y = y_start; y < y_end; y++) {
             if (vars.tool.type == "eraser"){
                 vars.user_mask[y*vars.mask_shape[0]+x] = 0;
             } else {
-                vars.mask[y*vars.mask_shape[0]+x] = vars.current_class;
+                vars.mask[y*vars.mask_shape[0]+x] = class_id;
                 vars.user_mask[y*vars.mask_shape[0]+x] = 1;
             }
         }
@@ -793,7 +792,7 @@ function user_draws_on_mask(){
         hidden_ctx.clearRect(...drawing_area);
 
         if (vars.tool.type != "eraser"){
-            hidden_ctx.fillStyle = rgba2css(get_current_class_colour());
+            hidden_ctx.fillStyle = rgba2css(get_class_colour(class_id));
             hidden_ctx.fillRect(...drawing_area);
         }
 
@@ -802,6 +801,18 @@ function user_draws_on_mask(){
     }
 
     update_drawn_pixels();
+}
+
+function user_draws_on_mask(){
+    /*The user draws to the mask*/
+
+    let coords = get_canvas_coordinates();
+    let x_start = coords[0]
+    let x_end = coords[1]
+    let y_start = coords[2]
+    let y_end = coords[3]
+
+    draw_box_to_mask(x_start, x_end, y_start, y_end)
 
     // Part of the history (undo-redo) system. When new pixels are drawn, we
     // delete all saved future elements in the history stack and add the
@@ -823,12 +834,6 @@ function create_bounding_box() {
     /*Add bounding box to mask*/
 
     if (vars.box_start != null && vars.box_end != null) {
-        for (let x = Math.min(vars.box_start[0], vars.box_end[0]); x < Math.max(vars.box_start[0], vars.box_end[0]); x++) {
-            for (let y = Math.min(vars.box_start[1], vars.box_end[1]); y < Math.max(vars.box_start[1], vars.box_end[1]); y++) {
-                vars.mask[y*vars.mask_shape[0]+x] = vars.current_class;
-                vars.user_mask[y*vars.mask_shape[0]+x] = 1;
-            }
-        }
 
         // ensure x0 and y0 are smaller than x1 and y1, respectively
         let x0 = Math.min(vars.box_start[0], vars.box_end[0])
@@ -836,16 +841,9 @@ function create_bounding_box() {
         let y0 = Math.min(vars.box_start[1], vars.box_end[1])
         let y1 = Math.max(vars.box_start[1], vars.box_end[1])
 
-        let box_area = [x0, y0, x1-x0, y1-y0]
-        if (vars.mask_type == 'final' || vars.mask_type == 'user'){
-            let hidden_ctx = vars.hidden_mask.getContext('2d');
-            hidden_ctx.clearRect(...box_area);
-            hidden_ctx.fillStyle = rgba2css(get_current_class_colour());
-            hidden_ctx.fillRect(...box_area);
-            render_mask(box_area)
-        }
+        draw_box_to_mask(x0, x1, y0, y1)
 
-        update_drawn_pixels();
+        let box_area = [x0, y0, x1-x0, y1-y0]
 
         if (vars.current_class > 0) vars.yolo.push([vars.current_class - 1, ...box_area]);
 
@@ -893,15 +891,15 @@ function set_mask_type(type){
     show_mask(true);
 }
 
-function get_current_class_colour(){
+function get_class_colour(class_id=vars.current_class){
     if (vars.mask_type == "user"){
-        if ("user_colour" in vars.classes[vars.current_class]){
-            return vars.classes[vars.current_class].user_colour;
+        if ("user_colour" in vars.classes[class_id]){
+            return vars.classes[class_id].user_colour;
         } else {
-            return vars.classes[vars.current_class].colour;
+            return vars.classes[class_id].colour;
         }
     } else { //  if (vars.mask_type == "user"){
-        return vars.classes[vars.current_class].colour;
+        return vars.classes[class_id].colour;
     }
 }
 
@@ -1004,10 +1002,10 @@ function reset_filters(){
 function delete_box() {
     let box = vars.yolo[vars.selected_box]
     // extend box by 1 pixel on each side
-    let box_x = parseInt(box[1]) - 1;
-    let box_y = parseInt(box[2]) - 1;
-    let box_width = parseInt(box[3]) + 2;
-    let box_height = parseInt(box[4]) + 2;
+    let box_x = box[1] - 1;
+    let box_y = box[2] - 1;
+    let box_width = box[3] + 2;
+    let box_height = box[4] + 2;
     let extended_area = [box_x, box_y, box_width, box_height];
 
     for (let x = box_x; x < box_x+box_width; x++) {
@@ -1338,7 +1336,20 @@ async function load_yolo() {
         return;
     }
 
-    vars.yolo = results.data;
+    let yolo_list = [];
+    for (let i=0; i<results.data.length; i++) {
+        let box = results.data[i];
+        let box_data = [];
+        for (let j=0; j<box.length; j++) {
+            box_data.push(parseInt(box[j]))
+        }
+        yolo_list.push(box_data) // add box to vars.yolo list
+        draw_box_to_mask(box_data[1], box_data[1]+box_data[3], box_data[2], box_data[2]+box_data[4], box_data[0]+1) // add box to mask (in case it got drawn over)
+    }
+
+    vars.yolo = yolo_list;
+
+    hide_loader();
 }
 
 async function download(url, init=null, html_object=null){

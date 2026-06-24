@@ -133,19 +133,13 @@ class SelectionLayer extends CanvasLayer {
             ctx.beginPath();
             ctx.lineWidth = "1";
             ctx.strokeStyle = "rgb(20, 20, 20)";
-            ctx.rect(
-                parseInt(box[1]), parseInt(box[2]),
-                parseInt(box[3]), parseInt(box[4])
-            );
+            ctx.rect(box[1], box[2], box[3], box[4]);
             ctx.stroke();
 
             ctx.beginPath();
             ctx.lineWidth = "1";
             ctx.strokeStyle = "rgb(220, 220, 220)";
-            ctx.rect(
-                parseInt(box[1]) - 1, parseInt(box[2]) - 1,
-                parseInt(box[3]) + 2, parseInt(box[4]) + 2
-            );
+            ctx.rect(box[1] - 1, box[2] - 1, box[3] + 2, box[4] + 2);
             ctx.stroke();
         }
     }
