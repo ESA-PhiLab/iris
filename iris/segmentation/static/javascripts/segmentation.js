@@ -109,6 +109,10 @@ let commands = {
     "next_view_group": {
         "key": "B",
         "description": "Switch to next group view"
+    },
+    "delete_box": {
+        "key": "Delete (with box selected)",
+        "description": "Delete the selected bounding box"
     }
 };
 
@@ -140,6 +144,10 @@ function init_views(){
     // Add standard layers to all view ports if the view type is not "bingmap":
     vars.vm.addStandardLayer(
         MaskLayer,
+        (view) => view.type != "bingmap"
+    );
+    vars.vm.addStandardLayer(
+        SelectionLayer,
         (view) => view.type != "bingmap"
     );
     vars.vm.addStandardLayer(
@@ -289,6 +297,10 @@ function key_down(event){
         vars.tool.resizing_mode = true;
     } else if (key == "ShiftLeft") {
         vars.shift_down = true;
+    } else if (key == "Delete") {
+        if (vars.selected_box != null) {
+            delete_box();
+        }
     }
 }
 
@@ -432,14 +444,38 @@ function mouse_move(event){
 function mouse_down(event){
     update_cursor_coords(this, event);
 
+    // if mouse button 2 or 3 were pressed (or mb1 + shift) begin move
     if (vars.tool.type == "move" || event.buttons == 2 || event.buttons == 4 || (event.buttons == 1 && ! vars.shift_down)) {
-        // begin move
         vars.drag_start = [...vars.cursor_image];
-    } else if (event.buttons == 1 && vars.shift_down) {
+    }
+    // else, if mouse button 1 is pressed with shift start drawing
+    else if (event.buttons == 1 && vars.shift_down) {
         //draw on canvas
         user_draws_on_mask();
         vars.drag_start = null;
         vars.box_start = [...vars.cursor_image];
+    }
+
+    // check if a bounding box was clicked
+    if (vars.tool.type == "bbox" && (event.buttons == 1 && ! vars.shift_down)) {
+        let mouse_x = vars.cursor_image[0]
+        let mouse_y = vars.cursor_image[1]
+        let hit_box = false;
+        for (let i=0; i<vars.yolo.length; i++) {
+            let x = parseInt(vars.yolo[i][1])
+            let y = parseInt(vars.yolo[i][2])
+            let width = parseInt(vars.yolo[i][3])
+            let height = parseInt(vars.yolo[i][4])
+            if (mouse_x >= x && mouse_x <= x+width && mouse_y >= y && mouse_y <= y+height) {
+                vars.selected_box = i;
+                hit_box = true;
+                break;
+            }
+        }
+        if (! hit_box) {
+            vars.selected_box = null;
+        }
+        render_selected();
     }
 }
 
@@ -794,7 +830,13 @@ function create_bounding_box() {
             }
         }
 
-        let box_area = [vars.box_start[0], vars.box_start[1], vars.box_end[0]-vars.box_start[0], vars.box_end[1]-vars.box_start[1]]
+        // ensure x0 and y0 are smaller than x1 and y1, respectively
+        let x0 = Math.min(vars.box_start[0], vars.box_end[0])
+        let x1 = Math.max(vars.box_start[0], vars.box_end[0])
+        let y0 = Math.min(vars.box_start[1], vars.box_end[1])
+        let y1 = Math.max(vars.box_start[1], vars.box_end[1])
+
+        let box_area = [x0, y0, x1-x0, y1-y0]
         if (vars.mask_type == 'final' || vars.mask_type == 'user'){
             let hidden_ctx = vars.hidden_mask.getContext('2d');
             hidden_ctx.clearRect(...box_area);
@@ -924,6 +966,12 @@ function render_preview(){
     }
 }
 
+function render_selected(){
+    for (let layer of vars.vm.getLayers("selected")) {
+        layer.render();
+    }
+}
+
 function dialogue_reset_mask(){
     var content = "<p>Are you sure you want to reset all your drawn pixels?</p>";
     content += "<button onclick='hide_dialogue();reset_mask();'>Reset</button>";
@@ -951,6 +999,30 @@ function reset_filters(){
     set_contrast(false);
     set_invert(false);
     vars.vm.render();
+}
+
+function delete_box() {
+    let box = vars.yolo[vars.selected_box]
+    // extend box by 1 pixel on each side
+    let box_x = parseInt(box[1]) - 1;
+    let box_y = parseInt(box[2]) - 1;
+    let box_width = parseInt(box[3]) + 2;
+    let box_height = parseInt(box[4]) + 2;
+    let extended_area = [box_x, box_y, box_width, box_height];
+
+    for (let x = box_x; x < box_x+box_width; x++) {
+        for (let y = box_y; y < box_y+box_height; y++) {
+            vars.mask[y*vars.mask_shape[0]+x] = 0;
+            vars.user_mask[y*vars.mask_shape[0]+x] = 1;
+        }
+    }
+    var hidden_ctx = vars.hidden_mask.getContext('2d');
+    hidden_ctx.clearRect(...extended_area);
+    render_mask(extended_area);
+    vars.yolo.splice(vars.selected_box, 1);
+    console.log(vars.yolo)
+    vars.selected_box = null;
+    render_selected();
 }
 
 // TODO: how to get the action_id without sending an additional request?
@@ -1435,7 +1507,6 @@ async function save_yolo(call_afterwards=null) {
         }
         return;
     }
-    console.log(vars.yolo)
 
     fetch(vars.url.segmentation+"save_yolo/" + vars.image_id, {
         method: "POST",

@@ -120,3 +120,33 @@ class PreviewLayer extends CanvasLayer{
         }
     }
 }
+
+class SelectionLayer extends CanvasLayer {
+    constructor(port, vm, view){
+        super(port, vm, view, "selected");
+    }
+    render() {
+        let ctx = this.container.getContext("2d");
+        ctx.clearRect(0, 0, ...vars.image_shape);
+        if (vars.selected_box != null) {
+            let box = vars.yolo[vars.selected_box]
+            ctx.beginPath();
+            ctx.lineWidth = "1";
+            ctx.strokeStyle = "rgb(20, 20, 20)";
+            ctx.rect(
+                parseInt(box[1]), parseInt(box[2]),
+                parseInt(box[3]), parseInt(box[4])
+            );
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.lineWidth = "1";
+            ctx.strokeStyle = "rgb(220, 220, 220)";
+            ctx.rect(
+                parseInt(box[1]) - 1, parseInt(box[2]) - 1,
+                parseInt(box[3]) + 2, parseInt(box[4]) + 2
+            );
+            ctx.stroke();
+        }
+    }
+}

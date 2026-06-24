@@ -423,7 +423,8 @@ def load_yolo(image_id):
         lines = open((full_path), "r").read().strip().split("\n")
         for line in lines:
             contents = line.split(" ")
-            labels.append([contents[0], contents[1], contents[2], contents[3], contents[4]])
+            if len(contents) == 5:
+                labels.append([contents[0], contents[1], contents[2], contents[3], contents[4]])
     return labels
 
 @segmentation_app.route("/save_yolo/<image_id>", methods=["POST"])
