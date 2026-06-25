@@ -299,8 +299,6 @@ function key_down(event){
         vars.vm.toggleControls();
     } else if (key == "KeyB"){
         vars.vm.showNextGroup();
-    } else if (key == "AltLeft"){
-        vars.tool.resizing_mode = true;
     } else if (key == "ShiftLeft") {
         vars.shift_down = true;
     } else if (key == "Delete") {
@@ -312,9 +310,7 @@ function key_down(event){
 
 function key_up(event){
     let key = event.code;
-    if (key == "AltLeft") {
-        vars.tool.resizing_mode = false;
-    } else if (key = "ShiftLeft") {
+    if (key = "ShiftLeft") {
         vars.shift_down = false;
     }
 }
@@ -406,7 +402,7 @@ function get_tool_offset(){
 
 function mouse_wheel(event){
     var delta = Math.max(-1, Math.min(1, (event.wheelDelta || -event.detail)));
-    if (vars.tool.resizing_mode && vars.tool.type != "bbox"){
+    if (vars.shift_down && vars.tool.type != "bbox"){
         // Change size of tool:
         vars.tool.size += delta * 0.5 * vars.tool.size;
         vars.tool.size = round_number(Math.max(
