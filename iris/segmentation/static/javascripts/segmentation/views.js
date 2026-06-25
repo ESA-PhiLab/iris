@@ -129,17 +129,21 @@ class SelectionLayer extends CanvasLayer {
         let ctx = this.container.getContext("2d");
         ctx.clearRect(0, 0, ...vars.image_shape);
         if (vars.selected_box != null) {
-            let box = vars.yolo[vars.selected_box]
+            let box = vars.yolo[vars.selected_box];
+            let width = box[3] * vars.image_shape[0];
+            let height = box[4] * vars.image_shape[1];
+            let x = (box[1] * vars.image_shape[0]) - (width / 2);
+            let y = (box[2] * vars.image_shape[1]) - (height / 2);
             ctx.beginPath();
             ctx.lineWidth = "1";
             ctx.strokeStyle = "rgb(20, 20, 20)";
-            ctx.rect(box[1], box[2], box[3], box[4]);
+            ctx.rect(x, y, width, height);
             ctx.stroke();
 
             ctx.beginPath();
             ctx.lineWidth = "1";
             ctx.strokeStyle = "rgb(220, 220, 220)";
-            ctx.rect(box[1] - 1, box[2] - 1, box[3] + 2, box[4] + 2);
+            ctx.rect(x - 1, y - 1, width + 2, height + 2);
             ctx.stroke();
         }
     }

@@ -465,10 +465,10 @@ function mouse_down(event){
         let mouse_y = vars.cursor_image[1]
         let hit_box = false;
         for (let i=0; i<vars.yolo.length; i++) {
-            let x = vars.yolo[i][1]
-            let y = vars.yolo[i][2]
-            let width = vars.yolo[i][3]
-            let height = vars.yolo[i][4]
+            let width = vars.yolo[i][3] * vars.image_shape[0];
+            let height = vars.yolo[i][4] * vars.image_shape[1];
+            let x = (vars.yolo[i][1] * vars.image_shape[0]) - (width / 2);
+            let y = (vars.yolo[i][2] * vars.image_shape[1]) - (height / 2);
             if (mouse_x >= x && mouse_x <= x+width && mouse_y >= y && mouse_y <= y+height) {
                 vars.selected_box = i;
                 hit_box = true;
@@ -843,14 +843,19 @@ function create_bounding_box() {
     if (vars.box_start != null && vars.box_end != null) {
 
         // ensure x0 and y0 are smaller than x1 and y1, respectively
-        let x0 = Math.min(vars.box_start[0], vars.box_end[0])
-        let x1 = Math.max(vars.box_start[0], vars.box_end[0])
-        let y0 = Math.min(vars.box_start[1], vars.box_end[1])
-        let y1 = Math.max(vars.box_start[1], vars.box_end[1])
+        let x0 = Math.min(vars.box_start[0], vars.box_end[0]);
+        let x1 = Math.max(vars.box_start[0], vars.box_end[0]);
+        let y0 = Math.min(vars.box_start[1], vars.box_end[1]);
+        let y1 = Math.max(vars.box_start[1], vars.box_end[1]);
 
         draw_box_to_mask(x0, x1, y0, y1)
 
-        let box_area = [x0, y0, x1-x0, y1-y0]
+        let width = (x1-x0) / vars.image_shape[0];
+        let height = (y1-y0) / vars.image_shape[1];
+        let x = (x0 / vars.image_shape[0]) + (width / 2);
+        let y = (y0 / vars.image_shape[1]) + (height / 2);
+
+        let box_area = [x, y, width, height];
 
         if (vars.current_class > 0) vars.yolo.push([vars.current_class - 1, ...box_area]);
 
@@ -1009,10 +1014,10 @@ function reset_filters(){
 function delete_bounding_box() {
     let box = vars.yolo[vars.selected_box]
     // extend box by 1 pixel on each side
-    let box_x = box[1] - 1;
-    let box_y = box[2] - 1;
-    let box_width = box[3] + 2;
-    let box_height = box[4] + 2;
+    let box_width = box[3] * vars.image_shape[0] + 2;
+    let box_height = box[4] * vars.image_shape[1] + 2;
+    let box_x = (box[1] * vars.image_shape[0]) - (box_width / 2);
+    let box_y = (box[2] * vars.image_shape[1]) - (box_height / 2);
     let extended_area = [box_x, box_y, box_width, box_height];
 
     for (let y = box_y; y < box_y+box_height; y++) {
@@ -1023,7 +1028,6 @@ function delete_bounding_box() {
     hidden_ctx.clearRect(...extended_area);
     render_mask(extended_area);
     vars.yolo.splice(vars.selected_box, 1);
-    console.log(vars.yolo)
     vars.selected_box = null;
     render_selected();
 
@@ -1343,7 +1347,7 @@ async function load_yolo() {
         let box = results.data[i];
         let box_data = [];
         for (let j=0; j<box.length; j++) {
-            box_data.push(parseInt(box[j]))
+            box_data.push(parseFloat(box[j]))
         }
         yolo_list.push(box_data) // add box to vars.yolo list
         draw_box_to_mask(box_data[1], box_data[1]+box_data[3], box_data[2], box_data[2]+box_data[4], box_data[0]+1) // add box to mask (in case it got drawn over)
