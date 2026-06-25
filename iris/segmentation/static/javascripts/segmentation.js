@@ -784,15 +784,16 @@ function draw_box_to_mask(x_start, x_end, y_start, y_end, override_class=null) {
         class_id = vars.current_class;
     }
 
-    for (let x = x_start; x < x_end; x++) {
+    if (vars.tool.type == "eraser") {
         for (let y = y_start; y < y_end; y++) {
-            if (vars.tool.type == "eraser"){
-                vars.user_mask[y*vars.mask_shape[0]+x] = 0;
-            } else {
-                vars.mask[y*vars.mask_shape[0]+x] = class_id;
-                vars.user_mask[y*vars.mask_shape[0]+x] = 1;
-            }
+            vars.user_mask.fill(0, y*vars.mask_shape[0]+x_start, y*vars.mask_shape[0]+x_end)
         }
+    }
+    else {
+        for (let y = y_start; y < y_end; y++) {
+            vars.mask.fill(class_id, y*vars.mask_shape[0]+x_start, y*vars.mask_shape[0]+x_end)
+            vars.user_mask.fill(1, y*vars.mask_shape[0]+x_start, y*vars.mask_shape[0]+x_end)
+        }                  
     }
     drawing_area = [x_start, y_start, x_end-x_start, y_end-y_start];
 
@@ -1018,11 +1019,9 @@ function delete_bounding_box() {
     let box_height = box[4] + 2;
     let extended_area = [box_x, box_y, box_width, box_height];
 
-    for (let x = box_x; x < box_x+box_width; x++) {
-        for (let y = box_y; y < box_y+box_height; y++) {
-            vars.mask[y*vars.mask_shape[0]+x] = 0;
-            vars.user_mask[y*vars.mask_shape[0]+x] = 1;
-        }
+    for (let y = box_y; y < box_y+box_height; y++) {
+        vars.mask.fill(0, y*vars.mask_shape[0]+box_x, y*vars.mask_shape[0]+box_x+box_width)
+        vars.user_mask.fill(1, y*vars.mask_shape[0]+box_x, y*vars.mask_shape[0]+box_x+box_width)
     }
     var hidden_ctx = vars.hidden_mask.getContext('2d');
     hidden_ctx.clearRect(...extended_area);
