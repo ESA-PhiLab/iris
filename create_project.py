@@ -130,7 +130,8 @@ def main(src, dst, name, password):
             "LWIR": {
             "description": "Long Wave Infared",
             "type": "image",
-            "data": "$LWIR.B1"
+            "data": "$LWIR.B1",
+            "cmap": "gray"
             },
             "NIR": {
             "descrription": "Near Infared",
