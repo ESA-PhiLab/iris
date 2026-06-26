@@ -38,6 +38,10 @@ def parse_cmd_line():
     parser.add_argument(
         "-p","--production", action="store_true",
         help="Use production WSGI server")
+    parser.add_argument(
+        "-ap", "--admin_password", type=str,
+        help="used as default admin password when starting a new project"
+    )
     args = parser.parse_args()
 
     if args.mode == "demo":
@@ -85,18 +89,23 @@ def create_default_admin(app):
     if admin is not None:
         return
 
-    print('Welcome to IRIS! No admin user was detected so please enter a new admin password.')
-    password_again = None
-    password_valid = False
-    while not password_valid:
-        password = getpass('New admin password: ')
-        if password=='' or ' ' in password:
-            print('Password cannot be blank, and must not contain a space.')
-        else:
-            password_valid = True
+    # if a default admin password was provided as an argument
+    if args["admin_password"]:
+        password = args["admin_password"]
+    # else, prompt user for password on command line
+    else:
+        print('Welcome to IRIS! No admin user was detected so please enter a new admin password.')
+        password_again = None
+        password_valid = False
+        while not password_valid:
+            password = getpass('New admin password: ')
+            if password=='' or ' ' in password:
+                print('Password cannot be blank, and must not contain a space.')
+            else:
+                password_valid = True
 
-    while password != password_again:
-        password_again = getpass('Retype admin password: ')
+        while password != password_again:
+            password_again = getpass('Retype admin password: ')
 
     admin = User(
         name='admin',
