@@ -4,11 +4,11 @@ reasons, i.e. array_2d[y][x] is going to be array_1d[y*row_length+x]*/
 
 let commands = {
     "previous_image": {
-        "key": "Backspace",
+        "key": "Arrow-Left",
         "description": "Save this image and open previous one"
     },
     "next_image": {
-        "key": "Return",
+        "key": "Arrow-Right",
         "description": "Save this image and open next one"
     },
     "save_mask": {
@@ -91,11 +91,11 @@ let commands = {
         "description": "Decrease brightness (-10%)"
     },
     "saturation_up": {
-        "key": "Arrow-Right",
+        "key": "Backspace",
         "description": "Increase saturation (+50%)"
     },
     "saturation_down": {
-        "key": "Arrow-Left",
+        "key": "Return",
         "description": "Decrease saturation (-50%)"
     },
     "reset_filters": {
@@ -245,11 +245,9 @@ function key_down(event){
         save_mask();
         save_yolo();
     } else if (key == "Enter"){
-        save_mask();
-        save_yolo(next_image);
+        change_saturation(up=false);
     } else if (key == "Backspace"){
-        save_mask();
-        save_yolo(previous_image)
+        change_saturation(up=true);
     } else if (key == "KeyU"){
         undo();
     } else if (key == "KeyR"){
@@ -263,9 +261,11 @@ function key_down(event){
     } else if (key == "ArrowDown"){
         change_brightness(up=false);
     } else if (key == "ArrowRight"){
-        change_saturation(up=true);
+        save_mask();
+        save_yolo(next_image);
     } else if (key == "ArrowLeft"){
-        change_saturation(up=false);
+        save_mask();
+        save_yolo(prev_image);
     } else if (key == "KeyX"){
         reset_filters();
     } else if (key == "KeyY"){
