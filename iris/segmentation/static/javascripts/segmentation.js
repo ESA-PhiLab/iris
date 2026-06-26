@@ -1211,6 +1211,25 @@ async function dialogue_image(){
     );
 }
 
+async function dialogue_choose_image() {
+    let results = await download(vars.url.segmentation+"get_image_list/");
+
+    let content = "<div style='display: flex; justify-content: center;'><table>";
+
+    for (let i=0; i<results.data.length; i++) {
+        content += "<tr><td class='table-button' "
+        content += "onclick='switch_to_image(`"+results.data[i]+"`);'>"
+        content += results.data[i]+"</td></tr>";
+    }
+    content += "</table></div>"
+
+    show_dialogue("info", content, false, "Select an Image to Annotate")
+}
+
+async function switch_to_image(image_id) {
+    goto_url(vars.url.segmentation+'?image_id='+image_id);
+}
+
 function dialogue_confusion_matrix(){
     if (vars.confusion_matrix === null){
         show_dialogue(

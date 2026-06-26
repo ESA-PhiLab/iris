@@ -83,6 +83,16 @@ def previous_image():
         flask.url_for('segmentation.index', image_id=image_id)
     )
 
+@segmentation_app.route('/get_image_list/')
+@requires_auth
+def get_image_list():
+    return project.image_ids
+
+@segmentation_app.route('/switch_to_image/<image_id>')
+@requires_auth
+def switch_to_image(image_id):
+    return flask.redirect(flask.url_for('segmentation.index', image_id))
+
 def get_mask_filenames(image_id, user_id=None):
     """Get final and user mask filenames"""
     final_mask = join(

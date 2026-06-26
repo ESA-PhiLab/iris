@@ -164,7 +164,7 @@ img {
     height: 22px;
 }
 
-button:hover,.button:hover,.toolbutton:hover,.statusbutton:hover{
+button:hover,.button:hover,.toolbutton:hover,.statusbutton:hover,.table-button:hover{
     background-color: #dddddd;
 }
 
@@ -206,6 +206,12 @@ button:hover,.button:hover,.toolbutton:hover,.statusbutton:hover{
 .info-box-bottom{
     font-size: 12px;
     font-weight: normal;
+}
+
+.info-box-centred{
+    font-size: 14px;
+    font-weight: bold;
+    margin-top: 11px;
 }
 
 .slider {
@@ -260,6 +266,11 @@ table {
 
 table.striped tr:nth-child(even){
   background-color: #fdfbe7; /* Cream rows */
+}
+
+.table-button{
+    cursor: pointer;
+    transition: 0.3s;
 }
 
 td, th {
