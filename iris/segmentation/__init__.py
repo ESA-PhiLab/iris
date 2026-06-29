@@ -85,6 +85,11 @@ def previous_image():
 def get_image_list():
     return project.image_ids
 
+@segmentation_app.route('/get_num_images/')
+@requires_auth
+def get_num_images():
+    return str(len(project.image_ids))
+
 @segmentation_app.route('/switch_to_image/<image_id>')
 @requires_auth
 def switch_to_image(image_id):

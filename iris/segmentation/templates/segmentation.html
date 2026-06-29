@@ -52,16 +52,22 @@
             'selected_box': null
         };
 
-        function next_image(){
-            if (vars.show_dialogue_before_next_image){
-                dialogue_before_next_image();
-            } else {
-                goto_url({{url_for('segmentation.next_image', image_id=image_id)|tojson}});
+        async function next_image(){
+            response = await download({{url_for('segmentation.get_num_images')|tojson}})
+            if (response.data != "1") {
+                if (vars.show_dialogue_before_next_image){
+                    dialogue_before_next_image();
+                } else {
+                    goto_url({{url_for('segmentation.next_image', image_id=image_id)|tojson}});
+                }
             }
         }
 
-        function prev_image(){
-            goto_url({{url_for('segmentation.previous_image', image_id=image_id)|tojson}});
+        async function prev_image(){
+            response = await download({{url_for('segmentation.get_num_images')|tojson}})
+            if (response.data != "1") {
+                goto_url({{url_for('segmentation.previous_image', image_id=image_id)|tojson}});
+            }
         }
 
         // When the window has loaded, DOM is ready, initialise the GUI, check login, etc:
@@ -72,10 +78,10 @@
 {% block content %}
     <ul class='toolbar' id="toolbar" style="visibility: hidden;">
         <li class="toolbutton icon_button" id='tb_previous_image' onclick="save_mask();save_yolo(prev_image);">
-            <img src={{url_for('segmentation.static', filename='icons/previous.png')}} class="icon">
+            <img src={{url_for('segmentation.static', filename='icons/previous.png')}} class="icon" id="prev_button">
         </li>
         <li class="toolbutton icon_button" id='tb_next_image' onclick="save_mask();save_yolo(next_image);">
-            <img src={{url_for('segmentation.static', filename='icons/next.png')}} class="icon" />
+            <img src={{url_for('segmentation.static', filename='icons/next.png')}} class="icon" id="next_button" />
         </li>
         <li class="toolbutton icon_button" id='tb_save_mask' onclick="save_mask();save_yolo()">
             <img src={{url_for('segmentation.static', filename='icons/save_mask.png')}} class="icon" />

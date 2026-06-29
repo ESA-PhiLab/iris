@@ -194,6 +194,13 @@ async function init_views(){
     get_object("toolbar").style.visibility = "visible";
     get_object("statusbar").style.visibility = "visible";
     newuser_help_popup();
+
+    // check number of images, disable prev/next buttons if there's only 1
+    await get_num_images();
+    if (vars.num_images = "1") {
+        document.getElementById("prev_button").src = vars.url.segmentation+"/static/icons/previous_disabled.png"
+        document.getElementById("next_button").src = vars.url.segmentation+"/static/icons/next_disabled.png"
+    }
 }
 
 function init_events(){
@@ -1228,6 +1235,10 @@ async function dialogue_choose_image() {
 
 async function switch_to_image(image_id) {
     goto_url(vars.url.segmentation+'?image_id='+image_id);
+}
+
+async function get_num_images() {
+    vars.num_images = download(vars.url.segmentation+"/get_num_images")
 }
 
 function dialogue_confusion_matrix(){
