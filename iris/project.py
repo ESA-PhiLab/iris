@@ -27,7 +27,6 @@ class Project:
     def __init__(self):
         # Each user is going to get a personalised random sequence of images:
         self.random_state = np.random.RandomState(seed=0)
-        self.image_order = None
         self.image_ids = None
         self.file = None
         self.debug = False
@@ -60,9 +59,6 @@ class Project:
             self.config['name'] = ".".join(basename(filename).split(".")[:-1])
 
         self._init_paths_and_files(filename)
-
-        # Default seed
-        self.set_image_seed(0)
 
         if self.segmentation:
             self.config['segmentation']['mask_shape'] = (
@@ -214,9 +210,6 @@ class Project:
     @property
     def yolo_path(self):
         return self.config.YOLO.path
-
-    def get_start_image_id(self):
-        return self.image_ids[self.image_order[0]]
 
     def load_image(self, filename, bands=None):
         """Load image from file
@@ -469,68 +462,14 @@ class Project:
         with open(filename, 'w') as stream:
             json.dump(user_config, stream)
 
-    def get_next_image(self, image_id, user_id):
-
+    def get_next_image(self, image_id):
         original_index = self.image_ids.index(image_id)
-        index = self.image_order.index(original_index)
-
-        # # 'prioritise_unmarked_images' mode will search the database of existing
-        # # masks, and find images with the lowest number of annotations to serve
-        # # when a user asks for the next image. Then it will swap this image
-        # # into the existing order to make it come up next.
-        # if self.config['segmentation']['prioritise_unmarked_images']:
-        #     from iris.models import Action
-        #     actions = Action.query.all()
-        #     # Same order as self.image_order (NOT self.image_ids)
-        #     mask_count = [0]*len(self.image_order)
-        #     mask_count[index] = 99999 # Make sure the current image isn't selected as the new one
-        #     for action in actions:
-        #         mask_count[
-        #             self.image_order.index(
-        #                 self.image_ids.index(
-        #                     action.image_id
-        #                     )
-        #                     )
-        #                     ] += 1
-
-        #         if user_id.id == action.user_id:
-        #             mask_count[
-        #                 self.image_order.index(
-        #                     self.image_ids.index(
-        #                         action.image_id
-        #                         )
-        #                         )
-        #                         ] += 9999
-
-        #     min_labellers = min(mask_count)
-        #     # iterate through images until one is found with fewest existing masks
-        #     next_image_found = False
-        #     trial_idx = index
-        #     while not next_image_found:
-        #         trial_idx = (trial_idx + 1) % len(self.image_order)
-        #         if mask_count[trial_idx] == min_labellers and trial_idx != index:
-        #             # Once a suitable image is found, update the list so that its
-        #             # next in line (this means self.get_previous_image retains expected
-        #             # behaviour immediately afterwards).
-        #             a = trial_idx
-        #             b = (index + 1) % len(self.image_order)
-        #             self.image_ids[self.image_order[a]], self.image_ids[self.image_order[b]] = \
-        #                 self.image_ids[self.image_order[b]], self.image_ids[self.image_order[a]]
-        #             next_image_found = True
-        index = (index + 1) % len(self.image_order)
-        return self.image_ids[self.image_order[index]]
+        index = (original_index + 1) % len(self.image_ids)
+        return self.image_ids[index]
 
     def get_previous_image(self, image_id):
-        original_index = self.image_ids.index(image_id);
-
-        index = self.image_order.index(original_index)
-        index = (index - 1) % len(self.image_order)
-        return self.image_ids[self.image_order[index]]
-
-    def set_image_seed(self, seed):
-        self.random_state = np.random.RandomState(seed=seed)
-        self.image_order = list(range(len(self.image_ids)))
-
-        self.random_state.shuffle(self.image_order)
+        original_index = self.image_ids.index(image_id)
+        index = (original_index - 1) % len(self.image_ids)
+        return self.image_ids[index]
 
 project = Project()

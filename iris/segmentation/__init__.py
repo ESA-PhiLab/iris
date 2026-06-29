@@ -32,7 +32,7 @@ def index():
     image_id = flask.request.args.get('image_id', None)
 
     if image_id is None:
-        image_id = project.get_start_image_id()
+        image_id = project.image_ids[0]
 
         user_id = flask.session.get('user_id', None)
         if user_id:
@@ -58,11 +58,9 @@ def index():
 @requires_auth
 def next_image():
     user = User.query.get(flask.session['user_id'])
-    project.set_image_seed(user.image_seed)
 
     image_id = project.get_next_image(
-        flask.request.args.get('image_id', project.get_start_image_id()),
-        user
+        flask.request.args.get('image_id', project.image_ids[0])
     )
 
     return flask.redirect(
@@ -73,10 +71,9 @@ def next_image():
 @requires_auth
 def previous_image():
     user = User.query.get(flask.session['user_id'])
-    project.set_image_seed(user.image_seed)
 
     image_id = project.get_previous_image(
-        flask.request.args.get('image_id', project.get_start_image_id())
+        flask.request.args.get('image_id', project.image_ids[0])
     )
 
     return flask.redirect(
