@@ -366,6 +366,9 @@ class CanvasLayer extends ViewLayer{
         trackTransforms(context);
 
         this.container = canvas;
+
+        canvas.id = view.name;
+        this.name = view.name;
     }
     sizeChanged(width, height){
       this.container.style.width = width.toString()+"px";

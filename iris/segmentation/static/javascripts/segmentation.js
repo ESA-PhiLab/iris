@@ -505,6 +505,8 @@ function mouse_enter(event){
     else {
         vars.drag_start = null;
     }
+
+    vars.current_view = this.id;
 }
 
 function zoom(delta){
