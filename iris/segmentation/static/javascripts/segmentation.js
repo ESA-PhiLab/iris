@@ -197,10 +197,6 @@ async function init_views(){
 
     // check number of images, disable prev/next buttons if there's only 1
     await get_num_images();
-    if (vars.num_images = "1") {
-        document.getElementById("prev_button").src = vars.url.segmentation+"/static/icons/previous_disabled.png"
-        document.getElementById("next_button").src = vars.url.segmentation+"/static/icons/next_disabled.png"
-    }
 }
 
 function init_events(){
@@ -1240,7 +1236,12 @@ async function switch_to_image(image_id) {
 }
 
 async function get_num_images() {
-    vars.num_images = download(vars.url.segmentation+"/get_num_images")
+    let result = await download(vars.url.segmentation+"/get_num_images");
+    let num_images = result.data;
+    if (num_images == "1") {
+        document.getElementById("prev_button").src = vars.url.segmentation+"/static/icons/previous_disabled.png";
+        document.getElementById("next_button").src = vars.url.segmentation+"/static/icons/next_disabled.png";
+    }
 }
 
 function dialogue_confusion_matrix(){
