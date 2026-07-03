@@ -1,6 +1,7 @@
 import argparse
 import json
 import os
+import platform
 import subprocess
 import time
 import webbrowser
@@ -23,6 +24,11 @@ def main(src, dst, name, password):
     width = 4096
     height = 3000
 
+    current_os = platform.system()
+    if current_os == "Linux": separator = "/"
+    elif current_os == "Windows": separator = "\\"
+    else: raise Exception("Can only run on Linux and Windows")
+
     # strip triling slashes from paths
     src = src.rstrip("/").rstrip("\\")
     dst = dst.rstrip("/").rstrip("\\")
@@ -43,9 +49,9 @@ def main(src, dst, name, password):
         "name": f"{name}",
         "images": {
             "path": {
-            "RGB": f"{src}/RGB_{{id}}.png",
-            "LWIR": f"{src}/LWIR_{{id}}.png",
-            "NIR": f"{src}/NIR_{{id}}.png"
+            "RGB": f"{src}{separator}RGB_{{id}}.png",
+            "LWIR": f"{src}{separator}LWIR_{{id}}.png",
+            "NIR": f"{src}{separator}NIR_{{id}}.png"
             },
             "shape": [width, height]
         },
@@ -169,6 +175,9 @@ def main(src, dst, name, password):
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
+        log = open("./log.txt", "w")
+        log.write(p.stdout.read())
+        log.close()
         p.terminate()
 
 

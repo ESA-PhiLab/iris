@@ -126,3 +126,6 @@ dmypy.json
 
 # Our stuff
 /projects/
+
+# auto-run log
+log.txt
