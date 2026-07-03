@@ -113,6 +113,10 @@ let commands = {
     "delete_bounding_box": {
         "key": "Delete (with box selected)",
         "description": "Delete the selected bounding box"
+    },
+    "toggle_cmap": {
+        "key": "NA",
+        "description": "Switch between greyscale and false colour mappings"
     }
 };
 
@@ -401,6 +405,13 @@ function get_tool_offset(){
         'x': round_number(-vars.tool.size/2),
         'y': round_number(-vars.tool.size/2),
     };
+}
+
+async function toggle_cmap() {
+    save_mask()
+    save_yolo()
+    await fetch(vars.url.segmentation+"/toggle_cmap")
+    goto_url(vars.url.segmentation+'?image_id='+vars.image_id);
 }
 
 function mouse_wheel(event){

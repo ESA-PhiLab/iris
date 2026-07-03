@@ -424,6 +424,20 @@ def predict_mask(image_id):
     response.headers.set('Content-Type', 'application/octet-stream')
     return response
 
+@segmentation_app.route('/toggle_cmap/', methods=["GET"])
+@requires_auth
+def toggle_cmap():
+    for view in project["views"]:
+        if "cmap" in project["views"][view]:
+            old_cmap = project["views"][view]["cmap"]
+            if old_cmap == "gray":
+                new_cmap = "jet"
+            else:
+                new_cmap = "gray"
+            project["views"][view]["cmap"] = new_cmap
+
+    return flask.make_response("cmap toggled")
+
 @segmentation_app.route('/load_yolo/<image_id>')
 @requires_auth
 def load_yolo(image_id):

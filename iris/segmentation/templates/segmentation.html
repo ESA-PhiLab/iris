@@ -162,6 +162,9 @@
         <li class="toolbutton icon_button" id="tb_reset_filters" onclick='reset_filters();'>
             <img src={{url_for('segmentation.static', filename='icons/reset_filters.png')}} class="icon" />
         </li>
+        <li class="toolbutton icon_button" id="tb_toggle_cmap" onclick="toggle_cmap();">
+            <img src="{{url_for('segmentation.static', filename='icons/cmap.png')}}" />
+        </li>
         <li class="toolbar_separator"></li>
         <li class="toolbutton icon_button" onclick="dialogue_help();">
             <img src={{url_for('segmentation.static', filename='icons/help.png')}} class="icon" />
