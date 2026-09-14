@@ -177,6 +177,17 @@ export interface ViewManagerState {
   retryInitialization: () => void;
 }
 
+/** Persist current group and view layouts to localStorage */
+function _persistViewState(get: () => ViewManagerState) {
+  try {
+    const { currentGroup, viewGroups } = get();
+    localStorage.setItem('iris-view-state', JSON.stringify({
+      currentGroup,
+      viewLayouts: viewGroups,
+    }));
+  } catch { /* ignore */ }
+}
+
 export const useViewManagerStore = create<ViewManagerState>((set, get) => ({
   // Initial state
   views: {},
@@ -227,9 +238,33 @@ export const useViewManagerStore = create<ViewManagerState>((set, get) => ({
   // Actions
   setViews: (views) => set({ views }),
   
-  setViewGroups: (viewGroups) => set({ viewGroups }),
-  
-  setCurrentGroup: (currentGroup) => set({ currentGroup }),
+  setViewGroups: (viewGroups) => {
+    set({ viewGroups });
+    // Restore persisted group and view layout if available
+    try {
+      const saved = localStorage.getItem('iris-view-state');
+      if (saved) {
+        const state = JSON.parse(saved);
+        if (state.currentGroup && viewGroups[state.currentGroup]) {
+          set({ currentGroup: state.currentGroup });
+        }
+        if (state.viewLayouts) {
+          const newGroups = { ...viewGroups };
+          for (const [group, layout] of Object.entries(state.viewLayouts)) {
+            if (newGroups[group] && Array.isArray(layout)) {
+              newGroups[group] = layout as string[];
+            }
+          }
+          set({ viewGroups: newGroups });
+        }
+      }
+    } catch { /* ignore */ }
+  },
+
+  setCurrentGroup: (currentGroup) => {
+    set({ currentGroup });
+    _persistViewState(get);
+  },
   
   setImage: (imageId, imageLocation) => {
     set({ imageId, imageLocation });
@@ -466,8 +501,9 @@ export const useViewManagerStore = create<ViewManagerState>((set, get) => ({
     
     newGroups[currentGroup] = currentViews;
     set({ viewGroups: newGroups });
+    _persistViewState(get);
   },
-  
+
   removeView: (position) => {
     const { viewGroups, currentGroup } = get();
     const newGroups = { ...viewGroups };
@@ -477,9 +513,10 @@ export const useViewManagerStore = create<ViewManagerState>((set, get) => ({
       currentViews.splice(position, 1);
       newGroups[currentGroup] = currentViews;
       set({ viewGroups: newGroups });
+      _persistViewState(get);
     }
   },
-  
+
   replaceView: (position, name) => {
     const { viewGroups, currentGroup } = get();
     const newGroups = { ...viewGroups };
@@ -488,29 +525,32 @@ export const useViewManagerStore = create<ViewManagerState>((set, get) => ({
     currentViews[position] = name;
     newGroups[currentGroup] = currentViews;
     set({ viewGroups: newGroups });
+    _persistViewState(get);
   },
-  
+
   showNextGroup: () => {
     const { viewGroups, currentGroup } = get();
     const groups = Object.keys(viewGroups);
     const currentIndex = groups.indexOf(currentGroup);
     const nextIndex = currentIndex >= groups.length - 1 ? 0 : currentIndex + 1;
     const nextGroup = groups[nextIndex];
-    
+
     set({ currentGroup: nextGroup });
-    
+    _persistViewState(get);
+
     // Show message (if available)
     const w = window as any;
     if (w.show_message) {
       w.show_message(`Group: <i>${nextGroup}</i>`);
     }
   },
-  
+
   showGroup: (groupName) => {
     const { viewGroups } = get();
     if (viewGroups[groupName]) {
       set({ currentGroup: groupName });
-      
+      _persistViewState(get);
+
       // Show message (if available)
       const w = window as any;
       if (w.show_message) {

@@ -383,24 +383,12 @@ function key_down(event){
     } else if (key == "KeyN"){
         dialogue_reset_mask();
     } else if (key == "KeyV"){
-        // Use React store ViewManager (only source)
-        const viewManager = window.getViewManagerFromStore ? window.getViewManagerFromStore() : (() => {
-            console.error('[IRIS Migration] ❌ CRITICAL: getViewManagerFromStore not available for toggleControls');
-            throw new Error('React store not available for ViewManager');
-        })();
-        
-        if (viewManager && viewManager.toggleControls) {
-            viewManager.toggleControls();
+        if (window.viewManagerStore) {
+            window.viewManagerStore.getState().toggleControls();
         }
     } else if (key == "KeyB"){
-        // Use React store ViewManager (only source)
-        const viewManager = window.getViewManagerFromStore ? window.getViewManagerFromStore() : (() => {
-            console.error('[IRIS Migration] ❌ CRITICAL: getViewManagerFromStore not available for showNextGroup');
-            throw new Error('React store not available for ViewManager');
-        })();
-        
-        if (viewManager && viewManager.showNextGroup) {
-            viewManager.showNextGroup();
+        if (window.viewManagerStore) {
+            window.viewManagerStore.getState().showNextGroup();
         }
     } else if (event.shiftKey){
         // Update tool resizing mode through React store (primary source)

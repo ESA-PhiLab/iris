@@ -1,6 +1,10 @@
 import { render } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
 import ReactViewPort from './ReactViewPort';
+import { ThemeProvider } from '../../contexts/ThemeContext';
+
+const renderWithTheme = (ui: React.ReactElement) =>
+  render(<ThemeProvider>{ui}</ThemeProvider>);
 
 const mockView = {
   name: 'test-view',
@@ -10,7 +14,7 @@ const mockView = {
 
 describe('ReactViewPort', () => {
   it('renders with basic props', () => {
-    const { container } = render(
+    const { container } = renderWithTheme(
       <ReactViewPort
         view={mockView}
         index={0}
@@ -29,7 +33,7 @@ describe('ReactViewPort', () => {
   });
 
   it('renders with controls hidden', () => {
-    const { container } = render(
+    const { container } = renderWithTheme(
       <ReactViewPort
         view={mockView}
         index={0}
