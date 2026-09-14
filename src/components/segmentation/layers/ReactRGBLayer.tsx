@@ -9,6 +9,8 @@ import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { useSegmentationStore } from '../../../stores/segmentationStore';
 import ReactBaseLayer, { ReactBaseLayerProps } from './ReactBaseLayer';
 import { addTrackTransforms } from '../../../utils/coordinateTransform';
+import { applyViewTransform } from '../../../utils/viewTransform';
+import { useViewManagerStore } from '../../../stores/viewManagerStore';
 
 interface ReactRGBLayerProps extends Omit<ReactBaseLayerProps, 'children'> {
   imageId: string;
@@ -195,12 +197,10 @@ const ReactRGBLayer: React.FC<ReactRGBLayerProps> = ({
           // This creates getWorldCoords and getCanvasCoords that handle zoom/pan properly
           addTrackTransforms(ctx);
           
-          // CRITICAL: Always reset transformation when canvas size changes
-          // This ensures the image fits properly after resize
+          // Rebuild the transformation when the canvas is (re)created or resized,
+          // carrying over any zoom/pan recorded in the store.
           if (imageShape) {
-            const scaleX = actualWidth / imageShape[1];  // canvas width / image width
-            const scaleY = actualHeight / imageShape[0]; // canvas height / image height
-            ctx.setTransform(scaleX, 0, 0, scaleY, 0, 0);
+            applyViewTransform(ctx, canvas, imageShape, useViewManagerStore.getState().viewTransform);
           } else {
             console.warn('⚠️ [IRIS Migration] ReactRGBLayer: No image shape available for canvas transformation - using identity transform');
           }

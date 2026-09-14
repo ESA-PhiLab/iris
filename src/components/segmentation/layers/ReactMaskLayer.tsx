@@ -12,6 +12,8 @@
 import React, { useRef, useEffect, useCallback } from 'react';
 import { useSegmentationStore } from '../../../stores/segmentationStore';
 import { addTrackTransforms } from '../../../utils/coordinateTransform';
+import { applyViewTransform } from '../../../utils/viewTransform';
+import { useViewManagerStore } from '../../../stores/viewManagerStore';
 import ReactBaseLayer, { ReactBaseLayerProps } from './ReactBaseLayer';
 
 interface ReactMaskLayerProps extends Omit<ReactBaseLayerProps, 'children'> {
@@ -49,10 +51,9 @@ const ReactMaskLayer: React.FC<ReactMaskLayerProps> = ({
     // Apply trackTransforms so zoom/pan works on this canvas
     addTrackTransforms(ctx);
     
-    // Set initial scale: canvas pixels → image pixels
-    const scaleX = canvas.width / imageShape[1];  // canvas width / image width
-    const scaleY = canvas.height / imageShape[0]; // canvas height / image height
-    ctx.setTransform(scaleX, 0, 0, scaleY, 0, 0);
+    // Set initial scale (canvas pixels → image pixels), carrying over any
+    // zoom/pan recorded in the store so remounts keep the current view.
+    applyViewTransform(ctx, canvas, imageShape, useViewManagerStore.getState().viewTransform);
   }, []);
 
   // Render mask function - matches legacy MaskLayer exactly

@@ -8,6 +8,8 @@
 import React, { useRef, useEffect, useCallback, useState } from 'react';
 import ReactBaseLayer, { ReactBaseLayerProps } from './ReactBaseLayer';
 import { createCoordinateTransform, updateCursorCoords, addTrackTransforms, CoordinateTransform } from '../../../utils/coordinateTransform';
+import { applyViewTransform } from '../../../utils/viewTransform';
+import { useViewManagerStore } from '../../../stores/viewManagerStore';
 import { useSegmentationStore } from '../../../stores/segmentationStore';
 
 interface ReactPreviewLayerProps extends Omit<ReactBaseLayerProps, 'children'> {
@@ -206,10 +208,9 @@ const ReactPreviewLayer: React.FC<ReactPreviewLayerProps> = ({
             // This creates getWorldCoords and getCanvasCoords that handle zoom/pan properly
             addTrackTransforms(ctx);
             
-            // CRITICAL: Always reset transformation when canvas size changes
-            // This ensures the preview fits properly after resize
-            const scale = actualWidth / imageShape[0]; // Use image height for both dimensions
-            ctx.setTransform(scale, 0, 0, scale, 0, 0);
+            // Rebuild the transformation when the canvas is (re)created or resized,
+            // carrying over any zoom/pan recorded in the store.
+            applyViewTransform(ctx, canvas, imageShape, useViewManagerStore.getState().viewTransform);
           }
         }
       }

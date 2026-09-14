@@ -6,6 +6,7 @@
  */
 
 import { create } from 'zustand';
+import { ViewTransform, readViewTransform, applyViewTransform } from '../utils/viewTransform';
 
 export interface ViewConfig {
   name: string;
@@ -65,6 +66,8 @@ export interface ViewManagerState {
   zoomLevel: number;
   panOffset: { x: number; y: number };
   zoomFactor: number;
+  /** Zoom/pan in image-space terms, carried across viewport remounts */
+  viewTransform: ViewTransform | null;
   
   // PHASE 3A: Canvas State
   canvasDimensions: { width: number; height: number };
@@ -147,6 +150,7 @@ export interface ViewManagerState {
   zoomCanvas: (delta: number) => void;
   moveCanvas: (dx: number, dy: number) => void;
   resetCanvas: () => void;
+  captureViewTransform: () => void;
   
   // ViewManager instance management (ONE-WAY SYNC)
   legacyViewManagerInstance: any | null;
@@ -208,6 +212,7 @@ export const useViewManagerStore = create<ViewManagerState>((set, get) => ({
   zoomLevel: 1.0,
   panOffset: { x: 0, y: 0 },
   zoomFactor: 1.0,
+  viewTransform: null,
   
   // PHASE 3A: Canvas State
   canvasDimensions: { width: 400, height: 400 },
@@ -681,6 +686,8 @@ export const useViewManagerStore = create<ViewManagerState>((set, get) => ({
       }
     }
     
+    get().captureViewTransform();
+    
     // Update views
     get().updateViews();
   },
@@ -704,6 +711,8 @@ export const useViewManagerStore = create<ViewManagerState>((set, get) => ({
       }
     }
     
+    get().captureViewTransform();
+    
     // Update views
     get().updateViews();
   },
@@ -711,15 +720,30 @@ export const useViewManagerStore = create<ViewManagerState>((set, get) => ({
   resetCanvas: () => {
     // Update React store first (source of truth)
     get().resetView();
+    set({ viewTransform: null });
     
-    // Apply to legacy canvas
+    // Put every view canvas back to the default fit-to-canvas view
     const w = window as any;
-    if (w.reset_view) {
-      w.reset_view();
+    const imageShape = w.getImageShapeFromStore ? w.getImageShapeFromStore() : null;
+    if (imageShape) {
+      for (const canvas of document.getElementsByClassName('view-canvas')) {
+        const el = canvas as HTMLCanvasElement;
+        const ctx = el.getContext('2d');
+        if (ctx) applyViewTransform(ctx, el, imageShape, null);
+      }
     }
     
     // Update views
     get().updateViews();
+  },
+  
+  captureViewTransform: () => {
+    const w = window as any;
+    const imageShape = w.getImageShapeFromStore ? w.getImageShapeFromStore() : null;
+    const canvas = document.getElementsByClassName('view-canvas')[0] as HTMLCanvasElement | undefined;
+    if (!imageShape || !canvas) return;
+    const viewTransform = readViewTransform(canvas, imageShape);
+    if (viewTransform) set({ viewTransform });
   },
   
   // ViewManager instance management (ONE-WAY SYNC: React store -> Legacy)
