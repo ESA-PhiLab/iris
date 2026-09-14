@@ -1,27 +1,26 @@
 """Take care of holding the current project's configurations
 
 """
+import json
+import os
+import re
 from copy import deepcopy
 from glob import glob
 from numbers import Number
-import os
 from os.path import basename, dirname, exists, getmtime, isabs, join, normpath
 from pprint import pprint
-import re
 
-import flask
 import markupsafe
-
-import json
-from matplotlib import cm
 import numpy as np
-from skimage.io import imread
-from skimage.filters import sobel
-from skimage.segmentation import felzenszwalb
-import yaml
 import rasterio as rio
+import yaml
+from matplotlib import cm
+from skimage.filters import sobel
+from skimage.io import imread
+from skimage.segmentation import felzenszwalb
 
 from iris.utils import merge_deep_dicts
+
 
 class Project:
     def __init__(self):
@@ -42,13 +41,13 @@ class Project:
 
         # Load the project config:
         try:
-            with open(filename, 'r') as stream:
+            with open(filename) as stream:
                 if filename.endswith('json'):
                     self.config = json.load(stream)
                 elif filename.endswith('yaml'):
                     self.config = yaml.safe_load(stream)
         except Exception as error:
-            raise Exception('[CONFIG] Error in config file: '+ str(error))
+            raise Exception('[CONFIG] Error in config file: '+ str(error)) from error
 
         # Load default config:
         with open(join(dirname(__file__), "default_config.json")) as stream:
@@ -58,6 +57,16 @@ class Project:
 
         if 'name' not in self.config:
             self.config['name'] = ".".join(basename(filename).split(".")[:-1])
+
+        # Normalise images.path: if a single string was provided in the
+        # project JSON, convert it into a dictionary so downstream code that
+        # expects a mapping will work consistently (use key 'pictures').
+        try:
+            if 'images' in self.config and isinstance(self.config['images'].get('path', None), str):
+                self.config['images']['path'] = { 'pictures': self.config['images']['path'] }
+        except Exception as e:
+            # Non-fatal; leave config as-is on error
+            print(f"Warning: Failed to normalize images.path: {e}")
 
         self._init_paths_and_files(filename)
 
@@ -137,11 +146,10 @@ class Project:
                 dirname(filename), self.config['name']+'.iris'
             )
 
-        if self.segmentation:
-            if not self['segmentation']['path']:
-                self.config['segmentation']['path'] = join(
-                    self['path'], 'segmentation', '{id}', 'mask.png'
-                )
+        if self.segmentation and not self['segmentation']['path']:
+            self.config['segmentation']['path'] = join(
+                self['path'], 'segmentation', '{id}', 'mask.png'
+            )
 
         # create the project path and the user configuration path
         os.makedirs(self['path'], exist_ok=True)
@@ -182,14 +190,14 @@ class Project:
                 "Did you set images:path to a valid, existing path?")
 
         try:
-            self.image_ids = list(sorted([
+            self.image_ids = sorted([
                 regex_images.match(image_path).groups()[0]
                 for image_path in images
-            ]))
-        except Exception as error:
+            ])
+        except Exception as err:
             raise Exception(
                 f'[ERROR] Could not extract id\nfrom path"{image_paths}"\nwith regex "{regex_images}"!'
-            )
+            ) from err
 
 
     def make_absolute(self, path):
@@ -228,10 +236,7 @@ class Project:
         """
         # The user uses band identifiers (like 'B1', etc):
         if bands is not None:
-            bands = list(map(
-                lambda s: int(s.replace("$B", ""))-1,
-                bands
-            ))
+            bands = [int(s.replace("$B", ""))-1 for s in bands]
 
         if filename.lower().endswith('npy'):
             array = np.load(filename, mmap_mode='r', allow_pickle=False)
@@ -241,6 +246,15 @@ class Project:
             with rio.open(filename) as file:
                 array = file.read(bands)
                 array = np.moveaxis(array, 0, -1)
+        elif filename.lower().endswith(('.tif', '.tiff')):
+            with rio.open(filename) as file:
+                if bands is not None:
+                    rio_bands = [b + 1 for b in bands]
+                    array = file.read(rio_bands)
+                    array = np.moveaxis(array, 0, -1)
+                else:
+                    array = file.read()
+                    array = np.moveaxis(array, 0, -1)
         else:
             array = imread(filename)
             if len(array.shape) == 2:
@@ -305,7 +319,7 @@ class Project:
         image = self.get_image(image_id)
 
         bands = []
-        for band in image.keys():
+        for band in image:
             if isinstance(image[band], dict):
                 bands.extend([f'${band}.{subband}' for subband in image[band]])
             else:
@@ -323,7 +337,7 @@ class Project:
 
     def render_image(self, image_id, view):
         # Find all required variables
-        bands = re.findall('(?:\$\w+\.{0,1}\w+)', ";".join(view['data']))
+        bands = re.findall(r'(?:\$\w+\.{0,1}\w+)', ";".join(view['data']))
         image = self.get_image(image_id, bands=bands)
         environment = self._get_render_environment(image)
 
@@ -364,20 +378,25 @@ class Project:
             if 'vmin' in view or 'vmax' in view:
                 raise ValueError("Cannot specify both 'clip' and 'vmin'/'vmax' in view")
             clip = float(view['clip'])
-            linear_scale = lambda z: np.clip(
-                (z - np.percentile(z,clip))/(np.percentile(z,100-clip)-np.percentile(z,clip)),
-                0,
-                1
-                )
+            def linear_scale(z):
+                return np.clip(
+                            (z - np.percentile(z,clip))/(np.percentile(z,100-clip)-np.percentile(z,clip)),
+                            0,
+                            1
+                            )
         elif 'vmin' in view or 'vmax' in view:
             if 'vmin' in view and 'vmax' in view:
-                linear_scale = lambda z: np.clip((z - view['vmin'])/(view['vmax']-view['vmin']), 0, 1)
+                def linear_scale(z):
+                    return np.clip((z - view['vmin'])/(view['vmax']-view['vmin']), 0, 1)
             elif 'vmin' in view:
-                linear_scale = lambda z: np.clip((z - view['vmin'])/(z.max()-view['vmin']), 0, 1)
+                def linear_scale(z):
+                    return np.clip((z - view['vmin'])/(z.max()-view['vmin']), 0, 1)
             elif 'vmax' in view:
-                linear_scale = lambda z: np.clip((z - z.min())/(view['vmax']-z.min()), 0, 1)
+                def linear_scale(z):
+                    return np.clip((z - z.min())/(view['vmax']-z.min()), 0, 1)
         else:
-            linear_scale = lambda z: (z - z.min())/(z.max()-z.min())
+            def linear_scale(z):
+                return (z - z.min())/(z.max()-z.min())
         rgb_bands = list(map(linear_scale, rgb_bands))
 
         if len(rgb_bands) == 1:
@@ -389,7 +408,7 @@ class Project:
     def _get_render_environment(self, image):
         return {
             'max': np.max,
-            'max': np.min,
+            'min': np.min,
             'mean': np.mean,
             'median': np.median,
             'log': np.log,
@@ -422,7 +441,7 @@ class Project:
 
         filename = filename.format(id=image_id)
 
-        with open(filename, 'r') as stream:
+        with open(filename) as stream:
             if filename.endswith('json'):
                 metadata = json.load(stream)
             elif filename.endswith('yaml'):
@@ -446,7 +465,7 @@ class Project:
         # Only if the user config is newer the system's config file, we use it
         # for updates:
         if exists(filename) and getmtime(self.file) <= getmtime(filename):
-            with open(filename, 'r') as stream:
+            with open(filename) as stream:
                 user_config = json.load(stream)
 
             config = merge_deep_dicts(config, user_config)
@@ -517,7 +536,7 @@ class Project:
         return self.image_ids[self.image_order[index]]
 
     def get_previous_image(self, image_id):
-        original_index = self.image_ids.index(image_id);
+        original_index = self.image_ids.index(image_id)
 
         index = self.image_order.index(original_index)
         index = (index - 1) % len(self.image_order)

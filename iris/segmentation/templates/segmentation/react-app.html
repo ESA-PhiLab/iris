@@ -1,0 +1,136 @@
+{#
+  React Segmentation SPA Entry Point
+  ==================================
+  
+  This template loads the React Single Page Application for /segmentation/* routes.
+  - Preserves all existing CSS and JavaScript functionality
+  - Loads segmentationApp.js React bundle
+  - React handles page wrapper while existing JS handles segmentation logic
+#}
+
+{% extends "base.html" %}
+{% block title %}segmentation{% endblock %}
+{% block head %}
+    <!-- Load all existing CSS and JavaScript exactly as before -->
+    <link rel="stylesheet" href="{{ url_for('segmentation.static', filename='css/segmentation.css') }}">
+
+    <script type="text/javascript" src="{{ url_for('main.static', filename='javascripts/views.js') }}"></script>
+    <script type="text/javascript" src="{{ url_for('segmentation.static', filename='javascripts/segmentation/views.js') }}"></script>
+    <script type="text/javascript" src="{{ url_for('segmentation.static', filename='javascripts/segmentation.js') }}"></script>
+    
+    <!-- CRITICAL: Signal that legacy scripts are fully loaded -->
+    <script type="text/javascript">
+        // Mark legacy scripts as ready
+        window.legacyScriptsReady = true;
+        
+        // Verify critical functions are available (only show errors)
+        if (typeof window.init_views === 'undefined' || typeof window.mouse_wheel === 'undefined') {
+            console.error('❌ CRITICAL: Legacy functions not exported! Check segmentation.js');
+        }
+    </script>
+    
+    <!-- Pass data to JavaScript exactly as before -->
+    <script type="text/javascript">
+        // Debug mode - controlled by backend (True when using 'iris demo')
+        window.IRIS_DEBUG = {{debug_mode|tojson}};
+        
+        // Helper function for debug-only logging
+        window.debugLog = function(...args) {
+            if (window.IRIS_DEBUG) {
+                console.log(...args);
+            }
+        };
+        
+        // LEGACY COMPATIBILITY: vars object for backward compatibility
+        // Note: vars is already defined in base.html, we're just adding properties
+        // All these properties are now managed by React store and not actively used
+        Object.assign(vars, {
+            // These properties are set for backward compatibility but not actively used
+            // All state is now managed by React store (segmentationStore)
+            'image_id': {{image_id|tojson}},
+            'image_location': {{image_location|tojson}},
+        });
+
+        function next_image(){
+            const store = window.segmentationStore?.getState();
+            if (!store) {
+                console.error('Store not available');
+                return;
+            }
+            
+            const shouldShowDialogue = store.showDialogueBeforeNextImage;
+            if (shouldShowDialogue){
+                dialogue_before_next_image();
+            } else {
+                const nextImageId = store.getNextImageId();
+                if (nextImageId) {
+                    goto_url(`/segmentation/?image_id=${encodeURIComponent(nextImageId)}`);
+                } else {
+                    show_message('No more images');
+                }
+            }
+        }
+
+        function prev_image(){
+            const store = window.segmentationStore?.getState();
+            if (!store) {
+                console.error('Store not available');
+                return;
+            }
+            
+            const prevImageId = store.getPrevImageId();
+            if (prevImageId) {
+                goto_url(`/segmentation/?image_id=${encodeURIComponent(prevImageId)}`);
+            } else {
+                show_message('Already at first image');
+            }
+        }
+
+        // React will handle initialization directly - no more polling or legacy init calls
+        
+        // REMOVED: Legacy initialization functions - React now handles this directly
+        // initializeImageIdInStore, initializeImageLocationInStore, initializeViewManagerStore
+        // are no longer needed as React loads config directly from APIs
+    </script>
+
+    <!-- CRITICAL: Set up bridge functions BEFORE React loads to prevent timing issues -->
+    <script type="text/javascript">
+        // Bridge functions must be available immediately when legacy scripts run
+        // This prevents the timing issue where init_segmentation runs before React finishes loading
+        
+        window.setViewManagerInStore = function(instance) {
+            window._pendingViewManagerInstance = instance;
+            
+            // Try to set in React store if available
+            if (window.viewManagerStore) {
+                window.viewManagerStore.getState().setLegacyViewManagerInstance(instance);
+                window._pendingViewManagerInstance = null;
+            }
+        };
+        
+        window.setCurrentImageIdInStore = function(imageId) {
+            window._pendingImageId = imageId;
+            
+            if (window.segmentationStore) {
+                window.segmentationStore.getState().setCurrentImage(imageId);
+                window._pendingImageId = null;
+            }
+        };
+        
+        window.setImageLocationInStore = function(location) {
+            window._pendingImageLocation = location;
+            
+            if (window.viewManagerStore) {
+                window.viewManagerStore.getState().setImageLocation(location);
+                window._pendingImageLocation = null;
+            }
+        };
+    </script>
+
+    <!-- Load React Segmentation SPA -->
+    <script type="module" src="{{ url_for('static', filename='dist/segmentationApp.js') }}"></script>
+{% endblock %}
+{% block content %}
+    <!-- React SPA mounts here and renders all segmentation content -->
+    <div id="react-segmentation-app"></div>
+{% endblock %}

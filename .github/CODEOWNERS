@@ -1,0 +1,7 @@
+# CODEOWNERS file
+# This file defines individuals or teams that are responsible for code in this repository.
+# Code owners are automatically requested for review when someone opens a pull request.
+#
+
+# Default owner for everything in the repo
+# This ensures davidbrownell is requested as a reviewer on all PRs

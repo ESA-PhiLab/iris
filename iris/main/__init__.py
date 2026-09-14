@@ -7,7 +7,7 @@ import numpy as np
 from PIL import Image as PILImage
 from skimage.transform import resize
 
-from iris.models import db, Action
+from iris.models import Action, db
 from iris.project import project
 from iris.user import requires_auth
 
@@ -20,7 +20,7 @@ main_app = flask.Blueprint(
 @main_app.route('/')
 def index():
     return flask.redirect(
-        flask.url_for('segmentation.index')
+        flask.url_for('segmentation_spa.segmentation_spa')
     )
 
 @main_app.route('/image/<image_id>/<view>')
@@ -58,7 +58,7 @@ def image_info(image_id):
 @main_app.route('/get_action_info/<image_id>/<action_type>')
 @requires_auth
 def get_action_info(image_id, action_type):
-    user_id = flask.session['user_id'];
+    user_id = flask.session['user_id']
 
     action = Action.query.filter_by(image_id=image_id, user_id=user_id, type=action_type).first_or_404()
 
@@ -67,7 +67,7 @@ def get_action_info(image_id, action_type):
 @main_app.route('/set_action_info/<action_id>', methods=['POST'])
 @requires_auth
 def set_action_info(action_id):
-    action = Action.query.get_or_404(action_id);
+    action = Action.query.get_or_404(action_id)
 
     for k, v in json.loads(flask.request.data).items():
         if k == "difficulty":

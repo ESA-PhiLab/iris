@@ -14,7 +14,7 @@ class ViewManager{
             'invert': false,
             'brightness': 100,
             'saturation': 100,
-        },
+        };
         this.standard_layers = [
             [RGBLayer, (view) => view.type == "image"],
             [BingLayer, (view) => view.type == "bingmap"]
@@ -24,14 +24,42 @@ class ViewManager{
     setImage(image_id, image_location){
         this.clear();
         this.image_id = image_id;
-        this.image_location = image_location;
+        
+        // Get location from React store (ONLY source)
+        const location = window.getImageLocationFromStore ? 
+            window.getImageLocationFromStore() : image_location;
+        
+        if (!window.getImageLocationFromStore) {
+            console.warn('[IRIS] ⚠️ Image location store not available, using parameter fallback');
+        }
+        
+        this.image_location = location;
+        
+        // Update React store if available
+        if (window.setImageLocationInStore) {
+            window.setImageLocationInStore(location);
+        }
+        
         this.source = {};
     }
     setImageLocation(location){
-        this.image_location = location;
+        const validatedLocation = window.validateImageLocation && window.validateImageLocation(location) ? 
+            location : (() => {
+                console.warn('[IRIS Migration] ⚠️ Invalid image location coordinates:', location);
+                return this.image_location; // Keep current location
+            })();
+        
+        this.image_location = validatedLocation;
+        
+        // Update React store if available
+        if (window.setImageLocationInStore) {
+            window.setImageLocationInStore(validatedLocation);
+        } else {
+            console.warn('[IRIS Migration] ⚠️ FALLBACK: React store not available for setImageLocation');
+        }
 
         for (let port of this.ports){
-            port.imageLocationChanged(location);
+            port.imageLocationChanged(validatedLocation);
         }
     }
     showNextGroup(){
@@ -95,8 +123,26 @@ class ViewManager{
         this.render();
         this.showControls(this.show_controls);
 
-        vars.config.view_groups = this.view_groups;
-        save_config(vars.config);
+        // Update view_groups in React store (ONLY destination)
+        if (!window.updateConfigSectionInStore) {
+            console.error('[IRIS] ❌ Config store not available for view_groups update');
+            return;
+        }
+        
+        window.updateConfigSectionInStore('view_groups', this.view_groups);
+
+        // Get current config for saving
+        const config = window.getConfigFromStore ? window.getConfigFromStore() : null;
+        
+        if (!window.getConfigFromStore) {
+            console.error('[IRIS] ❌ Config store not available for save_config');
+        }
+
+        if (config) {
+            save_config(config);
+        } else {
+            console.error('[IRIS] ❌ No config available for save_config in ViewManager');
+        }
     }
 
     calculateViewWidthHeight(){
@@ -211,7 +257,15 @@ class ViewManager{
         this.show_controls = show;
     }
     toggleControls(){
-        this.showControls(!vars.vm.show_controls);
+        // PRIMARY: Use React store (ONE-WAY SYNC)
+        if (window.viewManagerStore) {
+            window.viewManagerStore.getState().toggleControls();
+            return;
+        }
+
+        // React store is required - no fallback
+        console.error('[IRIS Migration] ❌ CRITICAL: React store not available for toggleControls');
+        throw new Error('React store not available for ViewManager');
     }
 }
 
@@ -420,8 +474,11 @@ class RGBLayer extends CanvasLayer{
             image, 0, 0, image.width, image.height
         );
 
-        // Set mask visibility based on current vars.show_mask
-        show_mask(vars.show_mask);
+        // Set mask visibility based on React store
+        if (window.segmentationStore) {
+            const showMask = window.segmentationStore.getState().showMask;
+            show_mask(showMask);
+        }
     }
 }
 
@@ -438,8 +495,16 @@ class BingLayer extends ViewLayer{
         this.update();
     }
     update(){
+        // Get image location from React store (ONLY source)
+        const imageLocation = window.getImageLocationFromStore ? 
+            window.getImageLocationFromStore() : this.vm.image_location;
+        
+        if (!window.getImageLocationFromStore) {
+            console.warn('[IRIS] ⚠️ Image location store not available, using ViewManager fallback');
+        }
+        
         // Default location
-        let location = this.vm.image_location[0]+"~"+this.vm.image_location[1];
+        let location = imageLocation[0]+"~"+imageLocation[1];
 
         let url = "https://www.bing.com/maps/embed?";
         // container height and width are given in pixels (e.g. 410px). However,
@@ -462,3 +527,11 @@ class BingLayer extends ViewLayer{
         this.update();
     }
 }
+
+// Make ViewManager globally available for React services
+window.ViewManager = ViewManager;
+window.ViewPort = ViewPort;
+window.ViewLayer = ViewLayer;
+window.CanvasLayer = CanvasLayer;
+window.RGBLayer = RGBLayer;
+window.BingLayer = BingLayer;

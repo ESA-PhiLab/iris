@@ -2,3 +2,413 @@ body {
     overflow: hidden;
     /* height: 100vh; */
 }
+
+/* Image Navigation Dropdown */
+/* Override toolbar overflow:hidden to allow dropdown to be visible */
+.toolbar {
+  overflow: visible !important;
+}
+
+.image-navigation-dropdown {
+  position: relative;
+  overflow: visible !important;
+}
+
+/* Dropdown menu styles are now handled inline with theme colors */
+.image-dropdown-menu {
+  line-height: normal !important;
+}
+
+.image-dropdown-list {
+  overflow-y: auto;
+}
+
+/* Image item styles are now handled inline with theme colors */
+.image-dropdown-item {
+  line-height: 1.5 !important;
+}
+
+.image-thumbnail {
+  flex-shrink: 0;
+}
+
+.image-name {
+  font-size: 14px !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+}
+
+.image-status {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  min-width: 60px;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
+
+.annotation-count {
+  font-size: 11px;
+  color: #666;
+}
+
+/* Status colors */
+.image-status-user .image-status {
+  color: #4CAF50;
+}
+
+.image-status-others .image-status {
+  color: #FF9800;
+}
+
+.image-status-none .image-status {
+  color: #999;
+}
+/* Filter Slider Styles */
+.filter-slider-container {
+  position: relative;
+  display: inline-block;
+  /* Ensure container doesn't affect button dimensions */
+  width: auto;
+  height: auto;
+}
+
+/* Ensure filter slider buttons match other toolbar buttons */
+.filter-slider-container .toolbutton {
+  /* Force consistent dimensions with other toolbar buttons */
+  display: inline-block;
+  vertical-align: top;
+}
+
+/* Ensure icons inside filter buttons have consistent sizing */
+.filter-slider-container .toolbutton img.icon {
+  width: auto;
+  height: auto;
+  max-width: none;
+  max-height: none;
+}
+
+.filter-slider-container .toolbutton.expanded {
+  background-color: #e0e0e0;
+  border-color: #999;
+}
+
+.filter-slider-panel {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 4px;
+  background: white;
+  border: 2px solid black;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 9999;
+  min-width: 200px;
+  padding: 8px;
+}
+
+.filter-slider-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.filter-label {
+  color: #333;
+}
+
+.filter-value {
+  color: #666;
+  background: #f0f0f0;
+  padding: 2px 6px;
+  border-radius: 3px;
+  min-width: 30px;
+  text-align: center;
+}
+
+.filter-slider-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-btn {
+  width: 24px;
+  height: 24px;
+  border: 1px solid #ccc;
+  background: #f8f8f8;
+  border-radius: 3px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: bold;
+  color: #333;
+  transition: all 0.2s ease;
+}
+
+.filter-btn:hover {
+  background: #e8e8e8;
+  border-color: #999;
+}
+
+.filter-btn:active {
+  background: #d8d8d8;
+  transform: translateY(1px);
+}
+
+.filter-slider {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: #ddd;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.filter-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #333;
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.filter-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #333;
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.filter-slider::-webkit-slider-track {
+  height: 6px;
+  border-radius: 3px;
+  background: #ddd;
+}
+
+.filter-slider::-moz-range-track {
+  height: 6px;
+  border-radius: 3px;
+  background: #ddd;
+  border: none;
+}
+
+/* Paintbrush Selector Styles */
+.paintbrush-selector-container {
+  position: relative;
+  display: block;
+}
+
+.paintbrush-selector-container .toolbutton {
+  box-sizing: border-box;
+}
+
+.paintbrush-selector-container .toolbutton.dropdown-open {
+  background-color: #e0e0e0;
+  border-color: #999;
+}
+
+.paintbrush-dropdown {
+  position: fixed;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-panel-border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  z-index: 9999;
+  min-width: 320px;
+  padding: 8px;
+}
+
+.paintbrush-dropdown-header {
+  padding: 8px 12px;
+  background: var(--color-bg-tertiary);
+  border-bottom: 1px solid var(--color-panel-border);
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--color-gray900);
+  margin: -8px -8px 8px -8px;
+  border-radius: 8px 8px 0 0;
+}
+
+.brush-row {
+  margin-bottom: 12px;
+}
+
+.brush-row:last-child {
+  margin-bottom: 0;
+}
+
+.brush-row-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-gray500);
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.brush-options {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.brush-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px;
+  border: 1px solid var(--color-panel-border);
+  border-radius: 6px;
+  background: var(--color-bg-tertiary);
+  cursor: pointer;
+  transition: all 0.15s;
+  min-width: 40px;
+}
+
+.brush-option:hover {
+  border-color: var(--color-gray500);
+  background: var(--color-panel-header-bg);
+}
+
+.brush-option.selected {
+  border-color: var(--color-primary);
+  background: var(--color-primary-pale);
+}
+
+.brush-preview {
+  background: var(--color-gray500);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.brush-preview.square {
+  /* Square shape - no additional styling needed */
+}
+
+.brush-preview.round {
+  border-radius: 50%;
+}
+
+.brush-size-label {
+  font-size: 10px;
+  color: var(--color-gray600);
+  font-weight: 600;
+}
+
+.brush-option.selected .brush-size-label {
+  color: var(--color-primary);
+}
+
+/* Left Toolbar Button Overrides */
+/* Left Toolbar Button Overrides */
+.paintbrush-selector-container .toolbutton {
+  box-sizing: border-box;
+}
+/* Modern Range Slider Styling */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+
+/* Webkit (Chrome, Safari, Edge) */
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #3b82f6;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  transition: all 0.15s ease;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  background: #2563eb;
+  transform: scale(1.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+}
+
+input[type="range"]::-webkit-slider-thumb:active {
+  transform: scale(1);
+}
+
+/* Firefox */
+input[type="range"]::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #3b82f6;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  transition: all 0.15s ease;
+}
+
+input[type="range"]::-moz-range-thumb:hover {
+  background: #2563eb;
+  transform: scale(1.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+}
+
+input[type="range"]::-moz-range-thumb:active {
+  transform: scale(1);
+}
+
+input[type="range"]::-moz-range-track {
+  background: transparent;
+  border: none;
+}
+
+/* Microsoft Edge/IE */
+input[type="range"]::-ms-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #3b82f6;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+input[type="range"]::-ms-track {
+  background: transparent;
+  border-color: transparent;
+  color: transparent;
+}
+
+/* Tooltip fade-in animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}

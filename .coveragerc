@@ -1,0 +1,8 @@
+[run]
+source = iris
+
+[report]
+#omit = /tests/ iris/tests/* iris/iris/tests/*
+omit = iris/tests/test_*py
+show_missing = True
+skip_covered = False

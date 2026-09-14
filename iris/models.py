@@ -5,6 +5,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 from iris import db
 
+
 class JsonSerializable:
     def to_json(self):
         json = {
@@ -24,6 +25,7 @@ class User(JsonSerializable, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(64), index=True, unique=True)
     password_hash = db.Column(db.String(128), default="")
+    email = db.Column(db.String(256), nullable=True)  # Nullable for existing users
     created = db.Column(
         db.DateTime, index=True, default=datetime.utcnow
     )
@@ -38,9 +40,15 @@ class User(JsonSerializable, db.Model):
                       unique=False,
                       nullable=False, default=False)
     actions = db.relationship('Action', backref='user', lazy='dynamic')
+    password_reset_requests = db.relationship(
+        'PasswordResetRequest',
+        foreign_keys='PasswordResetRequest.user_id',
+        backref='user',
+        lazy='dynamic'
+    )
 
     def __repr__(self):
-        return '<User {}>'.format(self.name)
+        return f'<User {self.name}>'
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -85,3 +93,15 @@ class Action(JsonSerializable, db.Model):
 
     def __repr__(self):
         return f'<Action user={self.user_id}, image_id={self.image_id}, score={self.score}>'
+
+
+class PasswordResetRequest(JsonSerializable, db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    requested_at = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+    resolved = db.Column(db.Boolean, default=False, index=True)
+    resolved_at = db.Column(db.DateTime, nullable=True)
+    resolved_by_user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+
+    def __repr__(self):
+        return f'<PasswordResetRequest user_id={self.user_id}, resolved={self.resolved}>'

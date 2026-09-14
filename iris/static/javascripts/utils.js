@@ -233,3 +233,6 @@ function toggle_display(button) {
       panel.style.display = "block";
     }
 }
+
+// CRITICAL: Expose trackTransforms to window object for React canvas integration
+window.trackTransforms = trackTransforms;

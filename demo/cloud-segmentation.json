@@ -1,98 +1,176 @@
 {
   "name": "cloud-segmentation",
+  "port": 5000,
+  "host": "127.0.0.1",
   "images": {
-      "path": {
-          "Sentinel1": "images/{id}/s1.tif",
-          "Sentinel2": "images/{id}/s2.tif"
-      },
-      "shape": [512, 512],
-      "thumbnails": "images/{id}/thumbnail.png",
-      "metadata": "images/{id}/metadata.json"
-  },
-  "segmentation": {
-      "path": "images/{id}/mask.png",
-      "mask_encoding": "rgb",
-      "mask_area": [64, 64, 448, 448],
-      "score": "f1",
-      "unverified_threshold": 1,
-      "test_images": null
+    "path": {
+      "Sentinel1": "images/{id}/s1.tif",
+      "Sentinel2": "images/{id}/s2.tif"
+    },
+    "shape": [
+      512,
+      512
+    ],
+    "thumbnails": "images/{id}/thumbnail.png",
+    "metadata": "images/{id}/metadata.json"
   },
   "classes": [
     {
       "name": "Clear",
+      "colour": [
+        255,
+        255,
+        255,
+        0
+      ],
       "description": "All clear pixels, i.e. without cloud contamination or cloud shadows.",
-      "colour": [255,255,255,0],
-      "user_colour": [0,255,255,70]
+      "user_colour": [
+        0,
+        255,
+        255,
+        70
+      ]
     },
     {
       "name": "Thick Cloud",
-      "description": "All cloudy pixels covered by thick clouds (does not include semi-transparent clouds or cloud shadows).",
-      "colour": [255,255,0,70]
+      "colour": [
+        255,
+        255,
+        0,
+        70
+      ],
+      "description": "All cloudy pixels covered by thick clouds (does not include semi-transparent clouds or cloud shadows)."
     },
     {
       "name": "Thin Cloud",
-      "description": "Clouds that are semi-transparent, i.e. one can see land or sea surfaces through them. If a thin cloud lays over a thick cloud, please paint them with the <i>Thick Cloud</i> class.",
-      "colour": [0, 255, 0, 70]
+      "colour": [
+        0,
+        255,
+        0,
+        70
+      ],
+      "description": "Clouds that are semi-transparent, i.e. one can see land or sea surfaces through them. If a thin cloud lays over a thick cloud, please paint them with the <i>Thick Cloud</i> class."
     },
     {
       "name": "Cloud Shadows",
-      "description": "All pixels contaminated by cloud shadows (not terrain shadows).",
-      "colour": [255, 0, 0, 70]
+      "colour": [
+        255,
+        0,
+        0,
+        70
+      ],
+      "description": "All pixels contaminated by cloud shadows (not terrain shadows)."
     }
   ],
   "views": {
-      "Cirrus": {
-          "description": "Cirrus band. High clouds are often picked up as red.",
-          "type": "image",
-          "data": "$Sentinel2.B11**0.8*5",
-          "cmap": "jet"
-      },
-      "Cirrus-Edges": {
-          "description": "Edges in the cirrus band",
-          "type": "image",
-          "data": "edges($Sentinel2.B11**0.8*5)*1.5",
-          "cmap": "gray"
-      },
-      "RGB": {
-          "description": "Normal RGB image.",
-          "type": "image",
-          "data": ["$Sentinel2.B5", "$Sentinel2.B3", "$Sentinel2.B2"],
-          "clip": "1"
-      },
-      "NRGB": {
-          "description": "Near-Infrared+GB image.",
-          "type": "image",
-          "data": ["$Sentinel2.B5*1.5", "$Sentinel2.B3*1.5", "$Sentinel2.B2*1.5"]
-      },
-      "Edges": {
-          "description": "Edges in the panchromatic bands",
-          "type": "image",
-          "data": "edges($Sentinel2.B2+$Sentinel2.B3+$Sentinel2.B4)",
-          "cmap": "gray"
-      },
-      "Snow": {
-          "description": "Small ice crystals in high-level clouds appear reddish-orange or peach, and thick ice snow looks vivid red (or red-orange). Bare soil appears bright cyan and vegetation seem greenish in the image. Water on the ground is very dark as it absorbs the SWIR and the red, but small (liquid) water drops in the clouds scatter the light equally in both visible and the SWIR, and therefore it appears white. Water Sediments are displayed as dark red.",
-          "type": "image",
-          "data": ["$Sentinel2.B1", "$Sentinel2.B12", "$Sentinel2.B13"]
-      },
-      "Sentinel-1": {
-          "description": "RGB of VH, VV and VH-VV.",
-          "type": "image",
-          "data": ["$Sentinel1.B1", "$Sentinel1.B2", "$Sentinel1.B1-$Sentinel1.B2"]
-      },
-      "Superpixels": {
-          "description": "Superpixels in the panchromatic bands",
-          "type": "image",
-          "data": "superpixels($Sentinel2.B2+$Sentinel2.B3+$Sentinel2.B4, sigma=4, min_size=100)",
-          "cmap": "jet"
-      },
-      "Bing": {
-          "description": "Aerial Imagery",
-          "type": "bingmap"
-      }
+    "Bing": {
+      "type": "bingmap",
+      "description": "Aerial Imagery"
+    },
+    "Cirrus": {
+      "type": "image",
+      "description": "Cirrus band. High clouds are often picked up as red.",
+      "data": "$Sentinel2.B11**0.8*5",
+      "cmap": "jet"
+    },
+    "Cirrus-Edges": {
+      "type": "image",
+      "description": "Edges in the cirrus band",
+      "data": "edges($Sentinel2.B11**0.8*5)*1.5",
+      "cmap": "gray"
+    },
+    "Edges": {
+      "type": "image",
+      "description": "Edges in the panchromatic bands",
+      "data": "edges($Sentinel2.B2+$Sentinel2.B3+$Sentinel2.B4)",
+      "cmap": "gray"
+    },
+    "NRGB": {
+      "type": "image",
+      "description": "Near-Infrared+GB image.",
+      "data": [
+        "$Sentinel2.B5*1.5",
+        "$Sentinel2.B3*1.5",
+        "$Sentinel2.B2*1.5"
+      ]
+    },
+    "RGB": {
+      "type": "image",
+      "description": "Normal RGB image.",
+      "data": [
+        "$Sentinel2.B5",
+        "$Sentinel2.B3",
+        "$Sentinel2.B2"
+      ],
+      "clip": 1
+    },
+    "Sentinel-1": {
+      "type": "image",
+      "description": "RGB of VH, VV and VH-VV.",
+      "data": [
+        "$Sentinel1.B1",
+        "$Sentinel1.B2",
+        "$Sentinel1.B1-$Sentinel1.B2"
+      ]
+    },
+    "Snow": {
+      "type": "image",
+      "description": "Small ice crystals in high-level clouds appear reddish-orange or peach, and thick ice snow looks vivid red (or red-orange). Bare soil appears bright cyan and vegetation seem greenish in the image. Water on the ground is very dark as it absorbs the SWIR and the red, but small (liquid) water drops in the clouds scatter the light equally in both visible and the SWIR, and therefore it appears white. Water Sediments are displayed as dark red.",
+      "data": [
+        "$Sentinel2.B1",
+        "$Sentinel2.B12",
+        "$Sentinel2.B13"
+      ]
+    },
+    "Superpixels": {
+      "type": "image",
+      "description": "Superpixels in the panchromatic bands",
+      "data": "superpixels($Sentinel2.B2+$Sentinel2.B3+$Sentinel2.B4, sigma=4, min_size=100)",
+      "cmap": "jet"
+    }
   },
   "view_groups": {
-      "default": ["RGB", "Snow", "Cirrus"],
-      "radar": ["Sentinel-1"]
+    "default": [
+      "RGB",
+      "Snow",
+      "Cirrus"
+    ],
+    "radar": [
+      "Sentinel-1"
+    ]
+  },
+  "segmentation": {
+    "path": "images/{id}/mask.png",
+    "mask_encoding": "rgb",
+    "mask_area": [
+      64,
+      64,
+      448,
+      448
+    ],
+    "score": "f1",
+    "prioritise_unmarked_images": true,
+    "unverified_threshold": 1,
+    "test_images": null,
+    "ai_model": {
+      "bands": null,
+      "train_ratio": 0.8,
+      "max_train_pixels": 20000,
+      "n_estimators": 20,
+      "max_depth": 10,
+      "n_leaves": 10,
+      "suppression_threshold": 0,
+      "suppression_filter_size": 5,
+      "suppression_default_class": 0,
+      "use_edge_filter": false,
+      "use_superpixels": false,
+      "use_meshgrid": false,
+      "meshgrid_cells": "3x3"
+    }
+  },
+  "chat": {
+    "enabled": true,
+    "github_repo": "gt-sse-center/iris",
+    "utterances_theme": "github-light"
   }
 }

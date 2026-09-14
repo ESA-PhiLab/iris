@@ -1,19 +1,22 @@
-FROM python:3.8-slim-buster
+FROM python:3.9-slim-bullseye
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get update --fix-missing 
+# Install system dependencies
+RUN apt-get update --fix-missing && \
+    apt-get update && \
+    apt-get install -y gdal-bin libgdal-dev curl && \
+    rm -rf /var/lib/apt/lists/*
 
-RUN apt-get update && apt-get install -y gdal-bin libgdal-dev 
+# Install UV
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+ENV PATH="/root/.cargo/bin:$PATH"
 
-RUN python -m pip install --upgrade pip
-
-COPY requirements.txt /requirements.txt
-
-RUN pip install --no-cache-dir -r /requirements.txt
-
+# Copy project files
 COPY . /app/
+WORKDIR /app
 
-RUN cd /app/ && python setup.py install
+# Install IRIS using UV with lock file for reproducible builds
+RUN uv sync --frozen
 
 ENTRYPOINT ["iris"]

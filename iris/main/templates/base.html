@@ -8,20 +8,39 @@
 
     <script type="text/javascript" src="{{ url_for('main.static', filename='javascripts/utils.js') }}"></script>
     <script type="text/javascript" src="{{ url_for('main.static', filename='javascripts/dialogue.js') }}"></script>
-    <script type="text/javascript" src="{{ url_for('user.static', filename='javascripts/user.js') }}"></script>
     <script type="text/javascript">
-        let vars = {
+        // Use var to make it globally accessible (window.vars)
+        var vars = {
             'url': {
                 'main': {{url_for('main.index')|tojson}},
-                'segmentation': {{url_for('segmentation.index')|tojson}},
+                'segmentation': {{url_for('segmentation_spa.segmentation_spa')|tojson}},
                 'user': {{url_for('user.index')|tojson}},
-                'admin': {{url_for('admin.index')|tojson}},
-                'help': {{url_for('help.index')|tojson}},
+                'admin': {{url_for('admin_spa.admin_spa')|tojson}},
             },
             'config': null,
-            // Will be set to true if the user performed an action on this image:
-            'show_dialogue_before_next_image': false
+            // 'show_dialogue_before_next_image': MIGRATED to React store (segmentationStore)
         };
+
+        // Initialize React store with API URLs when available
+        function initializeApiUrls() {
+            if (window.setApiUrlsInStore && vars.url) {
+                try {
+                    window.setApiUrlsInStore(vars.url);
+                } catch (error) {
+                    console.error('[IRIS Migration] ❌ Failed to initialize API URLs in React store:', error);
+                }
+            } else {
+                // Retry after a short delay if React store isn't ready yet
+                setTimeout(initializeApiUrls, 100);
+            }
+        }
+
+        // Initialize API URLs when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeApiUrls);
+        } else {
+            initializeApiUrls();
+        }
 
         function goto_url(url){
             window.location = url;

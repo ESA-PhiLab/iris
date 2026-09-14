@@ -1,25 +1,23 @@
-from datetime import datetime, timedelta
-from glob import glob
 import json
 import os
-from os.path import basename, dirname, exists, join
 import time
-from pprint import pprint
+from datetime import datetime
+from glob import glob
+from os.path import basename, dirname, join
 
-import lightgbm as lgb
 import flask
+import lightgbm as lgb
 import numpy as np
-from scipy.ndimage import convolve, minimum_filter, maximum_filter
-from skimage.io import imread, imsave
+from scipy.ndimage import convolve
 from skimage.filters import sobel
+from skimage.io import imsave
 from skimage.segmentation import felzenszwalb
-from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, f1_score, jaccard_score
-import yaml
+from sklearn.model_selection import train_test_split
 
-from iris.user import requires_auth
-from iris.models import db, User, Action
+from iris.models import Action, User, db
 from iris.project import project
+from iris.user import requires_auth
 
 segmentation_app = flask.Blueprint(
     'segmentation', __name__,
@@ -27,32 +25,32 @@ segmentation_app = flask.Blueprint(
     static_folder='static'
 )
 
-@segmentation_app.route('/', methods=['GET'])
-def index():
-    image_id = flask.request.args.get('image_id', None)
+# Import SPA and API blueprints
+from .api import api_bp  # noqa: E402
+from .spa import spa_bp  # noqa: E402
 
-    if image_id is None:
-        image_id = project.get_start_image_id()
 
-        user_id = flask.session.get('user_id', None)
-        if user_id:
-            # Get the mask that the user worked on the last time
-            last_mask = Action.query \
-                .filter_by(user_id=user_id) \
-                .order_by(Action.last_modification.desc()) \
-                .first()
+def register_segmentation_blueprints(app):
+    """
+    Register all segmentation blueprints with the Flask app.
 
-            if last_mask is not None:
-                image_id = last_mask.image_id
-    elif image_id not in project.image_ids:
-        return flask.make_response('Unknown image id!', 404)
+    IMPORTANT: Registration order matters!
+    1. segmentation_app: Handles API routes (/segmentation/next_image, /load_mask, etc.)
+    2. api_bp: Handles JSON API routes (/segmentation/api/*)
+    3. spa_bp: Handles main SPA route (/segmentation/) - registered last to take precedence
 
-    metadata = project.get_metadata(image_id)
-    return flask.render_template(
-        'segmentation.html',
-        image_id=image_id,
-        image_location=metadata.get("location", [0, 0])
-    )
+    Both blueprints use /segmentation prefix but handle different route patterns.
+    The SPA blueprint's / route overrides the removed segmentation_app.index route.
+    """
+    # Register original blueprint for API routes (/segmentation/next_image, /segmentation/load_mask, etc.)
+    app.register_blueprint(segmentation_app, url_prefix="/segmentation")
+    # Register JSON API blueprint for React frontend (/segmentation/api/*)
+    app.register_blueprint(api_bp)
+    # Register SPA blueprint for main route (/segmentation/) - must be last for route precedence
+    app.register_blueprint(spa_bp)
+
+# Original index route removed - now handled by SPA blueprint
+# The SPA blueprint (spa.py) handles the main /segmentation/ route
 
 @segmentation_app.route('/next_image', methods=['GET'])
 @requires_auth
@@ -66,7 +64,7 @@ def next_image():
     )
 
     return flask.redirect(
-        flask.url_for('segmentation.index', image_id=image_id)
+        flask.url_for('segmentation_spa.segmentation_spa', image_id=image_id)
     )
 
 @segmentation_app.route('/previous_image', methods=['GET'])
@@ -80,7 +78,7 @@ def previous_image():
     )
 
     return flask.redirect(
-        flask.url_for('segmentation.index', image_id=image_id)
+        flask.url_for('segmentation_spa.segmentation_spa', image_id=image_id)
     )
 
 def get_mask_filenames(image_id, user_id=None):
@@ -106,23 +104,23 @@ def read_masks(image_id, user_id):
     user_mask = np.load(user_mask_file)
     return final_mask, user_mask
 
-def merge_masks(image_id):
-    """Combine the masks of all users to a resulting mask"""
-    final_mask_paths = get_mask_filenames(image_id, user_id="*")[0]
-    users, final_masks = zip(*[
-        [basename(path).split('_')[0], np.argmax(np.load(path), axis=-1)]
-        for path in glob(final_mask_paths)
-    ])
-    final_masks = np.dstack(final_masks)
+def compute_merged_mask(final_masks):
+    """
+    Compute merged mask from multiple user masks using voting system.
 
-    # Time to merge the masks, i.e. we are going to count which class is the
-    # most often:
+    Args:
+        final_masks: 3D numpy array of shape (height, width, n_users) containing
+                    class indices for each user's mask
 
+    Returns:
+        2D numpy array of shape (height, width) with merged class indices
+    """
     # Unfortunately, there is no fast standard solution for mode in numpy or
     # scipy (scipy.stats.mode is not optimised for our case):
     classes = dict(enumerate(np.unique(final_masks)))
     class_votes = np.zeros((*final_masks.shape[:-1], len(classes)))
-    for u in range(len(users)):
+
+    for u in range(final_masks.shape[-1]):
         for i, klass in classes.items():
             # We collect the votes for each class for each pixel.
             # Instead of increasing by 1, we could also use the user's rank or
@@ -135,6 +133,21 @@ def merge_masks(image_id):
     # Retranslate to original classes (we initialised class_votes not with the
     # original class indices):
     merged_mask = np.vectorize(classes.__getitem__, otypes=[np.uint8])(winner_indices)
+
+    return merged_mask
+
+
+def merge_masks(image_id):
+    """Combine the masks of all users to a resulting mask"""
+    final_mask_paths = get_mask_filenames(image_id, user_id="*")[0]
+    users, final_masks = zip(*[
+        [basename(path).split('_')[0], np.argmax(np.load(path), axis=-1)]
+        for path in glob(final_mask_paths)
+    ])
+    final_masks = np.dstack(final_masks)
+
+    # Compute merged mask using voting system
+    merged_mask = compute_merged_mask(final_masks)
 
     # Update the database for all users
     for u, user_id in enumerate(users):
@@ -232,8 +245,12 @@ def load_mask(image_id):
             data.astype(np.uint8).tobytes()
         )
         response.headers.set('Content-Type', 'application/octet-stream')
+        # Prevent browser caching to ensure fresh mask data on each load
+        response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+        response.headers.set('Pragma', 'no-cache')
+        response.headers.set('Expires', '0')
         return response
-    except:
+    except Exception:
         return flask.make_response("No user mask available!", 404)
 
 @segmentation_app.route('/save_mask/<image_id>', methods=['POST'])

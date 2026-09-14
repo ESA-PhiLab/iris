@@ -1,6 +1,5 @@
 from copy import deepcopy
 
-import flask
 import markupsafe
 
 
