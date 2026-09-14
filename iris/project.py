@@ -246,6 +246,15 @@ class Project:
             with rio.open(filename) as file:
                 array = file.read(bands)
                 array = np.moveaxis(array, 0, -1)
+        elif filename.lower().endswith(('.tif', '.tiff')):
+            with rio.open(filename) as file:
+                if bands is not None:
+                    rio_bands = [b + 1 for b in bands]
+                    array = file.read(rio_bands)
+                    array = np.moveaxis(array, 0, -1)
+                else:
+                    array = file.read()
+                    array = np.moveaxis(array, 0, -1)
         else:
             array = imread(filename)
             if len(array.shape) == 2:
