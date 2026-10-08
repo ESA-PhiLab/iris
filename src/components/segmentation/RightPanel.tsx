@@ -1,6 +1,54 @@
 import React, { useEffect } from 'react';
 import { useSegmentationStore } from '../../stores/segmentationStore';
+import { useViewManagerStore } from '../../stores/viewManagerStore';
 import { useTheme } from '../../contexts/ThemeContext';
+
+/** Switch to show or hide a layer of the map views */
+const LayerToggle: React.FC<{
+  label: string;
+  title: string;
+  on: boolean;
+  onToggle: () => void;
+}> = ({ label, title, on, onToggle }) => {
+  const { theme } = useTheme();
+  return (
+    <div style={{ 
+      display: 'flex', 
+      alignItems: 'center', 
+      justifyContent: 'space-between',
+      marginBottom: '4px',
+      padding: '6px 0',
+    }}>
+      <span style={{ fontSize: '13px', fontWeight: '500', color: theme.gray900 }}>{label}</span>
+      <button
+        onClick={onToggle}
+        style={{
+          width: '44px',
+          height: '24px',
+          backgroundColor: on ? theme.toggleOn : theme.toggleOff,
+          border: 'none',
+          borderRadius: '12px',
+          cursor: 'pointer',
+          position: 'relative',
+          transition: 'background-color 0.2s ease',
+        }}
+        title={title}
+      >
+        <div style={{
+          position: 'absolute',
+          top: '2px',
+          left: on ? '22px' : '2px',
+          width: '20px',
+          height: '20px',
+          backgroundColor: theme.toggleThumb,
+          borderRadius: '50%',
+          transition: 'left 0.2s ease',
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.2)',
+        }} />
+      </button>
+    </div>
+  );
+};
 
 interface RightPanelProps {
   onSelectClass: () => void;
@@ -28,6 +76,7 @@ const RightPanel: React.FC<RightPanelProps> = ({ onSelectClass, isCollapsed, onT
     currentClass,
     classes,
   } = useSegmentationStore();
+  const { showImage, showSatellite, toggleImage, toggleSatellite } = useViewManagerStore();
   
   // Get current class name
   const currentClassName = currentClass >= 0 && currentClass < classes.length 
@@ -350,42 +399,10 @@ const RightPanel: React.FC<RightPanelProps> = ({ onSelectClass, isCollapsed, onT
       <SectionCard>
         <SectionHeader>Layers</SectionHeader>
         
-        {/* Show/Hide Toggle */}
-        <div style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'space-between',
-          marginBottom: '12px',
-          padding: '8px 0',
-        }}>
-          <span style={{ fontSize: '13px', fontWeight: '500', color: theme.gray900 }}>Show Mask</span>
-          <button
-            onClick={toggleMask}
-            style={{
-              width: '44px',
-              height: '24px',
-              backgroundColor: showMask ? theme.toggleOn : theme.toggleOff,
-              border: 'none',
-              borderRadius: '12px',
-              cursor: 'pointer',
-              position: 'relative',
-              transition: 'background-color 0.2s ease',
-            }}
-            title="Toggle mask visibility"
-          >
-            <div style={{
-              position: 'absolute',
-              top: '2px',
-              left: showMask ? '22px' : '2px',
-              width: '20px',
-              height: '20px',
-              backgroundColor: theme.toggleThumb,
-              borderRadius: '50%',
-              transition: 'left 0.2s ease',
-              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.2)',
-            }} />
-          </button>
-        </div>
+        {/* Show/Hide Toggles */}
+        <LayerToggle label="Show Mask" title="Toggle mask visibility" on={showMask} onToggle={toggleMask} />
+        <LayerToggle label="Image" title="Toggle image visibility" on={showImage} onToggle={toggleImage} />
+        <LayerToggle label="Satellite" title="Toggle satellite imagery" on={showSatellite} onToggle={toggleSatellite} />
         
         {/* Mask Type Selector */}
         <div style={{ marginBottom: '8px' }}>

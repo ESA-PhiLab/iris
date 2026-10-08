@@ -78,6 +78,9 @@ export interface ViewManagerState {
   resetViewsCount: number;
   /** Where the current image lies on the map */
   georef: Georef | null;
+  /** Layers of the map views that can be switched off (the mask is in segmentationStore) */
+  showImage: boolean;
+  showSatellite: boolean;
   
   // PHASE 3A: Canvas State
   canvasDimensions: { width: number; height: number };
@@ -160,6 +163,8 @@ export interface ViewManagerState {
   setCamera: (camera: MapCamera) => void;
   resetCanvas: () => void;
   loadGeoref: (imageId: string) => Promise<void>;
+  toggleImage: () => void;
+  toggleSatellite: () => void;
   
   // ViewManager instance management (ONE-WAY SYNC)
   legacyViewManagerInstance: any | null;
@@ -224,6 +229,8 @@ export const useViewManagerStore = create<ViewManagerState>((set, get) => ({
   camera: null,
   resetViewsCount: 0,
   georef: null,
+  showImage: true,
+  showSatellite: true,
   
   // PHASE 3A: Canvas State
   canvasDimensions: { width: 400, height: 400 },
@@ -670,6 +677,14 @@ export const useViewManagerStore = create<ViewManagerState>((set, get) => ({
       throw new Error(`Failed to load georeference of ${imageId}: ${response.statusText}`);
     }
     set({ georef: await response.json() });
+  },
+
+  toggleImage: () => {
+    set((state) => ({ showImage: !state.showImage }));
+  },
+
+  toggleSatellite: () => {
+    set((state) => ({ showSatellite: !state.showSatellite }));
   },
 
   // ViewManager instance management (ONE-WAY SYNC: React store -> Legacy)

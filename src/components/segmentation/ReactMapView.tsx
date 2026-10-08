@@ -179,7 +179,12 @@ const ReactMapView: React.FC<ReactMapViewProps> = ({ view, imageId, viewCount })
         maxzoom: 19,
         attribution: 'Imagery © Esri',
       });
-      map.addLayer({ id: 'satellite', type: 'raster', source: 'satellite' });
+      map.addLayer({
+        id: 'satellite',
+        type: 'raster',
+        source: 'satellite',
+        layout: { visibility: useViewManagerStore.getState().showSatellite ? 'visible' : 'none' },
+      });
 
       map.addSource('brush', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
       map.addLayer({
@@ -223,6 +228,20 @@ const ReactMapView: React.FC<ReactMapViewProps> = ({ view, imageId, viewCount })
     pending.add(fn);
     return () => { pending.delete(fn); };
   };
+
+  // Switch the image and the satellite imagery on and off
+  useEffect(() => {
+    return useViewManagerStore.subscribe((state, previous) => {
+      const map = mapRef.current;
+      if (!map) return;
+      if (state.showImage !== previous.showImage && map.getLayer('image')) {
+        map.setLayoutProperty('image', 'visibility', state.showImage ? 'visible' : 'none');
+      }
+      if (state.showSatellite !== previous.showSatellite && map.getLayer('satellite')) {
+        map.setLayoutProperty('satellite', 'visibility', state.showSatellite ? 'visible' : 'none');
+      }
+    });
+  }, []);
 
   // Background colour of the theme
   useEffect(() => {
@@ -270,7 +289,10 @@ const ReactMapView: React.FC<ReactMapViewProps> = ({ view, imageId, viewCount })
       draw();
       cancelReady = whenReady((map) => {
         if (!map.getSource('image')) {
-          addCanvasSource(map, 'image', canvas, georef.corners as CanvasSourceCoordinates);
+          addCanvasSource(
+            map, 'image', canvas, georef.corners as CanvasSourceCoordinates,
+            { visibility: useViewManagerStore.getState().showImage ? 'visible' : 'none' }
+          );
         }
       });
     };
