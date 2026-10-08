@@ -5,6 +5,7 @@ Tests for configuration API endpoints
 import json
 import os
 
+import numpy as np
 import pytest
 
 from iris.models import User, db
@@ -46,7 +47,7 @@ def sample_valid_config():
         },
         "view_groups": {"Main": ["RGB", "Monochrome"]},
         "segmentation": {
-            "path": "masks/{id}.png",
+            "path": "masks/{id}.tif",
             "mask_encoding": "integer",
             "mask_area": None,
             "score": "f1",
@@ -351,16 +352,15 @@ def test_put_config_requires_admin(app, client):
     assert response.status_code == 403
 
 
-def test_load_from_normalizes_images_path(tmp_path, sample_valid_config):
+def test_load_from_normalizes_images_path(tmp_path, sample_valid_config, make_cog):
     """Ensure Project.load_from() converts single-string images.path into a dict"""
     # Prepare a temporary project directory with an images subfolder and a dummy file
     proj_dir = tmp_path / "proj"
     proj_dir.mkdir()
     images_dir = proj_dir / "images"
     images_dir.mkdir()
-    # Create a dummy image file that matches the pattern
-    dummy = images_dir / "0001.tif"
-    dummy.write_bytes(b"")
+    # Create a small COG that matches the pattern
+    make_cog(images_dir / "0001.tif", np.zeros((32, 32), dtype=np.uint8))
 
     # Prepare config: images.path is a single string (relative to project file)
     cfg = dict(sample_valid_config)
@@ -384,6 +384,9 @@ def test_load_from_normalizes_images_path(tmp_path, sample_valid_config):
         assert p.config["images"]["path"]["pictures"].endswith("images\\{id}.tif")
     else:
         assert p.config["images"]["path"]["pictures"].endswith("images/{id}.tif")
+
+    # The image size is read from the COG
+    assert p.config["images"]["shape"] == [32, 32]
 
 
 # ============================================================================
@@ -475,9 +478,22 @@ def test_validate_detects_missing_images_path(logged_in_admin, sample_valid_conf
     assert any("path" in err.lower() for err in data["errors"])
 
 
-def test_validate_detects_missing_images_shape(logged_in_admin, sample_valid_config):
-    """Test that validation detects missing images.shape"""
+def test_validate_accepts_missing_images_shape(logged_in_admin, sample_valid_config):
+    """images.shape is optional: the image size is read from the COGs"""
     del sample_valid_config["images"]["shape"]
+
+    response = logged_in_admin.post(
+        "/api/config/project/validate", json=sample_valid_config, content_type="application/json"
+    )
+
+    assert response.status_code == 200
+    assert response.json["valid"] is True
+
+
+@pytest.mark.parametrize("path", ["test/{id}.npy", "test/{id}.png", {"S2": "test/{id}.vrt"}])
+def test_validate_rejects_images_that_are_not_cogs(logged_in_admin, sample_valid_config, path):
+    """Test that validation only accepts COG files as images"""
+    sample_valid_config["images"]["path"] = path
 
     response = logged_in_admin.post(
         "/api/config/project/validate", json=sample_valid_config, content_type="application/json"
@@ -486,7 +502,21 @@ def test_validate_detects_missing_images_shape(logged_in_admin, sample_valid_con
     assert response.status_code == 200
     data = response.json
     assert data["valid"] is False
-    assert any("shape" in err.lower() for err in data["errors"])
+    assert any("cog" in err.lower() for err in data["errors"])
+
+
+def test_validate_rejects_masks_that_are_not_cogs(logged_in_admin, sample_valid_config):
+    """Test that validation only accepts .tif files as mask path"""
+    sample_valid_config["segmentation"]["path"] = "masks/{id}.npy"
+
+    response = logged_in_admin.post(
+        "/api/config/project/validate", json=sample_valid_config, content_type="application/json"
+    )
+
+    assert response.status_code == 200
+    data = response.json
+    assert data["valid"] is False
+    assert any("segmentation.path" in err for err in data["errors"])
 
 
 def test_put_config_validates_images_path_and_shape(logged_in_admin):

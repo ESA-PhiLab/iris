@@ -485,70 +485,48 @@ class TestExportMergedGeoTIFFEndpoint(TestAdminAPIEndpoints):
 
     def test_export_requires_mask_data(self, client, app):
         """Test that export fails if no masks exist for image."""
-        import os
-        from glob import glob
-
-        from iris.project import project
-        from iris.segmentation import get_mask_filenames
-
-        with app.app_context():
-            if not project.image_ids:
-                pytest.skip("No images in project")
-
-            # Find an image that has no masks, or use a fake image ID
-            test_image_id = "nonexistent_image_with_no_masks_12345"
-
-            # Make sure this image doesn't have masks
-            if test_image_id in project.image_ids:
-                final_mask_paths = get_mask_filenames(test_image_id, user_id="*")[0]
-                mask_files = glob(final_mask_paths)
-                for mask_file in mask_files:
-                    if os.path.exists(mask_file):
-                        os.remove(mask_file)
-
         self.login_admin(client)
-        response = client.get(f"/admin/api/export-merged-geotiff/{test_image_id}")
+        response = client.get("/admin/api/export-merged-geotiff/nonexistent_image_with_no_masks_12345")
 
         # Should return 404 - either image not found or no masks
         assert response.status_code == 404
         data = json.loads(response.data)
         assert "error" in data
 
-    def test_export_returns_geotiff_file(self, client, app, tmp_path):
-        """Test that export returns a valid GeoTIFF file when masks exist."""
-        import os
-
+    def test_export_returns_geotiff_file(self, client, app, tmp_path, project_snapshot):
+        """Test that export returns a georeferenced GeoTIFF when masks exist."""
         import numpy as np
+        from rasterio.io import MemoryFile
 
         from iris.project import project
-        from iris.segmentation import get_mask_filenames
+        from iris.segmentation import get_mask_filename, write_mask_cog
 
         with app.app_context():
-            if not project.image_ids:
-                pytest.skip("No images in project")
-
+            project["path"] = str(tmp_path)
             test_image_id = project.image_ids[0]
 
-            # Create mock mask files for testing
-            final_mask_file, user_mask_file = get_mask_filenames(test_image_id, user_id=1)
-            os.makedirs(os.path.dirname(final_mask_file), exist_ok=True)
-
-            # Create a simple one-hot encoded mask
-            mask_shape = project['segmentation']['mask_shape']
-            n_classes = len(project['classes'])
-            mock_mask = np.zeros((*mask_shape[::-1], n_classes), dtype=bool)
-            mock_mask[:, :, 0] = True  # All pixels are class 0
-
-            np.save(final_mask_file, mock_mask, allow_pickle=False)
+            # Two users agree on class 2 everywhere
+            width, height = project['segmentation']['mask_shape']
+            bands = np.zeros((2, height, width), dtype=np.uint8)
+            bands[0] = 2
+            for user_id in [1, 2]:
+                write_mask_cog(get_mask_filename(test_image_id, user_id), test_image_id, bands)
 
         self.login_admin(client)
         response = client.get(f"/admin/api/export-merged-geotiff/{test_image_id}")
 
-        # Should return a file download
-        if response.status_code == 200:
-            assert response.mimetype == "image/tiff"
-            assert "attachment" in response.headers.get("Content-Disposition", "")
-            assert f"{test_image_id}_merged.tif" in response.headers.get("Content-Disposition", "")
+        assert response.status_code == 200
+        assert response.mimetype == "image/tiff"
+        assert f"{test_image_id}_merged.tif" in response.headers.get("Content-Disposition", "")
+
+        crs, transform, _, _ = project.get_georef(test_image_id)
+        x0, y0 = project['segmentation']['mask_area'][:2]
+        with MemoryFile(response.data) as memfile, memfile.open() as exported:
+            assert exported.count == 4
+            assert (exported.width, exported.height) == (width, height)
+            assert exported.crs == crs
+            assert exported.transform * (0, 0) == transform * (x0, y0)
+            assert (exported.read(4) == 2).all()
 
 
 class TestAdminAPIIntegration(TestAdminAPIEndpoints):

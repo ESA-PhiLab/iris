@@ -45,7 +45,7 @@ def test_get_thumbnail_and_image_path_and_bands(tmp_path, project_snapshot, monk
     assert t.shape[0] == 3
 
     # image path non-dict
-    project["images"] = {"path": str(tmp_path / "{id}.npy")}
+    project["images"] = {"path": str(tmp_path / "{id}.tif")}
     pth = project.get_image_path("X")
     assert "{id}" not in pth
 

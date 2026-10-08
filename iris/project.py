@@ -4,6 +4,7 @@
 import json
 import os
 import re
+import struct
 from copy import deepcopy
 from glob import glob
 from numbers import Number
@@ -20,6 +21,56 @@ from skimage.io import imread
 from skimage.segmentation import felzenszwalb
 
 from iris.utils import merge_deep_dicts
+
+TIFF_TAG_TILE_WIDTH = 322
+
+def is_tiled_tiff(filename):
+    """Whether the first image of a (Big)TIFF file is stored in tiles
+
+    rasterio cannot tell a single tile from a single strip, hence we look for
+    the TileWidth tag ourselves.
+    """
+    with open(filename, 'rb') as stream:
+        header = stream.read(16)
+        if header[:2] not in (b'II', b'MM'):
+            return False
+        order = '<' if header[:2] == b'II' else '>'
+        version, = struct.unpack(order + 'H', header[2:4])
+        if version == 42:
+            offset, = struct.unpack(order + 'I', header[4:8])
+            count_format, entry_format, entry_size = 'H', 'H', 12
+        elif version == 43:
+            offset, = struct.unpack(order + 'Q', header[8:16])
+            count_format, entry_format, entry_size = 'Q', 'H', 20
+        else:
+            return False
+
+        stream.seek(offset)
+        count_size = struct.calcsize(count_format)
+        count, = struct.unpack(order + count_format, stream.read(count_size))
+        entries = stream.read(count * entry_size)
+
+    tags = {
+        struct.unpack_from(order + entry_format, entries, i * entry_size)[0]
+        for i in range(count)
+    }
+    return TIFF_TAG_TILE_WIDTH in tags
+
+
+def open_cog(filename):
+    """Open a Cloud Optimized GeoTIFF, the only image format IRIS reads"""
+    if not filename.lower().endswith(('.tif', '.tiff')):
+        raise ValueError(
+            f"'{filename}' is not a COG! IRIS only reads Cloud Optimized GeoTIFFs (.tif)."
+        )
+
+    dataset = rio.open(filename)
+    if not is_tiled_tiff(filename) or dataset.crs is None:
+        dataset.close()
+        raise ValueError(
+            f"'{filename}' is not a COG! It must be tiled and have a CRS."
+        )
+    return dataset
 
 
 class Project:
@@ -73,6 +124,10 @@ class Project:
         # Default seed
         self.set_image_seed(0)
 
+        # The image size is read from the COG, all images must share it:
+        _, _, width, height = self.get_georef(self.image_ids[0])
+        self.config['images']['shape'] = [width, height]
+
         if self.segmentation:
             self.config['segmentation']['mask_shape'] = (
                 self['segmentation']['mask_area'][2]-self['segmentation']['mask_area'][0],
@@ -80,24 +135,16 @@ class Project:
             )
 
             format = basename(self['segmentation']['path']).split('.')[-1].lower()
-            encodings = {
-                'npy': ['integer', 'binary', 'rgb', 'rgba'],
-                'tif': ['integer', 'rgb', 'rgba'],
-                'png': ['integer', 'rgb', 'rgba'],
-                'jpg': ['rgb'],
-                'jpeg': ['rgb'],
-            }
-
-            if format not in encodings:
+            if format not in ['tif', 'tiff']:
                 raise Exception(
-                    f"Unknown format for mask: '{format}'! Allowed are: "
-                    + ",".join(encodings)
+                    f"Unknown format for mask: '{format}'! Masks are saved as COG (.tif)."
                 )
             encoding = self['segmentation']['mask_encoding']
-            if encoding not in encodings[format]:
+            encodings = ['integer', 'binary', 'rgb', 'rgba']
+            if encoding not in encodings:
                 raise Exception(
-                    f"Mask format '{format}' does not allow '{encoding}' encoding! Allowed are: "
-                    + ",".join(encodings[format])
+                    f"Unknown mask encoding '{encoding}'! Allowed are: "
+                    + ",".join(encodings)
                 )
 
             if self['segmentation']['score'] not in ['f1', 'jaccard', 'accuracy']:
@@ -148,7 +195,7 @@ class Project:
 
         if self.segmentation and not self['segmentation']['path']:
             self.config['segmentation']['path'] = join(
-                self['path'], 'segmentation', '{id}', 'mask.png'
+                self['path'], 'segmentation', '{id}', 'mask.tif'
             )
 
         # create the project path and the user configuration path
@@ -223,7 +270,7 @@ class Project:
         return self.image_ids[self.image_order[0]]
 
     def load_image(self, filename, bands=None):
-        """Load image from file
+        """Load image from a COG file
 
         Args:
             filename:
@@ -238,32 +285,10 @@ class Project:
         if bands is not None:
             bands = [int(s.replace("$B", ""))-1 for s in bands]
 
-        if filename.lower().endswith('npy'):
-            array = np.load(filename, mmap_mode='r', allow_pickle=False)
-            if bands is not None:
-                array = array[..., bands]
-        elif filename.lower().endswith('vrt'):
-            with rio.open(filename) as file:
-                array = file.read(bands)
-                array = np.moveaxis(array, 0, -1)
-        elif filename.lower().endswith(('.tif', '.tiff')):
-            with rio.open(filename) as file:
-                if bands is not None:
-                    rio_bands = [b + 1 for b in bands]
-                    array = file.read(rio_bands)
-                    array = np.moveaxis(array, 0, -1)
-                else:
-                    array = file.read()
-                    array = np.moveaxis(array, 0, -1)
-        else:
-            array = imread(filename)
-            if len(array.shape) == 2:
-                array = array[:,:,np.newaxis]
-            if bands is not None:
-                array = array[..., bands]
-
-        if bands is None:
-            bands = list(range(array.shape[-1]))
+        with open_cog(filename) as file:
+            if bands is None:
+                bands = list(range(file.count))
+            array = np.moveaxis(file.read([b + 1 for b in bands]), 0, -1)
 
         data = {
             f"B{b+1}": array[..., i]
@@ -334,6 +359,18 @@ class Project:
             }
         else:
             return self['images']['path'].format(id=image_id)
+
+    def get_georef(self, image_id):
+        """CRS, transform, width and height of an image
+
+        Images split into several files take the georeference of the first file.
+        """
+        path = self.get_image_path(image_id)
+        if isinstance(path, dict):
+            path = next(iter(path.values()))
+
+        with open_cog(path) as file:
+            return file.crs, file.transform, file.width, file.height
 
     def render_image(self, image_id, view):
         # Find all required variables

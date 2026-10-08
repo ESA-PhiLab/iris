@@ -343,14 +343,22 @@ def validate_project_config():
         if 'images' in config_data:
             if 'path' not in config_data['images']:
                 errors.append('images.path is required')
-            elif isinstance(config_data['images']['path'], str):
-                path_str = config_data['images']['path']
-                if '{id}' not in path_str and path_str != '':
-                    warnings.append('images.path should contain {id} placeholder')
+            else:
+                paths = config_data['images']['path']
+                if isinstance(paths, str):
+                    if '{id}' not in paths and paths != '':
+                        warnings.append('images.path should contain {id} placeholder')
+                    paths = [paths]
+                elif isinstance(paths, dict):
+                    paths = list(paths.values())
+                for path in paths:
+                    if isinstance(path, str) and not path.lower().endswith(('.tif', '.tiff')):
+                        errors.append(f'images.path must point to COG files (.tif): {path}')
 
-            if 'shape' not in config_data['images']:
-                errors.append('images.shape is required')
-            elif not isinstance(config_data['images']['shape'], list) or len(config_data['images']['shape']) != 2:
+            # The image size is read from the COGs, a given shape is only checked
+            if 'shape' in config_data['images'] and (
+                not isinstance(config_data['images']['shape'], list) or len(config_data['images']['shape']) != 2
+            ):
                 errors.append('images.shape must be an array of 2 integers [width, height]')
 
         # Validate classes
@@ -387,14 +395,14 @@ def validate_project_config():
                 for view_name, view_data in config_data['views'].items():
                     if 'type' not in view_data:
                         errors.append(f'View {view_name}: type is required')
-                    elif view_data['type'] not in ['image', 'bingmap']:
-                        errors.append(f'View {view_name}: type must be "image" or "bingmap"')
+                    elif view_data['type'] not in ['image', 'basemap', 'bingmap']:
+                        errors.append(f'View {view_name}: type must be "image" or "basemap"')
 
                     if view_data.get('type') == 'image' and 'data' not in view_data:
                         errors.append(f'View {view_name}: data is required for image views')
 
-                    if view_data.get('type') == 'bingmap' and 'data' in view_data:
-                        warnings.append(f'View {view_name}: data field is not used for bingmap views')
+                    if view_data.get('type') in ['basemap', 'bingmap'] and 'data' in view_data:
+                        warnings.append(f'View {view_name}: data field is not used for basemap views')
 
         # Validate view_groups
         if 'view_groups' in config_data:
@@ -416,6 +424,8 @@ def validate_project_config():
 
             if 'path' not in seg:
                 errors.append('segmentation.path is required')
+            elif not str(seg['path']).lower().endswith(('.tif', '.tiff')):
+                errors.append('segmentation.path must be a .tif file (masks are saved as COG)')
 
             if 'mask_area' in seg and seg['mask_area'] is not None:
                 mask_area = seg['mask_area']

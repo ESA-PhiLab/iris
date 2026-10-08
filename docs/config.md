@@ -39,14 +39,13 @@ A dictionary which defines the inputs.
 ```
 "images": {
       "path": "images/{id}/image.tif",
-      "shape": [512, 512],
       "thumbnails": "images/{id}/thumbnail.png",
       "metadata": "images/{id}/metadata.json"
   }
 ```
 
 ### images : path
-This hold the input path to the images. Can be either a string containing an existing path with the placeholder `{id}` or a dictionary of paths with the placeholder `{id}` (see examples below). The placeholder will be replaced by the unique id of the current image. IRIS can load standard image formats (like *png* or *tif*),  theoretically all kind of files that can be opened by GDAL/rasterio (such as *geotiff* or *vrt*) and numpy files (*npy*). The arrays inside the numpy files should have the shape HxWxC.
+This hold the input path to the images. Can be either a string containing an existing path with the placeholder `{id}` or a dictionary of paths with the placeholder `{id}` (see examples below). The placeholder will be replaced by the unique id of the current image. IRIS only reads Cloud Optimized GeoTIFFs (COG): the files must be tiled and have a CRS, so that each image can be shown at its place on the map. Other formats (*npy*, *png*, *vrt* or GeoTIFFs stored in strips) are rejected. You can create a COG with GDAL, e.g. `gdal_translate -of COG input.tif image.tif`.
 
 <i>Example:</i>
 When you have one folder `images` containing your images in *tif* format:
@@ -67,12 +66,6 @@ When you have your data distributed over multiple files (e.g. coming from Sentin
 }
 ```
 
-### images : shape
-The shape of the images. Must be a list of width and height.
-```
-"shape": [512, 512]
-```
-
 ### images : thumbnails
 Optional thumbnail files for the images. Path must contain a placeholder `{id}`. If you cannot provide any thumbnail, just leave it out or set it to `false`.
 
@@ -82,7 +75,7 @@ Optional thumbnail files for the images. Path must contain a placeholder `{id}`.
 ```
 
 ### images : metadata
-Optional metadata for the images. Path must contain a placeholder `{id}`. Metadata files can be in json, yaml or another text file format. json and yaml files will be parsed and made accessible via the GUI. If the metadata contains the key `location` with a list of two floats (longitude and latitude), it can be used for a bingmap view. If you cannot provide any metadata, just leave it out or set it to `false`.
+Optional metadata for the images. Path must contain a placeholder `{id}`. Metadata files can be in json, yaml or another text file format. json and yaml files will be parsed and made accessible via the GUI. If you cannot provide any metadata, just leave it out or set it to `false`.
 
 <i>Example:</i>
 ```
@@ -138,7 +131,7 @@ Since this app was developed for multi-spectral satellite data (i.e. images with
         *description:* Further description which explains what the user can see in this view.
     </li>
     <li>
-        *type:* Can be either `bingmap` or `image`.
+        *type:* Can be either `image` or `basemap`. A `basemap` view shows satellite imagery of the place where the image lies.
     </li>
     <li>
         *data:* Can be either one string (monochrome image) or a list of three strings (rgb image). Each string must contain an expression that returns a valid band array. It can contain mathematical expressions, band combinations or calls of specific functions like `edges` or `superpixels`. One refers to the bands by using variable names starting with `$B`, e.g. `$B1` for the first band of the image file. If you set `image:path` to a dictionary, you need the file identifiers as prefix, i.e. `$FileIdentifier.B1` (e.g. `$Sentinel2.B1`).
@@ -185,9 +178,9 @@ Since this app was developed for multi-spectral satellite data (i.e. images with
       "data": "superpixels($Sentinel2.B2+$Sentinel2.B3+$Sentinel2.B4, sigma=4, min_size=100)",
       "cmap": "jet"
   },
-  "Bing": {
-      "description": "Aerial Imagery",
-      "type": "bingmap"
+  "Satellite": {
+      "description": "Satellite imagery",
+      "type": "basemap"
   }
 }
 ```
@@ -198,7 +191,7 @@ The group `default` must always be set, further groups are optional.
 
 ```
 "view_groups": {
-      "default": ["Cirrus", "RGB", "Bing"],
+      "default": ["Cirrus", "RGB", "Satellite"],
       "clouds": ["Cirrus"],
       "radar": ["Sentinel1"]
   }
@@ -208,17 +201,16 @@ The group `default` must always be set, further groups are optional.
 A dictionary which defines the parameters for the segmentation mode.
 
 ### segmentation : path
-This directory will contain the mask files from the segmentation. Four different mask formats are allowed: *npy*, *tif*, *png* or *jpeg*.
+This directory will contain the final mask files from the segmentation (the merged masks of all users). Masks are saved as COG (*tif*) with the georeference of the mask area, so the path must end with `.tif`.
 
 <i>Example:</i>
-This will create a folder next to the project file called `masks` containing the mask files in *png* format.
+This will create a folder next to the project file called `masks` containing the mask files.
 ```
-"path": "masks/{id}.png"
+"path": "masks/{id}.tif"
 ```
 
 ### segmentation : mask_encoding
-The encodings of the final masks. Can be `integer`, `binary`, `rgb` or `rgba`.
-Note: not all mask formats support all encodings.
+The encodings of the final masks. Can be `integer` (one band with the class ids), `binary` (one band per class), `rgb` or `rgba` (the class colours).
 
 <i>Example:</i>
 ```

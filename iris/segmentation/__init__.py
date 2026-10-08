@@ -8,9 +8,10 @@ from os.path import basename, dirname, join
 import flask
 import lightgbm as lgb
 import numpy as np
+import rasterio as rio
+from rasterio.transform import Affine
 from scipy.ndimage import convolve
 from skimage.filters import sobel
-from skimage.io import imsave
 from skimage.segmentation import felzenszwalb
 from sklearn.metrics import accuracy_score, f1_score, jaccard_score
 from sklearn.model_selection import train_test_split
@@ -81,28 +82,67 @@ def previous_image():
         flask.url_for('segmentation_spa.segmentation_spa', image_id=image_id)
     )
 
-def get_mask_filenames(image_id, user_id=None):
-    """Get final and user mask filenames"""
-    final_mask = join(
-        project['path'], 'segmentation', image_id,
-        f'{user_id}_final.npy'
-    )
+def get_mask_filename(image_id, user_id):
+    """Get the filename of a user's mask
 
-    user_mask = join(
+    The mask is a COG with two bands: the class of each pixel and whether the
+    user drew the pixel himself (1) or the AI classified it (0).
+    """
+    return join(
         project['path'], 'segmentation', image_id,
-        f'{user_id}_user.npy'
+        f'{user_id}_mask.tif'
     )
-
-    return final_mask, user_mask
 
 def read_masks(image_id, user_id):
     """Read the final and user mask"""
-    final_mask_file, user_mask_file = get_mask_filenames(image_id, user_id)
+    filename = get_mask_filename(image_id, user_id)
+    if not os.path.exists(filename):
+        raise FileNotFoundError(filename)
 
-    final_mask = np.load(final_mask_file)
-    final_mask = np.argmax(final_mask, axis=-1)
-    user_mask = np.load(user_mask_file)
-    return final_mask, user_mask
+    with rio.open(filename) as file:
+        final_mask, user_mask = file.read()
+    return final_mask, user_mask.astype(bool)
+
+def read_user_masks(image_id):
+    """Read the final masks of all users who annotated the image
+
+    Returns:
+        A list with the user ids and a HxWxN array with their final masks.
+    """
+    paths = sorted(glob(get_mask_filename(image_id, user_id="*")))
+    users = [basename(path).split('_')[0] for path in paths]
+    final_masks = []
+    for path in paths:
+        with rio.open(path) as file:
+            final_masks.append(file.read(1))
+    return users, np.dstack(final_masks) if final_masks else None
+
+def write_mask_cog(filename, image_id, bands, descriptions=None):
+    """Write mask bands (CxHxW) as COG with the georeference of the mask area"""
+    crs, transform, _, _ = project.get_georef(image_id)
+    x0, y0 = project['segmentation']['mask_area'][:2]
+
+    os.makedirs(dirname(filename), exist_ok=True)
+    with rio.open(
+        filename, 'w', driver='COG', compress='deflate',
+        width=bands.shape[2], height=bands.shape[1], count=bands.shape[0],
+        dtype='uint8', crs=crs, transform=transform * Affine.translation(x0, y0),
+    ) as file:
+        file.write(bands.astype(np.uint8))
+        for i, description in enumerate(descriptions or []):
+            file.set_band_description(i+1, description)
+
+def write_annotated_geotiff(filename, image_id, rgb, mask, mask_description):
+    """Write the RGB view and a mask, cropped to the mask area, as COG"""
+    x0, y0, x1, y1 = project['segmentation']['mask_area']
+    bands = np.concatenate([
+        np.moveaxis(rgb[y0:y1, x0:x1, :3], -1, 0),
+        mask[np.newaxis, ...],
+    ])
+    write_mask_cog(
+        filename, image_id, bands,
+        descriptions=['Red', 'Green', 'Blue', mask_description]
+    )
 
 def compute_merged_mask(final_masks):
     """
@@ -139,12 +179,7 @@ def compute_merged_mask(final_masks):
 
 def merge_masks(image_id):
     """Combine the masks of all users to a resulting mask"""
-    final_mask_paths = get_mask_filenames(image_id, user_id="*")[0]
-    users, final_masks = zip(*[
-        [basename(path).split('_')[0], np.argmax(np.load(path), axis=-1)]
-        for path in glob(final_mask_paths)
-    ])
-    final_masks = np.dstack(final_masks)
+    users, final_masks = read_user_masks(image_id)
 
     # Compute merged mask using voting system
     merged_mask = compute_merged_mask(final_masks)
@@ -175,12 +210,12 @@ def merge_masks(image_id):
     merged_mask = encode_mask(
         merged_mask, mode=project['segmentation']['mask_encoding']
     )
-    filename = project['segmentation']['path'].format(id=image_id)
-    os.makedirs(dirname(filename), exist_ok=True)
-    if filename.endswith('npy'):
-        np.save(filename, merged_mask, allow_pickle=False)
-    else:
-        imsave(filename, merged_mask, check_contrast=False)
+    if merged_mask.ndim == 2:
+        merged_mask = merged_mask[..., np.newaxis]
+    write_mask_cog(
+        project['segmentation']['path'].format(id=image_id),
+        image_id, np.moveaxis(merged_mask, -1, 0)
+    )
 
 def get_score(mask1, mask2):
     if project['segmentation']['score'] == 'jaccard':
@@ -292,13 +327,11 @@ def save_mask(image_id):
     user_mask = data[1+mask_length:-1].astype(bool)
     user_mask = user_mask.reshape(project['segmentation']['mask_shape'][::-1])
 
-    final_mask_file, user_mask_file = get_mask_filenames(image_id, user_id)
-    os.makedirs(dirname(final_mask_file), exist_ok=True)
-
-    final_mask = encode_mask(final_mask, mode='binary')
-
-    np.save(final_mask_file, final_mask, allow_pickle=False)
-    np.save(user_mask_file, user_mask.astype(bool), allow_pickle=False)
+    write_mask_cog(
+        get_mask_filename(image_id, user_id), image_id,
+        np.stack([final_mask, user_mask]),
+        descriptions=['Class', 'Drawn by user']
+    )
 
     # Update the database:
     user = User.query.get(user_id)

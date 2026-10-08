@@ -3,99 +3,52 @@ Tests for GeoTIFF export endpoint
 """
 
 import json
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
-import flask
 import numpy as np
 
 
 class TestGeoTIFFExport:
     """Test GeoTIFF export functionality"""
 
-    def test_export_geotiff_success(self, client, logged_in_user, project_snapshot):
+    def test_export_geotiff_success(self, client, logged_in_user, project_snapshot, tmp_path):
         """
         Test successful GeoTIFF export with annotated mask overlay.
 
-        This test validates the complete export workflow:
-        1. User authentication via session (not JWT - legacy compatibility)
-        2. Loading user's segmentation mask from storage
-        3. Rendering RGB composite using IRIS rendering engine
-        4. Creating 4-band GeoTIFF (RGB + mask as 4th band)
-        5. Proper HTTP headers for file download
-
-        The export uses session-based auth to maintain compatibility with
-        the legacy Flask frontend that doesn't use JWT tokens.
+        The export contains the RGB view and the user's mask (4 bands), cropped
+        to the mask area and georeferenced like the image.
         """
-        # Use a test image ID
-        image_id = 'test_image_001'
+        from rasterio.io import MemoryFile
 
-        # Mock the mask reading to simulate existing user annotations
-        # Note: rasterio is imported inside the function
-        with patch('iris.segmentation.read_masks') as mock_read, \
-             patch('iris.segmentation.api.project') as mock_project, \
-             patch('rasterio.open') as mock_rio_open, \
-             patch('tempfile.NamedTemporaryFile') as mock_temp:
+        from iris.project import project
+        from iris.segmentation import get_mask_filename, write_mask_cog
 
-            # Create realistic mask data (2x2 for simplicity)
-            # final_mask: segmentation classes (0=background, 1=class1, 2=class2)
-            # user_mask: boolean array indicating which pixels user has annotated
-            final_mask = np.array([[0, 1], [2, 1]], dtype=np.uint8)
-            user_mask = np.array([[True, True], [True, False]], dtype=bool)
-            mock_read.return_value = (final_mask, user_mask)
+        project['path'] = str(tmp_path)
+        image_id = project.image_ids[0]
 
-            # Mock project configuration - set image_ids as a list attribute
-            mock_project.image_ids = [image_id]
-            mock_project.get_image_path.return_value = '/path/to/image.tif'
-            mock_project.config = {
-                'views': {
-                    'RGB': {
-                        'type': 'image',
-                        'data': ['$Sentinel2.B4', '$Sentinel2.B3', '$Sentinel2.B2']
-                    }
-                }
-            }
+        width, height = project['segmentation']['mask_shape']
+        final_mask = np.random.RandomState(0).randint(0, 4, (height, width)).astype(np.uint8)
+        user_mask = np.ones((height, width), dtype=np.uint8)
+        write_mask_cog(
+            get_mask_filename(image_id, logged_in_user.id), image_id,
+            np.stack([final_mask, user_mask])
+        )
 
-            # Mock IRIS rendering engine output (RGB composite as user sees it)
-            mock_project.render_image.return_value = np.random.randint(
-                0, 255, (2, 2, 3), dtype=np.uint8
-            )
+        response = client.get(f'/segmentation/api/export-geotiff/{image_id}')
 
-            # Mock temporary file for GeoTIFF output
-            mock_temp_file = MagicMock()
-            mock_temp_file.name = '/tmp/test_export.tif'
-            mock_temp.return_value = mock_temp_file
+        assert response.status_code == 200
+        assert response.headers['Content-Type'] == 'image/tiff'
+        assert f'{image_id}_annotated.tif' in response.headers['Content-Disposition']
 
-            # Mock rasterio write operations
-            mock_dst = MagicMock()
-            mock_rio_open.return_value.__enter__ = MagicMock(return_value=mock_dst)
-            mock_rio_open.return_value.__exit__ = MagicMock(return_value=False)
-
-            # Mock flask.send_file to avoid actual file operations
-            with patch('iris.segmentation.api.flask.send_file') as mock_send:
-                mock_send.return_value = flask.Response(
-                    b'mock_geotiff_data',
-                    mimetype='image/tiff',
-                    headers={
-                        'Content-Disposition': f'attachment; filename={image_id}_annotated.tif'
-                    }
-                )
-
-                # Execute the export request
-                response = client.get(f'/segmentation/api/export-geotiff/{image_id}')
-
-                # Verify successful export
-                assert response.status_code == 200
-                assert response.headers['Content-Type'] == 'image/tiff'
-                assert 'Content-Disposition' in response.headers
-                assert f'{image_id}_annotated.tif' in response.headers['Content-Disposition']
-
-                # Verify the rendering engine was called with correct view
-                mock_project.render_image.assert_called_once()
-
-                # Verify rasterio was used to write 4-band GeoTIFF
-                mock_dst.write.assert_called()
-                # Should write 4 bands: R, G, B, and mask
-                assert mock_dst.write.call_count == 4
+        crs, transform, _, _ = project.get_georef(image_id)
+        x0, y0 = project['segmentation']['mask_area'][:2]
+        with MemoryFile(response.data) as memfile, memfile.open() as exported:
+            assert exported.count == 4
+            assert (exported.width, exported.height) == (width, height)
+            assert exported.crs == crs
+            assert exported.transform * (0, 0) == transform * (x0, y0)
+            assert np.array_equal(exported.read(4), final_mask)
+            assert exported.descriptions == ('Red', 'Green', 'Blue', 'Segmentation Mask')
 
     def test_export_geotiff_no_mask(self, client, logged_in_user, project_snapshot):
         """

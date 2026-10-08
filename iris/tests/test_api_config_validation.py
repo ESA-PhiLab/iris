@@ -61,7 +61,7 @@ def sample_valid_config():
             'Main': ['RGB', 'Monochrome']
         },
         'segmentation': {
-            'path': 'masks/{id}.png',
+            'path': 'masks/{id}.tif',
             'mask_encoding': 'integer',
             'mask_area': None,
             'score': 'f1',

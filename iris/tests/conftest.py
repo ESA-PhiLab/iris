@@ -1,7 +1,10 @@
 import os
 import tempfile
 
+import numpy as np
 import pytest
+import rasterio as rio
+from rasterio.transform import from_origin
 
 from iris.models import db
 
@@ -169,3 +172,21 @@ def restore_config_file():
 
         # Reload project to ensure consistency
         project.load_from(config_file)
+
+
+@pytest.fixture
+def make_cog():
+    """Write a small georeferenced COG from a HxW or HxWxC array"""
+    def make(path, array):
+        array = np.asarray(array)
+        if array.ndim == 2:
+            array = array[..., np.newaxis]
+        with rio.open(
+            str(path), 'w', driver='COG',
+            width=array.shape[1], height=array.shape[0], count=array.shape[2],
+            dtype=array.dtype, crs='EPSG:32631',
+            transform=from_origin(500000, 4500000, 10, 10),
+        ) as file:
+            file.write(np.moveaxis(array, -1, 0))
+        return str(path)
+    return make

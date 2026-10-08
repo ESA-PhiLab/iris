@@ -414,7 +414,6 @@ def export_merged_geotiff(image_id):
         - Useful for exporting final consensus annotations
     """
     import tempfile
-    from glob import glob
 
     import numpy as np
     import rasterio as rio
@@ -436,29 +435,17 @@ def export_merged_geotiff(image_id):
             else:
                 image_path = list(image_path.values())[0]
 
-        # Load merged mask by reading all user masks and merging them
-        from iris.segmentation import get_mask_filenames
+        # Load all user masks and merge them using voting system
+        from iris.segmentation import compute_merged_mask, read_user_masks
 
-        final_mask_paths = get_mask_filenames(image_id, user_id="*")[0]
-        mask_files = glob(final_mask_paths)
+        _, final_masks = read_user_masks(image_id)
 
-        if not mask_files:
+        if final_masks is None:
             return flask.jsonify({
                 'error': 'No mask data available',
                 'message': 'No users have annotated this image yet'
             }), 404
 
-        # Load all user masks and merge them using voting system
-        final_masks = []
-        for path in mask_files:
-            mask_data = np.load(path)
-            # Convert from one-hot encoding to class indices
-            final_masks.append(np.argmax(mask_data, axis=-1))
-
-        final_masks = np.dstack(final_masks)
-
-        # Merge masks using voting system (reuses compute_merged_mask function)
-        from iris.segmentation import compute_merged_mask
         merged_mask = compute_merged_mask(final_masks)
 
         # Render RGB image using IRIS's rendering engine
@@ -494,21 +481,6 @@ def export_merged_geotiff(image_id):
                 'message': str(e)
             }), 500
 
-        # Get correct dimensions
-        correct_height, correct_width = merged_mask.shape
-
-        # Create profile for output GeoTIFF
-        profile = {
-            'driver': 'GTiff',
-            'dtype': 'uint8',
-            'width': correct_width,
-            'height': correct_height,
-            'count': 4,  # RGB + mask
-            'crs': None,
-            'transform': rio.transform.from_bounds(0, 0, correct_width, correct_height,
-                                                   correct_width, correct_height)
-        }
-
         # Create temporary file for export
         temp_file = tempfile.NamedTemporaryFile(  # noqa: SIM115
             delete=False,
@@ -518,32 +490,11 @@ def export_merged_geotiff(image_id):
         temp_path = temp_file.name
         temp_file.close()
 
-        # Write GeoTIFF with RGB bands + merged mask
-        with rio.open(temp_path, 'w', **profile) as dst:
-            # Resize rendered RGB if needed
-            if rendered_rgb.shape[:2] != (correct_height, correct_width):
-                from skimage.transform import resize
-                rendered_rgb = resize(
-                    rendered_rgb,
-                    (correct_height, correct_width),
-                    order=1,
-                    preserve_range=True,
-                    anti_aliasing=True
-                ).astype(np.uint8)
-
-            # Write RGB bands
-            dst.write(rendered_rgb[:, :, 0], 1)  # Red
-            dst.write(rendered_rgb[:, :, 1], 2)  # Green
-            dst.write(rendered_rgb[:, :, 2], 3)  # Blue
-
-            # Write merged mask as 4th band
-            dst.write(merged_mask.astype(np.uint8), 4)
-
-            # Add band descriptions
-            dst.set_band_description(1, 'Red')
-            dst.set_band_description(2, 'Green')
-            dst.set_band_description(3, 'Blue')
-            dst.set_band_description(4, 'Merged Segmentation Mask')
+        # Write the RGB bands and the merged mask with the georeference of the mask area
+        from iris.segmentation import write_annotated_geotiff
+        write_annotated_geotiff(
+            temp_path, image_id, rendered_rgb, merged_mask, 'Merged Segmentation Mask'
+        )
 
         # Send file to user
         return flask.send_file(
@@ -600,7 +551,6 @@ def export_all_geotiffs():
         - Only exports images with existing annotations
     """
     import os
-    from glob import glob
 
     import numpy as np
     import rasterio as rio
@@ -624,16 +574,19 @@ def export_all_geotiffs():
         exported_files = []
         skipped_images = []
 
-        from iris.segmentation import compute_merged_mask, get_mask_filenames
+        from iris.segmentation import (
+            compute_merged_mask,
+            read_user_masks,
+            write_annotated_geotiff,
+        )
 
         # Iterate through all images
         for image_id in project.image_ids:
             try:
                 # Check if image has any annotations
-                final_mask_paths = get_mask_filenames(image_id, user_id="*")[0]
-                mask_files = glob(final_mask_paths)
+                _, final_masks = read_user_masks(image_id)
 
-                if not mask_files:
+                if final_masks is None:
                     skipped_images.append({
                         'image_id': image_id,
                         'reason': 'No annotations'
@@ -652,13 +605,7 @@ def export_all_geotiffs():
                     else:
                         image_path = list(image_path.values())[0]
 
-                # Load all user masks and merge them
-                final_masks = []
-                for path in mask_files:
-                    mask_data = np.load(path)
-                    final_masks.append(np.argmax(mask_data, axis=-1))
-
-                final_masks = np.dstack(final_masks)
+                # Merge the user masks
                 merged_mask = compute_merged_mask(final_masks)
 
                 # Render RGB image
@@ -688,51 +635,15 @@ def export_all_geotiffs():
                         rendered_rgb = ((rendered_rgb - rendered_rgb.min()) /
                                        (rendered_rgb.max() - rendered_rgb.min()) * 255).astype(np.uint8)
 
-                # Get correct dimensions
-                correct_height, correct_width = merged_mask.shape
-
-                # Create profile for output GeoTIFF
-                profile = {
-                    'driver': 'GTiff',
-                    'dtype': 'uint8',
-                    'width': correct_width,
-                    'height': correct_height,
-                    'count': 4,  # RGB + mask
-                    'crs': None,
-                    'transform': rio.transform.from_bounds(0, 0, correct_width, correct_height,
-                                                           correct_width, correct_height)
-                }
-
                 # Create output filename
                 output_filename = f'{project_name}_{image_id}_merged.tif'
                 output_path = os.path.join(output_dir, output_filename)
 
-                # Write GeoTIFF
-                with rio.open(output_path, 'w', **profile) as dst:
-                    # Resize rendered RGB if needed
-                    if rendered_rgb.shape[:2] != (correct_height, correct_width):
-                        from skimage.transform import resize
-                        rendered_rgb = resize(
-                            rendered_rgb,
-                            (correct_height, correct_width),
-                            order=1,
-                            preserve_range=True,
-                            anti_aliasing=True
-                        ).astype(np.uint8)
-
-                    # Write RGB bands
-                    dst.write(rendered_rgb[:, :, 0], 1)  # Red
-                    dst.write(rendered_rgb[:, :, 1], 2)  # Green
-                    dst.write(rendered_rgb[:, :, 2], 3)  # Blue
-
-                    # Write merged mask as 4th band
-                    dst.write(merged_mask.astype(np.uint8), 4)
-
-                    # Add band descriptions
-                    dst.set_band_description(1, 'Red')
-                    dst.set_band_description(2, 'Green')
-                    dst.set_band_description(3, 'Blue')
-                    dst.set_band_description(4, 'Merged Segmentation Mask')
+                # Write the RGB bands and the merged mask with the georeference of the mask area
+                write_annotated_geotiff(
+                    output_path, image_id, rendered_rgb, merged_mask,
+                    'Merged Segmentation Mask'
+                )
 
                 exported_files.append(output_filename)
 

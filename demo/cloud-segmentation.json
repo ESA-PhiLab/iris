@@ -7,10 +7,6 @@
       "Sentinel1": "images/{id}/s1.tif",
       "Sentinel2": "images/{id}/s2.tif"
     },
-    "shape": [
-      512,
-      512
-    ],
     "thumbnails": "images/{id}/thumbnail.png",
     "metadata": "images/{id}/metadata.json"
   },
@@ -63,9 +59,9 @@
     }
   ],
   "views": {
-    "Bing": {
-      "type": "bingmap",
-      "description": "Aerial Imagery"
+    "Satellite": {
+      "type": "basemap",
+      "description": "Satellite imagery (Esri World Imagery)"
     },
     "Cirrus": {
       "type": "image",
@@ -140,7 +136,7 @@
     ]
   },
   "segmentation": {
-    "path": "images/{id}/mask.png",
+    "path": "images/{id}/mask.tif",
     "mask_encoding": "rgb",
     "mask_area": [
       64,

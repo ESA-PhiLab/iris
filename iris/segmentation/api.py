@@ -61,6 +61,36 @@ def save_user_config():
 
 
 
+@api_bp.route('/georef/<image_id>', methods=['GET'])
+@requires_auth
+def get_georef(image_id):
+    """
+    Get where the image lies on the map.
+
+    Returns:
+        JSON response with the image size in pixels and the corners of the
+        image as [longitude, latitude], clockwise from the top left (the order
+        MapLibre expects for image sources).
+    """
+    from rasterio.warp import transform
+
+    if image_id not in project.image_ids:
+        return flask.jsonify({'error': 'Image not found'}), 404
+
+    crs, affine, width, height = project.get_georef(image_id)
+
+    pixels = [(0, 0), (width, 0), (width, height), (0, height)]
+    xs, ys = zip(*[affine * pixel for pixel in pixels])
+    lons, lats = transform(crs, 'EPSG:4326', xs, ys)
+
+    return flask.jsonify({
+        'width': width,
+        'height': height,
+        'crs': crs.to_string(),
+        'corners': [[lon, lat] for lon, lat in zip(lons, lats)],
+    })
+
+
 @api_bp.route('/images/list', methods=['GET'])
 @requires_auth
 def list_images():
@@ -188,21 +218,6 @@ def export_geotiff(image_id):
                 'message': str(e)
             }), 500
 
-        # Fix dimensions if needed
-        correct_height, correct_width = final_mask.shape
-
-        # Create profile for output GeoTIFF
-        profile = {
-            'driver': 'GTiff',
-            'dtype': 'uint8',
-            'width': correct_width,
-            'height': correct_height,
-            'count': 4,  # RGB + mask
-            'crs': None,
-            'transform': rio.transform.from_bounds(0, 0, correct_width, correct_height,
-                                                   correct_width, correct_height)
-        }
-
         # Create temporary file for export
         # Note: delete=False is intentional - flask.send_file will handle cleanup
         temp_file = tempfile.NamedTemporaryFile(  # noqa: SIM115
@@ -213,32 +228,11 @@ def export_geotiff(image_id):
         temp_path = temp_file.name
         temp_file.close()
 
-        # Write new GeoTIFF with RGB bands + mask
-        with rio.open(temp_path, 'w', **profile) as dst:
-            # Resize rendered RGB if needed
-            if rendered_rgb.shape[:2] != (correct_height, correct_width):
-                from skimage.transform import resize
-                rendered_rgb = resize(
-                    rendered_rgb,
-                    (correct_height, correct_width),
-                    order=1,
-                    preserve_range=True,
-                    anti_aliasing=True
-                ).astype(np.uint8)
-
-            # Write RGB bands
-            dst.write(rendered_rgb[:, :, 0], 1)  # Red
-            dst.write(rendered_rgb[:, :, 1], 2)  # Green
-            dst.write(rendered_rgb[:, :, 2], 3)  # Blue
-
-            # Write mask as the 4th band
-            dst.write(final_mask.astype(np.uint8), 4)
-
-            # Add band descriptions
-            dst.set_band_description(1, 'Red')
-            dst.set_band_description(2, 'Green')
-            dst.set_band_description(3, 'Blue')
-            dst.set_band_description(4, 'Segmentation Mask')
+        # Write the RGB bands and the mask with the georeference of the mask area
+        from iris.segmentation import write_annotated_geotiff
+        write_annotated_geotiff(
+            temp_path, image_id, rendered_rgb, final_mask, 'Segmentation Mask'
+        )
 
         # Send file to user
         return flask.send_file(

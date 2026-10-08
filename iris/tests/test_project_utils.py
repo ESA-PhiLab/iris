@@ -2,6 +2,7 @@ import os
 
 import numpy as np
 import pytest
+import rasterio as rio
 from skimage.io import imsave
 
 from iris import project
@@ -95,18 +96,34 @@ def test_get_image_bands_monkeypatched(monkeypatch, fake_img, ans):
     assert bands == ans
 
 
-def test_load_image_npy_and_png(tmp_path):
+def test_load_image_cog(tmp_path, make_cog):
     p = Project()
-    # create npy
     arr = np.arange(12).reshape(3, 2, 2).astype(np.uint8)
+    cog = make_cog(tmp_path / "img.tif", arr)
+
+    out = p.load_image(cog)
+    assert list(out) == ["B1", "B2"]
+    assert np.array_equal(out["B2"], arr[..., 1])
+
+    out = p.load_image(cog, bands=["$B2"])
+    assert list(out) == ["B2"]
+
+
+def test_load_image_rejects_non_cogs(tmp_path):
+    p = Project()
+    arr = np.arange(6).reshape(3, 2).astype(np.uint8)
+
     npyfile = tmp_path / "img.npy"
     np.save(str(npyfile), arr, allow_pickle=False)
-    out = p.load_image(str(npyfile))
-    assert "B1" in out and out["B1"].shape == (3, 2)
-
-    # create a small PNG (single-band)
     png = tmp_path / "img.png"
-    im = (np.arange(6).reshape(3, 2)).astype(np.uint8)
-    imsave(str(png), im)
-    out2 = p.load_image(str(png))
-    assert out2["B1"].ndim == 2
+    imsave(str(png), arr, check_contrast=False)
+    # A GeoTIFF without tiles and without CRS
+    striped = tmp_path / "striped.tif"
+    with rio.open(
+        str(striped), "w", driver="GTiff", width=2, height=3, count=1, dtype="uint8"
+    ) as file:
+        file.write(arr[np.newaxis])
+
+    for filename in [npyfile, png, striped]:
+        with pytest.raises(ValueError, match="not a COG"):
+            p.load_image(str(filename))
