@@ -11,6 +11,7 @@ import React, { useEffect, useRef } from 'react';
 import { CanvasSource, GeoJSONSource, Map as MapLibreMap, MapMouseEvent } from 'maplibre-gl';
 import type { Feature } from 'geojson';
 import 'maplibre-gl/dist/maplibre-gl.css';
+import './ReactMapView.css';
 import { ViewConfig, useViewManagerStore } from '../../stores/viewManagerStore';
 import { useSegmentationStore } from '../../stores/segmentationStore';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -137,7 +138,7 @@ const ReactMapView: React.FC<ReactMapViewProps> = ({ view, imageId, viewCount })
       ...(camera
         ? { center: camera.center, zoom: camera.zoom }
         : { bounds: cornersBounds(georef.corners) }),
-      attributionControl: { compact: true },
+      attributionControl: { compact: false },
       dragRotate: false,
       pitchWithRotate: false,
       touchPitch: false,

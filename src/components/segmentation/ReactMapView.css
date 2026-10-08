@@ -1,0 +1,14 @@
+/* Attribution of the satellite imagery: small and translucent over the map */
+.maplibregl-ctrl-bottom-right .maplibregl-ctrl-attrib {
+  margin: 0;
+  padding: 1px 6px;
+  border-radius: 4px 0 0 0;
+  background-color: rgba(0, 0, 0, 0.35);
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 10px;
+  line-height: 16px;
+}
+
+.maplibregl-ctrl-bottom-right .maplibregl-ctrl-attrib a {
+  color: inherit;
+}

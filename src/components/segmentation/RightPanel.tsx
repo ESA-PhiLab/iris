@@ -4,6 +4,7 @@ import { useViewManagerStore } from '../../stores/viewManagerStore';
 import { useTheme } from '../../contexts/ThemeContext';
 import { ShortcutName, tooltip } from '../../utils/shortcuts';
 import { useShortcut } from '../../hooks/useShortcut';
+import { controlButtonStyle } from '../controlStyles';
 
 export const PANEL_WIDTH = 264;
 const FOLDED_SECTIONS_KEY = 'iris-right-panel-folded';
@@ -194,25 +195,7 @@ const PanelButton: React.FC<{
       {...tooltip(title, shortcut)}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      style={{
-        flex: 1,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '8px',
-        height: '32px',
-        padding: '0 10px',
-        backgroundColor: active
-          ? theme.buttonPrimaryBg
-          : hovered ? theme.buttonSecondaryHover : theme.buttonSecondaryBg,
-        color: active ? theme.buttonPrimaryText : theme.buttonSecondaryText,
-        border: `1px solid ${active ? theme.buttonPrimaryBg : theme.buttonSecondaryBorder}`,
-        borderRadius: '6px',
-        cursor: 'pointer',
-        fontSize: '12px',
-        fontWeight: 500,
-        transition: 'background-color 0.15s ease',
-      }}
+      style={{ ...controlButtonStyle(theme, { active, hovered }), flex: 1, minHeight: '34px' }}
     >
       {label}
     </button>
@@ -246,6 +229,8 @@ const RightPanel: React.FC<RightPanelProps> = ({ onSelectClass, isCollapsed, onT
     classes,
   } = useSegmentationStore();
   const { showImage, showSatellite, toggleImage, toggleSatellite } = useViewManagerStore();
+
+  const [hoveredButton, setHoveredButton] = React.useState<string | null>(null);
 
   useShortcut('toggleImage', toggleImage);
   useShortcut('toggleSatellite', toggleSatellite);
@@ -346,20 +331,10 @@ const RightPanel: React.FC<RightPanelProps> = ({ onSelectClass, isCollapsed, onT
         <span style={{ fontSize: '13px', fontWeight: 600, color: theme.gray900 }}>Options</span>
         <button
           onClick={onToggleCollapse}
+          onMouseEnter={() => setHoveredButton('hide')}
+          onMouseLeave={() => setHoveredButton(null)}
           {...tooltip('Hide panel', 'rightPanel')}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            height: '26px',
-            padding: '0 8px',
-            background: 'none',
-            border: `1px solid ${theme.panelBorder}`,
-            borderRadius: '6px',
-            color: theme.gray600,
-            cursor: 'pointer',
-            fontSize: '12px',
-          }}
+          style={{ ...controlButtonStyle(theme, { hovered: hoveredButton === 'hide' }), minHeight: '28px' }}
         >
           Hide
         </button>
@@ -370,19 +345,15 @@ const RightPanel: React.FC<RightPanelProps> = ({ onSelectClass, isCollapsed, onT
         <Section title="Class">
           <button
             onClick={onSelectClass}
+            onMouseEnter={() => setHoveredButton('class')}
+            onMouseLeave={() => setHoveredButton(null)}
             {...tooltip('Select class, or press 1..9', 'classDialog')}
             style={{
-              display: 'flex',
-              alignItems: 'center',
+              ...controlButtonStyle(theme, { hovered: hoveredButton === 'class' }),
+              justifyContent: 'flex-start',
               gap: '10px',
               width: '100%',
-              height: '36px',
-              padding: '0 10px',
-              backgroundColor: theme.buttonSecondaryBg,
-              color: theme.buttonSecondaryText,
-              border: `1px solid ${theme.buttonSecondaryBorder}`,
-              borderRadius: '6px',
-              cursor: 'pointer',
+              minHeight: '36px',
               fontSize: '13px',
             }}
           >

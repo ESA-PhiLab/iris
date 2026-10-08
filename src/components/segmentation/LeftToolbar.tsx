@@ -4,6 +4,7 @@ import PaintbrushSelector from './toolbar/PaintbrushSelector';
 import { useSegmentationStore } from '../../stores/segmentationStore';
 import { useTheme } from '../../contexts/ThemeContext';
 import { tooltip } from '../../utils/shortcuts';
+import { controlButtonStyle } from '../controlStyles';
 import { useShortcut } from '../../hooks/useShortcut';
 
 interface LeftToolbarProps {
@@ -56,6 +57,7 @@ const LeftToolbar: React.FC<LeftToolbarProps> = ({ onResetMask }) => {
     if (w.redo) w.redo();
   };
   
+  const [toggleHovered, setToggleHovered] = React.useState(false);
   useShortcut('leftToolbar', () => setIsExpanded((expanded: boolean) => !expanded));
 
   const toolbarWidth = isExpanded ? 180 : 60;
@@ -68,14 +70,15 @@ const LeftToolbar: React.FC<LeftToolbarProps> = ({ onResetMask }) => {
         top: '50px',
         bottom: '60px',
         width: `${toolbarWidth}px`,
-        backgroundColor: theme.toolbarBg,
+        backgroundColor: theme.panelBg,
+        borderRight: `1px solid ${theme.panelBorder}`,
+        boxSizing: 'border-box',
         display: 'flex',
         flexDirection: 'column',
         alignItems: isExpanded ? 'stretch' : 'center',
         padding: '10px 0',
         gap: '5px',
         zIndex: 900,
-        boxShadow: '2px 0 4px rgba(0,0,0,0.1)',
         overflowY: 'auto',
         overflowX: 'hidden',
         listStyle: 'none',
@@ -85,23 +88,16 @@ const LeftToolbar: React.FC<LeftToolbarProps> = ({ onResetMask }) => {
       {/* Toggle Button */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
+        onMouseEnter={() => setToggleHovered(true)}
+        onMouseLeave={() => setToggleHovered(false)}
         style={{
-          background: 'transparent',
-          border: `1px solid ${theme.toolbarBorder}`,
-          color: theme.toolbarText,
-          cursor: 'pointer',
-          padding: '5px',
-          margin: '0 10px 10px 10px',
-          borderRadius: '4px',
-          fontSize: '16px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '8px',
+          ...controlButtonStyle(theme, { hovered: toggleHovered }),
+          margin: isExpanded ? '0 15px 10px' : '0 auto 10px',
+          width: isExpanded ? 'auto' : '50px',
         }}
         {...tooltip(isExpanded ? 'Collapse toolbar' : 'Expand toolbar', 'leftToolbar')}
       >
-        <span>{isExpanded ? '◀' : '▶'}</span>
+        <span style={{ fontSize: '12px' }}>{isExpanded ? '◀' : '▶'}</span>
         {isExpanded && <span style={{ fontSize: '12px' }}>Collapse</span>}
       </button>
 
@@ -148,7 +144,7 @@ const LeftToolbar: React.FC<LeftToolbarProps> = ({ onResetMask }) => {
       </div>
 
       {/* Separator */}
-      <div style={{ width: isExpanded ? 'calc(100% - 30px)' : '80%', height: '1px', backgroundColor: theme.toolbarBorder, margin: '5px auto' }} />
+      <div style={{ width: isExpanded ? 'calc(100% - 30px)' : '80%', height: '1px', backgroundColor: theme.panelBorder, margin: '5px auto' }} />
 
       {/* Editing Tools */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', listStyle: 'none', width: '100%', padding: isExpanded ? '0 15px' : '0 5px', alignItems: isExpanded ? 'stretch' : 'center', boxSizing: 'border-box' }}>
@@ -176,7 +172,7 @@ const LeftToolbar: React.FC<LeftToolbarProps> = ({ onResetMask }) => {
       </div>
 
       {/* Separator */}
-      <div style={{ width: isExpanded ? 'calc(100% - 30px)' : '80%', height: '1px', backgroundColor: theme.toolbarBorder, margin: '5px auto' }} />
+      <div style={{ width: isExpanded ? 'calc(100% - 30px)' : '80%', height: '1px', backgroundColor: theme.panelBorder, margin: '5px auto' }} />
 
       {/* AI & Reset Tools */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', listStyle: 'none', width: '100%', padding: isExpanded ? '0 15px' : '0 5px', alignItems: isExpanded ? 'stretch' : 'center', boxSizing: 'border-box' }}>

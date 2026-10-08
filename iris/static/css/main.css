@@ -163,7 +163,8 @@ img {
     height: 22px;
 }
 
-button:hover,.button:hover,.toolbutton:hover,.statusbutton:hover{
+/* The React controls style their own hover */
+.button:hover,.statusbutton:hover{
     background-color: #f7fafc;
     border-color: rgba(0, 0, 0, 0.12);
     transform: translateY(-1px);
