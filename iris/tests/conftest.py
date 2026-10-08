@@ -1,39 +1,37 @@
 import os
 import tempfile
 
-import numpy as np
-import pytest
-import rasterio as rio
-from rasterio.transform import from_origin
+# The tests must never touch the database of the demo project. Flask-SQLAlchemy
+# opens the database when iris is imported, so point it to a throwaway one first.
+os.environ['IRIS_DATABASE_URI'] = 'sqlite:///' + os.path.join(
+    tempfile.mkdtemp(suffix='.iris'), 'iris.db'
+)
 
-from iris.models import db
+import numpy as np  # noqa: E402
+import pytest  # noqa: E402
+import rasterio as rio  # noqa: E402
+from rasterio.transform import from_origin  # noqa: E402
+
+from iris.models import db  # noqa: E402
 
 
 @pytest.fixture(scope='session')
 def app():
     """Create a test Flask app with isolated database.
 
-    IMPORTANT: This fixture cannot prevent the module-level code in iris/__init__.py
-    from creating the demo database. That happens at import time, before any fixtures run.
-
-    To work around this, we:
-    1. Accept that the demo database will be created/modified
-    2. Ensure tests use a separate test database
-    3. Document that users should restart the IRIS server after running pytest
+    The database is the throwaway one set in IRIS_DATABASE_URI above, so the
+    tests leave the demo database alone.
     """
     from iris import app as iris_app
     from iris.project import project
 
     # Create a temporary project directory for testing
     test_project_dir = tempfile.mkdtemp(suffix='.iris')
-    test_project_db = os.path.join(test_project_dir, 'iris.db')
 
     # Create user_config subdirectory (needed for user preferences tests)
     os.makedirs(os.path.join(test_project_dir, 'user_config'), exist_ok=True)
 
-    # Configure app for testing with isolated database
     iris_app.config['TESTING'] = True
-    iris_app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{test_project_db}'
 
     # Update the project singleton to use test directory
     # This prevents tests from modifying the demo project files

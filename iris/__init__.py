@@ -206,8 +206,10 @@ def create_app(project_file, args):
     app = flask.Flask(__name__)
 
     app.config.from_pyfile('config.py')
-    app.config['SQLALCHEMY_DATABASE_URI'] = \
-        'sqlite:///' + join(project['path'], 'iris.db')
+    # IRIS_DATABASE_URI points IRIS to another database, e.g. for the tests
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get(
+        'IRIS_DATABASE_URI', 'sqlite:///' + join(project['path'], 'iris.db')
+    )
 
     # Register the extensions:
     db.init_app(app)
