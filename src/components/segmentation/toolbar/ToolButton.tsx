@@ -5,7 +5,8 @@ import { controlButtonStyle, controlIconFilter } from '../../controlStyles';
 
 interface ToolButtonProps {
   id?: string;
-  icon: string;
+  /** Path of a black PNG icon, or an icon drawn in the colour of the text */
+  icon: string | React.ReactNode;
   onClick: () => void;
   title?: string;
   className?: string;
@@ -70,20 +71,25 @@ const ToolButton: React.FC<ToolButtonProps> = ({
       }}
       data-testid={testId}
     >
-      <img 
-        src={icon} 
-        className="icon" 
-        alt="" 
-        style={{ 
-          flexShrink: 0, 
-          width: '18px', 
-          height: '18px',
-          filter: iconFilter,
-        }} 
-      />
+      {typeof icon === 'string' ? (
+        <img 
+          src={icon} 
+          className="icon" 
+          alt="" 
+          style={{ 
+            flexShrink: 0, 
+            width: '18px', 
+            height: '18px',
+            filter: iconFilter,
+          }} 
+        />
+      ) : (
+        <span style={{ display: 'inline-flex', flexShrink: 0 }}>{icon}</span>
+      )}
       {label && (
         <span style={{ 
           fontSize: '13px', 
+          textAlign: 'left',
           fontWeight: checked ? '600' : '500',
           whiteSpace: 'nowrap',
           flex: 1,

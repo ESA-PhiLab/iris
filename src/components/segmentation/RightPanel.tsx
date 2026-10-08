@@ -5,8 +5,10 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { ShortcutName, tooltip } from '../../utils/shortcuts';
 import { useShortcut } from '../../hooks/useShortcut';
 import { controlButtonStyle } from '../controlStyles';
+import Sidebar, { SidebarGroup } from './Sidebar';
+import ToolButton from './toolbar/ToolButton';
+import { GlobeIcon, ImageIcon } from '../icons/ToolbarIcons';
 
-export const PANEL_WIDTH = 264;
 const FOLDED_SECTIONS_KEY = 'iris-right-panel-folded';
 
 /** Sections of the panel the user folded, remembered across reloads */
@@ -172,7 +174,15 @@ const Slider: React.FC<{
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
         aria-label={label}
-        style={{ width: '100%', margin: '2px 0 0', accentColor: theme.toggleOn, cursor: 'pointer' }}
+        style={{
+          width: '100%',
+          height: '4px',
+          margin: '8px 0 4px',
+          borderRadius: '2px',
+          // Filled up to the value, the thumb is styled in segmentation.css
+          background: `linear-gradient(to right, ${theme.sliderTrackFilled} ${(value / 800) * 100}%, ${theme.sliderTrack} ${(value / 800) * 100}%)`,
+          cursor: 'pointer',
+        }}
       />
     </div>
   );
@@ -203,12 +213,12 @@ const PanelButton: React.FC<{
 };
 
 interface RightPanelProps {
+  expanded: boolean;
+  onToggle: () => void;
   onSelectClass: () => void;
-  isCollapsed: boolean;
-  onToggleCollapse: () => void;
 }
 
-const RightPanel: React.FC<RightPanelProps> = ({ onSelectClass, isCollapsed, onToggleCollapse }) => {
+const RightPanel: React.FC<RightPanelProps> = ({ expanded, onToggle, onSelectClass }) => {
   const { theme } = useTheme();
 
   const {
@@ -271,177 +281,149 @@ const RightPanel: React.FC<RightPanelProps> = ({ onSelectClass, isCollapsed, onT
     { value: 'errors', label: 'Errors', title: 'Error mask', shortcut: 'maskErrors' },
   ];
 
-  if (isCollapsed) {
-    return (
-      <button
-        onClick={onToggleCollapse}
-        {...tooltip('Show panel', 'rightPanel')}
-        style={{
-          position: 'fixed',
-          right: 0,
-          top: '62px',
-          zIndex: 901,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: '6px',
-          padding: '10px 6px',
-          backgroundColor: theme.panelBg,
-          color: theme.gray600,
-          border: `1px solid ${theme.panelBorder}`,
-          borderRight: 'none',
-          borderRadius: '8px 0 0 8px',
-          boxShadow: '-2px 0 8px rgba(0, 0, 0, 0.12)',
-          cursor: 'pointer',
-        }}
-      >
-        <span style={{ fontSize: '12px' }}>◀</span>
-      </button>
-    );
-  }
+  const swatch = (
+    <span style={{
+      display: 'inline-block',
+      width: '14px',
+      height: '14px',
+      flexShrink: 0,
+      borderRadius: '3px',
+      border: `1px solid ${theme.panelBorder}`,
+      backgroundColor: currentClassConfig
+        ? `rgba(${currentClassConfig.colour.slice(0, 3).join(',')}, ${Math.max(currentClassConfig.colour[3] / 255, 0.15)})`
+        : 'transparent',
+    }} />
+  );
+  const className = currentClassConfig ? currentClassConfig.name : 'No class';
+  const icons = '/segmentation/static/icons';
 
   return (
-    <aside
-      style={{
-        position: 'fixed',
-        right: 0,
-        top: '50px',
-        bottom: '60px',
-        width: `${PANEL_WIDTH}px`,
-        display: 'flex',
-        flexDirection: 'column',
-        backgroundColor: theme.panelBg,
-        borderLeft: `1px solid ${theme.panelBorder}`,
-        zIndex: 900,
-        boxSizing: 'border-box',
-      }}
-      onWheel={(e) => e.stopPropagation()}
-      onMouseDown={(e) => e.stopPropagation()}
-    >
-      {/* Header */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        height: '44px',
-        flexShrink: 0,
-        padding: '0 12px 0 16px',
-        borderBottom: `1px solid ${theme.panelBorder}`,
-      }}>
-        <span style={{ fontSize: '13px', fontWeight: 600, color: theme.gray900 }}>Options</span>
-        <button
-          onClick={onToggleCollapse}
-          onMouseEnter={() => setHoveredButton('hide')}
-          onMouseLeave={() => setHoveredButton(null)}
-          {...tooltip('Hide panel', 'rightPanel')}
-          style={{ ...controlButtonStyle(theme, { hovered: hoveredButton === 'hide' }), minHeight: '28px' }}
-        >
-          Hide
-        </button>
-      </div>
+    <Sidebar side="right" expanded={expanded} onToggle={onToggle} name="options" shortcut="rightPanel">
+      {expanded ? (
+        <div style={{ padding: '0 14px' }}>
+          {/* Class */}
+          <Section title="Class">
+            <button
+              onClick={onSelectClass}
+              onMouseEnter={() => setHoveredButton('class')}
+              onMouseLeave={() => setHoveredButton(null)}
+              {...tooltip('Select class, or press 1..9', 'classDialog')}
+              style={{
+                ...controlButtonStyle(theme, { hovered: hoveredButton === 'class' }),
+                justifyContent: 'flex-start',
+                gap: '10px',
+                width: '100%',
+                minHeight: '36px',
+                fontSize: '13px',
+              }}
+            >
+              {swatch}
+              <span style={{ flex: 1, textAlign: 'left', fontWeight: 500 }}>{className}</span>
+            </button>
+          </Section>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '0 16px' }}>
-        {/* Class */}
-        <Section title="Class">
-          <button
-            onClick={onSelectClass}
-            onMouseEnter={() => setHoveredButton('class')}
-            onMouseLeave={() => setHoveredButton(null)}
-            {...tooltip('Select class, or press 1..9', 'classDialog')}
-            style={{
-              ...controlButtonStyle(theme, { hovered: hoveredButton === 'class' }),
-              justifyContent: 'flex-start',
-              gap: '10px',
-              width: '100%',
-              minHeight: '36px',
-              fontSize: '13px',
-            }}
-          >
-            <span style={{
-              width: '14px',
-              height: '14px',
-              flexShrink: 0,
-              borderRadius: '3px',
-              border: `1px solid ${theme.panelBorder}`,
-              backgroundColor: currentClassConfig
-                ? `rgba(${currentClassConfig.colour.slice(0, 3).join(',')}, ${Math.max(currentClassConfig.colour[3] / 255, 0.15)})`
-                : 'transparent',
-            }} />
-            <span style={{ flex: 1, textAlign: 'left', fontWeight: 500 }}>
-              {currentClassConfig ? currentClassConfig.name : 'No class'}
-            </span>
-          </button>
-        </Section>
+          {/* Layers */}
+          <Section title="Layers" shortcut="foldLayers">
+            <Row label="Mask" hint="Show or hide the mask" shortcut="toggleMask">
+              <Switch on={showMask} onToggle={toggleMask} label="Mask" />
+            </Row>
+            <Row label="Image" hint="Show or hide the image" shortcut="toggleImage">
+              <Switch on={showImage} onToggle={toggleImage} label="Image" />
+            </Row>
+            <Row label="Satellite" hint="Show or hide the satellite imagery" shortcut="toggleSatellite">
+              <Switch on={showSatellite} onToggle={toggleSatellite} label="Satellite" />
+            </Row>
 
-        {/* Layers */}
-        <Section title="Layers" shortcut="foldLayers">
-          <Row label="Mask" hint="Show or hide the mask" shortcut="toggleMask">
-            <Switch on={showMask} onToggle={toggleMask} label="Mask" />
-          </Row>
-          <Row label="Image" hint="Show or hide the image" shortcut="toggleImage">
-            <Switch on={showImage} onToggle={toggleImage} label="Image" />
-          </Row>
-          <Row label="Satellite" hint="Show or hide the satellite imagery" shortcut="toggleSatellite">
-            <Switch on={showSatellite} onToggle={toggleSatellite} label="Satellite" />
-          </Row>
+            <div style={{ marginTop: '10px', fontSize: '11px', color: theme.gray600 }}>Mask type</div>
+            <div style={{
+              display: 'flex',
+              gap: '2px',
+              marginTop: '6px',
+              padding: '2px',
+              backgroundColor: theme.segmentedBg,
+              borderRadius: '6px',
+            }}>
+              {maskTypes.map((option) => {
+                const selected = maskType === option.value;
+                return (
+                  <button
+                    key={option.value}
+                    onClick={() => setMaskType(option.value)}
+                    aria-pressed={selected}
+                    {...tooltip(option.title, option.shortcut)}
+                    style={{
+                      flex: 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      height: '30px',
+                      padding: '0 4px',
+                      backgroundColor: selected ? theme.segmentedActive : 'transparent',
+                      color: selected ? theme.gray900 : theme.gray600,
+                      border: 'none',
+                      borderRadius: '4px',
+                      boxShadow: selected ? '0 1px 2px rgba(0, 0, 0, 0.15)' : 'none',
+                      cursor: 'pointer',
+                      fontSize: '12px',
+                      fontWeight: selected ? 600 : 500,
+                    }}
+                  >
+                    {option.label}
+                  </button>
+                );
+              })}
+            </div>
+          </Section>
 
-          <div style={{ marginTop: '10px', fontSize: '11px', color: theme.gray600 }}>Mask type</div>
-          <div style={{
-            display: 'flex',
-            gap: '2px',
-            marginTop: '6px',
-            padding: '2px',
-            backgroundColor: theme.segmentedBg,
-            borderRadius: '6px',
-          }}>
-            {maskTypes.map((option) => {
-              const selected = maskType === option.value;
-              return (
-                <button
-                  key={option.value}
-                  onClick={() => setMaskType(option.value)}
-                  aria-pressed={selected}
-                  {...tooltip(option.title, option.shortcut)}
-                  style={{
-                    flex: 1,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '5px',
-                    height: '30px',
-                    padding: '0 4px',
-                    backgroundColor: selected ? theme.segmentedActive : 'transparent',
-                    color: selected ? theme.gray900 : theme.gray600,
-                    border: 'none',
-                    borderRadius: '4px',
-                    boxShadow: selected ? '0 1px 2px rgba(0, 0, 0, 0.15)' : 'none',
-                    cursor: 'pointer',
-                    fontSize: '12px',
-                    fontWeight: selected ? 600 : 500,
-                  }}
-                >
-                  {option.label}
-                </button>
-              );
-            })}
-          </div>
-        </Section>
+          {/* Adjustments */}
+          <Section title="Adjustments" shortcut="foldAdjustments" last>
+            <Slider label="Brightness" shortcut="brightness" value={brightness} step={10} onChange={setBrightness} />
+            <Slider label="Saturation" shortcut="saturation" value={saturation} step={20} onChange={setSaturation} />
 
-        {/* Adjustments */}
-        <Section title="Adjustments" shortcut="foldAdjustments" last>
-          <Slider label="Brightness" shortcut="brightness" value={brightness} step={10} onChange={setBrightness} />
-          <Slider label="Saturation" shortcut="saturation" value={saturation} step={20} onChange={setSaturation} />
-
-          <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
-            <PanelButton label="Contrast" shortcut="contrast" title="Toggle contrast" active={contrast} onClick={() => setContrast(!contrast)} />
-            <PanelButton label="Invert" shortcut="invert" title="Toggle invert" active={invert} onClick={() => setInvert(!invert)} />
-          </div>
-          <div style={{ display: 'flex', marginTop: '8px' }}>
-            <PanelButton label="Reset adjustments" shortcut="resetFilters" title="Reset the adjustments" onClick={resetFilters} />
-          </div>
-        </Section>
-      </div>
-    </aside>
+            <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+              <PanelButton label="Contrast" shortcut="contrast" title="Toggle contrast" active={contrast} onClick={() => setContrast(!contrast)} />
+              <PanelButton label="Invert" shortcut="invert" title="Toggle invert" active={invert} onClick={() => setInvert(!invert)} />
+            </div>
+            <div style={{ display: 'flex', marginTop: '8px' }}>
+              <PanelButton label="Reset adjustments" shortcut="resetFilters" title="Reset the adjustments" onClick={resetFilters} />
+            </div>
+          </Section>
+        </div>
+      ) : (
+        <>
+          {/* The same options as icon buttons, like the collapsed toolbar */}
+          <SidebarGroup expanded={false}>
+            <ToolButton icon={swatch} onClick={onSelectClass} title={`Class: ${className}`} shortcut="classDialog" />
+          </SidebarGroup>
+          <SidebarGroup expanded={false}>
+            <ToolButton icon={`${icons}/show_mask.png`} checked={showMask} onClick={toggleMask} title="Show or hide the mask" shortcut="toggleMask" />
+            <ToolButton icon={<ImageIcon size={18} />} checked={showImage} onClick={toggleImage} title="Show or hide the image" shortcut="toggleImage" />
+            <ToolButton icon={<GlobeIcon size={18} />} checked={showSatellite} onClick={toggleSatellite} title="Show or hide the satellite imagery" shortcut="toggleSatellite" />
+          </SidebarGroup>
+          <SidebarGroup expanded={false}>
+            {maskTypes.map((option) => (
+              <ToolButton
+                key={option.value}
+                icon={`${icons}/mask_${option.value}.png`}
+                checked={maskType === option.value}
+                onClick={() => setMaskType(option.value)}
+                title={option.title}
+                shortcut={option.shortcut}
+              />
+            ))}
+          </SidebarGroup>
+          <SidebarGroup expanded={false} last>
+            <ToolButton icon={`${icons}/brightness_up.png`} onClick={() => setBrightness(brightness + 10)} title="Brightness +10%" shortcut="brightness" />
+            <ToolButton icon={`${icons}/brightness_down.png`} onClick={() => setBrightness(brightness - 10)} title="Brightness -10%" shortcut="brightness" />
+            <ToolButton icon={`${icons}/saturation_up.png`} onClick={() => setSaturation(saturation + 20)} title="Saturation +20%" shortcut="saturation" />
+            <ToolButton icon={`${icons}/saturation_down.png`} onClick={() => setSaturation(saturation - 20)} title="Saturation -20%" shortcut="saturation" />
+            <ToolButton icon={`${icons}/contrast.png`} checked={contrast} onClick={() => setContrast(!contrast)} title="Toggle contrast" shortcut="contrast" />
+            <ToolButton icon={`${icons}/invert.png`} checked={invert} onClick={() => setInvert(!invert)} title="Toggle invert" shortcut="invert" />
+            <ToolButton icon={`${icons}/reset_filters.png`} onClick={resetFilters} title="Reset the adjustments" shortcut="resetFilters" />
+          </SidebarGroup>
+        </>
+      )}
+    </Sidebar>
   );
 };
 

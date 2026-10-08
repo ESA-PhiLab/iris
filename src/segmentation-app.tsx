@@ -3,7 +3,8 @@ import { createRoot } from 'react-dom/client';
 import { ThemeProvider } from './contexts/ThemeContext';
 import TopBar from './components/segmentation/TopBar';
 import LeftToolbar from './components/segmentation/LeftToolbar';
-import RightPanel, { PANEL_WIDTH } from './components/segmentation/RightPanel';
+import RightPanel from './components/segmentation/RightPanel';
+import { sidebarWidth, useSidebars } from './components/segmentation/Sidebar';
 import BottomBar from './components/segmentation/BottomBar';
 import SegmentationModals from './components/segmentation/SegmentationModals';
 import ViewerComparison from './components/segmentation/ViewerComparison';
@@ -45,7 +46,7 @@ const SegmentationApp: React.FC = () => {
   const [isConfusionMatrixOpen, setIsConfusionMatrixOpen] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isRightPanelCollapsed, setIsRightPanelCollapsed] = useState(false);
+  const { leftExpanded, rightExpanded, toggleLeft, toggleRight } = useSidebars();
 
   // Get config loader hook
   const { loadConfig } = useConfigLoader();
@@ -300,7 +301,8 @@ const SegmentationApp: React.FC = () => {
   useShortcut('profile', () => setIsProfileOpen((open) => !open));
   useShortcut('settings', () => setIsPreferencesOpen((open) => !open));
   useShortcut('help', () => setIsHelpOpen((open) => !open));
-  useShortcut('rightPanel', () => setIsRightPanelCollapsed((collapsed) => !collapsed));
+  useShortcut('leftToolbar', toggleLeft);
+  useShortcut('rightPanel', toggleRight);
 
   // Setup segmentation with custom hook
   useSegmentationSetup({
@@ -331,29 +333,28 @@ const SegmentationApp: React.FC = () => {
       />
 
       {/* Left Toolbar */}
-      <LeftToolbar onResetMask={handleResetMask} />
+      <LeftToolbar expanded={leftExpanded} onToggle={toggleLeft} onResetMask={handleResetMask} />
 
-      {/* Main Canvas Area */}
+      {/* Main Canvas Area, between the two columns */}
       <div
         style={{
           position: 'fixed',
-          left: '60px',
-          right: isRightPanelCollapsed ? '0' : `${PANEL_WIDTH}px`,
+          left: `${sidebarWidth(leftExpanded)}px`,
+          right: `${sidebarWidth(rightExpanded)}px`,
           top: '50px',
           bottom: '60px',
           overflow: 'auto',
           backgroundColor: 'var(--color-bg-canvas)',
-          transition: 'right 0.3s ease',
         }}
       >
         <ViewerComparison />
       </div>
 
       {/* Right Panel */}
-      <RightPanel 
+      <RightPanel
+        expanded={rightExpanded}
+        onToggle={toggleRight}
         onSelectClass={handleSelectClass}
-        isCollapsed={isRightPanelCollapsed}
-        onToggleCollapse={() => setIsRightPanelCollapsed(!isRightPanelCollapsed)}
       />
 
       {/* Bottom Bar */}

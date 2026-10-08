@@ -1,39 +1,25 @@
 import React from 'react';
 import ToolButton from './toolbar/ToolButton';
 import PaintbrushSelector from './toolbar/PaintbrushSelector';
+import Sidebar, { SidebarGroup } from './Sidebar';
 import { useSegmentationStore } from '../../stores/segmentationStore';
-import { useTheme } from '../../contexts/ThemeContext';
-import { tooltip } from '../../utils/shortcuts';
-import { controlButtonStyle } from '../controlStyles';
-import { useShortcut } from '../../hooks/useShortcut';
 
 interface LeftToolbarProps {
+  expanded: boolean;
+  onToggle: () => void;
   onResetMask: () => void;
 }
 
-const LeftToolbar: React.FC<LeftToolbarProps> = ({ onResetMask }) => {
-  const { theme } = useTheme();
-  
-  const [isExpanded, setIsExpanded] = React.useState(() => {
-    // Load preference from localStorage
-    const saved = localStorage.getItem('leftToolbarExpanded');
-    return saved ? JSON.parse(saved) : false;
-  });
-
-  const { 
-    currentTool, 
-    setCurrentTool, 
-    predictMask, 
-    resetViews, 
+const LeftToolbar: React.FC<LeftToolbarProps> = ({ expanded, onToggle, onResetMask }) => {
+  const {
+    currentTool,
+    setCurrentTool,
+    predictMask,
+    resetViews,
     isLoading,
-    showErrorModal 
+    showErrorModal
   } = useSegmentationStore();
-  
-  // Save preference when it changes
-  React.useEffect(() => {
-    localStorage.setItem('leftToolbarExpanded', JSON.stringify(isExpanded));
-  }, [isExpanded]);
-  
+
   const handlePredictMask = async () => {
     try {
       await predictMask();
@@ -41,10 +27,6 @@ const LeftToolbar: React.FC<LeftToolbarProps> = ({ onResetMask }) => {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       showErrorModal(errorMessage, 'AI Prediction Error');
     }
-  };
-
-  const handleResetViews = () => {
-    resetViews();
   };
 
   const handleUndo = () => {
@@ -56,66 +38,24 @@ const LeftToolbar: React.FC<LeftToolbarProps> = ({ onResetMask }) => {
     const w = window as any;
     if (w.redo) w.redo();
   };
-  
-  const [toggleHovered, setToggleHovered] = React.useState(false);
-  useShortcut('leftToolbar', () => setIsExpanded((expanded: boolean) => !expanded));
 
-  const toolbarWidth = isExpanded ? 180 : 60;
-  
+  // Labels only fit in the expanded column
+  const label = (text: string) => (expanded ? text : undefined);
+
   return (
-    <div
-      style={{
-        position: 'fixed',
-        left: 0,
-        top: '50px',
-        bottom: '60px',
-        width: `${toolbarWidth}px`,
-        backgroundColor: theme.panelBg,
-        borderRight: `1px solid ${theme.panelBorder}`,
-        boxSizing: 'border-box',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: isExpanded ? 'stretch' : 'center',
-        padding: '10px 0',
-        gap: '5px',
-        zIndex: 900,
-        overflowY: 'auto',
-        overflowX: 'hidden',
-        listStyle: 'none',
-        transition: 'width 0.3s ease',
-      }}
-    >
-      {/* Toggle Button */}
-      <button
-        onClick={() => setIsExpanded(!isExpanded)}
-        onMouseEnter={() => setToggleHovered(true)}
-        onMouseLeave={() => setToggleHovered(false)}
-        style={{
-          ...controlButtonStyle(theme, { hovered: toggleHovered }),
-          margin: isExpanded ? '0 15px 10px' : '0 auto 10px',
-          width: isExpanded ? 'auto' : '50px',
-        }}
-        {...tooltip(isExpanded ? 'Collapse toolbar' : 'Expand toolbar', 'leftToolbar')}
-      >
-        <span style={{ fontSize: '12px' }}>{isExpanded ? '◀' : '▶'}</span>
-        {isExpanded && <span style={{ fontSize: '12px' }}>Collapse</span>}
-      </button>
-
+    <Sidebar side="left" expanded={expanded} onToggle={onToggle} name="toolbar" shortcut="leftToolbar">
       {/* Drawing Tools */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', listStyle: 'none', width: '100%', padding: isExpanded ? '0 15px' : '0 5px', alignItems: isExpanded ? 'stretch' : 'center', boxSizing: 'border-box' }}>
-        <div style={isExpanded ? { maxWidth: '100%' } : { width: '50px' }}>
-          <ToolButton
-            id="tb_tool_move"
-            icon="/segmentation/static/icons/move.png"
-            checked={currentTool === 'move'}
-            onClick={() => setCurrentTool('move')}
-            disabled={isLoading}
-            title="Move/Pan"
-            label={isExpanded ? 'Move' : undefined}
-            shortcut="move"
-          />
-        </div>
-        
+      <SidebarGroup expanded={expanded}>
+        <ToolButton
+          id="tb_tool_move"
+          icon="/segmentation/static/icons/move.png"
+          checked={currentTool === 'move'}
+          onClick={() => setCurrentTool('move')}
+          disabled={isLoading}
+          title="Move/Pan"
+          label={label('Move')}
+          shortcut="move"
+        />
         <PaintbrushSelector
           id="tb_tool_draw"
           icon="/segmentation/static/icons/pencil.png"
@@ -124,11 +64,9 @@ const LeftToolbar: React.FC<LeftToolbarProps> = ({ onResetMask }) => {
           disabled={isLoading}
           title="Draw pixels, brush size with Shift+Scroll"
           dropdownType="draw"
-          label={isExpanded ? 'Draw' : undefined}
+          label={label('Draw')}
           shortcut="draw"
-          style={isExpanded ? { maxWidth: '100%' } : { width: '50px' }}
         />
-        
         <PaintbrushSelector
           id="tb_tool_eraser"
           icon="/segmentation/static/icons/eraser.png"
@@ -137,82 +75,62 @@ const LeftToolbar: React.FC<LeftToolbarProps> = ({ onResetMask }) => {
           disabled={isLoading}
           title="Erase pixels, brush size with Shift+Scroll"
           dropdownType="eraser"
-          label={isExpanded ? 'Erase' : undefined}
+          label={label('Erase')}
           shortcut="eraser"
-          style={isExpanded ? { maxWidth: '100%' } : { width: '50px' }}
         />
-      </div>
-
-      {/* Separator */}
-      <div style={{ width: isExpanded ? 'calc(100% - 30px)' : '80%', height: '1px', backgroundColor: theme.panelBorder, margin: '5px auto' }} />
+      </SidebarGroup>
 
       {/* Editing Tools */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', listStyle: 'none', width: '100%', padding: isExpanded ? '0 15px' : '0 5px', alignItems: isExpanded ? 'stretch' : 'center', boxSizing: 'border-box' }}>
-        <div style={isExpanded ? { maxWidth: '100%' } : { width: '50px' }}>
-          <ToolButton
-            id="tb_undo"
-            icon="/segmentation/static/icons/undo.png"
-            onClick={handleUndo}
-            title="Undo"
-            label={isExpanded ? 'Undo' : undefined}
-            shortcut="undo"
-          />
-        </div>
-        
-        <div style={isExpanded ? { maxWidth: '100%' } : { width: '50px' }}>
-          <ToolButton
-            id="tb_redo"
-            icon="/segmentation/static/icons/redo.png"
-            onClick={handleRedo}
-            title="Redo"
-            label={isExpanded ? 'Redo' : undefined}
-            shortcut="redo"
-          />
-        </div>
-      </div>
-
-      {/* Separator */}
-      <div style={{ width: isExpanded ? 'calc(100% - 30px)' : '80%', height: '1px', backgroundColor: theme.panelBorder, margin: '5px auto' }} />
+      <SidebarGroup expanded={expanded}>
+        <ToolButton
+          id="tb_undo"
+          icon="/segmentation/static/icons/undo.png"
+          onClick={handleUndo}
+          title="Undo"
+          label={label('Undo')}
+          shortcut="undo"
+        />
+        <ToolButton
+          id="tb_redo"
+          icon="/segmentation/static/icons/redo.png"
+          onClick={handleRedo}
+          title="Redo"
+          label={label('Redo')}
+          shortcut="redo"
+        />
+      </SidebarGroup>
 
       {/* AI & Reset Tools */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', listStyle: 'none', width: '100%', padding: isExpanded ? '0 15px' : '0 5px', alignItems: isExpanded ? 'stretch' : 'center', boxSizing: 'border-box' }}>
-        <div style={isExpanded ? { maxWidth: '100%' } : { width: '50px' }}>
-          <ToolButton
-            id="tb_predict_mask"
-            icon="/segmentation/static/icons/ai.png"
-            onClick={handlePredictMask}
-            disabled={isLoading}
-            title={isLoading ? "Predicting..." : "Predict mask using AI"}
-            label={isExpanded ? 'AI Predict' : undefined}
-            shortcut="predict"
-          />
-        </div>
-        
-        <div style={isExpanded ? { maxWidth: '100%' } : { width: '50px' }}>
-          <ToolButton
-            id="tb_reset_mask"
-            icon="/segmentation/static/icons/reset_mask.png"
-            onClick={onResetMask}
-            disabled={isLoading}
-            title="Reset mask"
-            label={isExpanded ? 'Reset Mask' : undefined}
-            shortcut="resetMask"
-          />
-        </div>
-        
-        <div style={isExpanded ? { maxWidth: '100%' } : { width: '50px' }}>
-          <ToolButton
-            id="tb_tool_reset_views"
-            icon="/segmentation/static/icons/reset_views.png"
-            onClick={handleResetViews}
-            disabled={isLoading}
-            title="Reset views"
-            label={isExpanded ? 'Reset Views' : undefined}
-            shortcut="resetViews"
-          />
-        </div>
-      </div>
-    </div>
+      <SidebarGroup expanded={expanded} last>
+        <ToolButton
+          id="tb_predict_mask"
+          icon="/segmentation/static/icons/ai.png"
+          onClick={handlePredictMask}
+          disabled={isLoading}
+          title={isLoading ? 'Predicting...' : 'Predict mask using AI'}
+          label={label('AI Predict')}
+          shortcut="predict"
+        />
+        <ToolButton
+          id="tb_reset_mask"
+          icon="/segmentation/static/icons/reset_mask.png"
+          onClick={onResetMask}
+          disabled={isLoading}
+          title="Reset mask"
+          label={label('Reset Mask')}
+          shortcut="resetMask"
+        />
+        <ToolButton
+          id="tb_tool_reset_views"
+          icon="/segmentation/static/icons/reset_views.png"
+          onClick={resetViews}
+          disabled={isLoading}
+          title="Reset views"
+          label={label('Reset Views')}
+          shortcut="resetViews"
+        />
+      </SidebarGroup>
+    </Sidebar>
   );
 };
 
