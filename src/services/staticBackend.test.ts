@@ -45,8 +45,8 @@ describe('staticBackend', () => {
     const source = staticBackend({ project: 'demo/clouds.json' });
     const config = await source.loadProject();
     expect(config.name).toBe('clouds');
-    expect(source.imageFiles(config, 'coast').S2.url).toBe(new URL('demo/images/coast/s2.tif', window.location.href).href);
-    expect(source.thumbnailUrl('coast')).toBe(new URL('demo/images/coast/thumb.png', window.location.href).href);
+    expect((await source.imageFiles(config, 'coast')).S2.url).toBe(new URL('demo/images/coast/s2.tif', window.location.href).href);
+    expect(await source.thumbnailUrl('coast')).toBe(new URL('demo/images/coast/thumb.png', window.location.href).href);
     expect(source.pageUrl('a b')).toBe(`${window.location.pathname}?image_id=a%20b`);
   });
 

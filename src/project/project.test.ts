@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { loadImageIds, mergeDeep, normalizeProject, projectUrl } from './project';
+import { loadImageIds, mergeDeep, normalizeProject } from './project';
 
 describe('normalizeProject', () => {
   it('fills in the defaults', () => {
@@ -43,10 +43,6 @@ describe('normalizeProject', () => {
 
 describe('project files', () => {
   afterEach(() => { vi.restoreAllMocks(); });
-
-  it('finds files next to the project file', () => {
-    expect(projectUrl('images/a.tif', 'https://example.org/demo/p.json')).toBe('https://example.org/demo/images/a.tif');
-  });
 
   it('lists the images given in the project', async () => {
     expect(await loadImageIds({ images: { ids: ['a', 2] } }, 'p.json')).toEqual(['a', '2']);

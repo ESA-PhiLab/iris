@@ -56,6 +56,7 @@ export const SHORTCUTS = {
   rightPanel: { key: ']', code: 'BracketRight', description: 'Show or hide the side panel' },
   imageInfo: { key: 'T', code: 'KeyT', description: 'Image information' },
   stats: { key: 'Q', code: 'KeyQ', description: 'Confusion matrix and statistics' },
+  review: { key: 'Z', code: 'KeyZ', description: 'Review the masks of all users' },
   profile: { key: '.', code: 'Period', description: 'User profile' },
   settings: { key: ',', code: 'Comma', description: 'Settings' },
   help: { key: '?', code: 'Slash', description: 'Help' },

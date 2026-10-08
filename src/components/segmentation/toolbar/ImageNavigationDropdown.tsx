@@ -8,13 +8,37 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { chosenBackend } from '../../../services/backend';
+import { useThumbnail } from '../../../hooks/useThumbnail';
 import { useSegmentationStore } from '../../../stores/segmentationStore';
 import { useTheme } from '../../../contexts/ThemeContext';
 
 interface ImageNavigationDropdownProps {
   onNavigate: (imageId: string) => void;
 }
+
+/** Small picture of an image, left out when it has none */
+const Thumbnail: React.FC<{ imageId: string; border: string }> = ({ imageId, border }) => {
+  const url = useThumbnail(imageId);
+  if (!url) return <span style={{ width: '32px', height: '32px', flexShrink: 0 }} />;
+  return (
+    <img
+      className="image-thumbnail"
+      src={url}
+      alt=""
+      style={{
+        width: '32px',
+        height: '32px',
+        objectFit: 'cover',
+        borderRadius: '4px',
+        border: `1px solid ${border}`,
+      }}
+      onError={(e) => {
+        // Hide image if it fails to load
+        e.currentTarget.style.display = 'none';
+      }}
+    />
+  );
+};
 
 export const ImageNavigationDropdown: React.FC<ImageNavigationDropdownProps> = ({
   onNavigate,
@@ -65,7 +89,6 @@ export const ImageNavigationDropdown: React.FC<ImageNavigationDropdownProps> = (
     return theme.gray500; // No annotations - gray
   };
 
-  const getThumbnailUrl = (imageId: string) => chosenBackend()?.thumbnailUrl(imageId) ?? undefined;
 
   return (
     <div
@@ -183,22 +206,7 @@ export const ImageNavigationDropdown: React.FC<ImageNavigationDropdownProps> = (
                         }
                       }}
                     >
-                      <img 
-                        className="image-thumbnail"
-                        src={getThumbnailUrl(image.image_id)}
-                        alt=""
-                        style={{
-                          width: '32px',
-                          height: '32px',
-                          objectFit: 'cover',
-                          borderRadius: '4px',
-                          border: `1px solid ${theme.modalBorder}`,
-                        }}
-                        onError={(e) => {
-                          // Hide image if it fails to load
-                          e.currentTarget.style.display = 'none';
-                        }}
-                      />
+                      <Thumbnail imageId={image.image_id} border={theme.modalBorder} />
                       <span 
                         className="image-name" 
                         style={{ 

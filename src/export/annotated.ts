@@ -11,6 +11,8 @@ import { rasterEngine } from '../raster/engine';
 import type { ViewSpec } from '../raster/render';
 import { writeCog } from '../raster/writeCog';
 import { serverBackend } from '../services/serverBackend';
+import type { ImageFileSource } from '../raster/cog';
+import type { ProjectConfig } from '../types/iris';
 import type { Georef } from '../utils/georef';
 
 type Area = [number, number, number, number];
@@ -76,14 +78,31 @@ export const downloadFile = (bytes: Uint8Array, name: string, type = 'image/tiff
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 };
 
-/** Mask merged from the masks of all users, null when nobody annotated the image */
-const fetchMergedMask = async (imageId: string): Promise<Uint8Array | null> => {
-  const response = await fetch(`/admin/api/merged-mask/${encodeURIComponent(imageId)}`, {
-    credentials: 'same-origin',
-  });
-  if (response.status === 404) return null;
-  if (!response.ok) throw new Error(`Could not load the merged mask of ${imageId} (${response.status})`);
-  return new Uint8Array(await response.arrayBuffer());
+/** Where the merged masks and the images come from */
+export interface MergedMasksSource {
+  config: ProjectConfig;
+  imageFiles(imageId: string): Promise<Record<string, ImageFileSource>>;
+  /** Mask merged from the masks of all users, null when nobody annotated the image */
+  mergedMask(imageId: string, length: number): Promise<Uint8Array | null>;
+}
+
+/** The server merges the masks of its users */
+export const serverMergedMasks = async (): Promise<MergedMasksSource> => {
+  const response = await fetch('/segmentation/api/config', { credentials: 'same-origin' });
+  if (!response.ok) throw new Error(`Could not load the project (${response.status})`);
+  const config = await response.json();
+  return {
+    config,
+    imageFiles: (imageId) => serverBackend().imageFiles(config, imageId),
+    async mergedMask(imageId) {
+      const mask = await fetch(`/admin/api/merged-mask/${encodeURIComponent(imageId)}`, {
+        credentials: 'same-origin',
+      });
+      if (mask.status === 404) return null;
+      if (!mask.ok) throw new Error(`Could not load the merged mask of ${imageId} (${mask.status})`);
+      return new Uint8Array(await mask.arrayBuffer());
+    },
+  };
 };
 
 /**
@@ -92,20 +111,24 @@ const fetchMergedMask = async (imageId: string): Promise<Uint8Array | null> => {
  */
 export const exportMergedImages = async (
   imageIds: string[],
-  onProgress: (done: number, total: number) => void = () => {}
+  onProgress: (done: number, total: number) => void = () => {},
+  source?: MergedMasksSource
 ): Promise<{ bytes: Uint8Array; name: string; count: number } | null> => {
-  const response = await fetch('/segmentation/api/config', { credentials: 'same-origin' });
-  if (!response.ok) throw new Error(`Could not load the project (${response.status})`);
-  const config = await response.json();
-  const view = exportView(config.views);
+  const { config, imageFiles, mergedMask } = source ?? await serverMergedMasks();
+  const view = exportView((config as any).views);
 
   const files: Record<string, Uint8Array> = {};
   for (const [i, imageId] of imageIds.entries()) {
     onProgress(i, imageIds.length);
-    const mask = await fetchMergedMask(imageId);
+    // Look for masks before reading the image, when the size of the mask area is known
+    const area: Area | undefined = config.segmentation?.mask_area;
+    const size = (a: Area) => (a[2] - a[0]) * (a[3] - a[1]);
+    let mask = area ? await mergedMask(imageId, size(area)) : null;
+    if (area && !mask) continue;
+    const georef = await rasterEngine().open(imageId, await imageFiles(imageId));
+    const maskArea: Area = area ?? [0, 0, georef.width, georef.height];
+    mask = mask ?? await mergedMask(imageId, size(maskArea));
     if (!mask) continue;
-    const georef = await rasterEngine().open(imageId, serverBackend().imageFiles(config, imageId));
-    const maskArea: Area = config.segmentation?.mask_area ?? [0, 0, georef.width, georef.height];
     files[`${imageId}_merged.tif`] = await annotatedGeoTiff({
       imageId, georef, maskArea, mask, description: 'Merged Segmentation Mask', view,
     });

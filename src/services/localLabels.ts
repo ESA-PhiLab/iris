@@ -54,6 +54,7 @@ interface Backing {
   get(key: string): Promise<Stored | undefined>;
   put(record: Stored): Promise<void>;
   owned(project: string, user: string): Promise<Stored[]>;
+  everyone(project: string): Promise<Stored[]>;
 }
 
 const indexedDbBacking: Backing = {
@@ -70,6 +71,11 @@ const indexedDbBacking: Backing = {
     const index = db.transaction(STORE).objectStore(STORE).index('owner');
     return done(index.getAll([project, user])) as Promise<Stored[]>;
   },
+  async everyone(project) {
+    const db = await openDatabase();
+    const index = db.transaction(STORE).objectStore(STORE).index('owner');
+    return done(index.getAll(IDBKeyRange.bound([project, ''], [project, '\uffff']))) as Promise<Stored[]>;
+  },
 };
 
 const memory = new Map<string, Stored>();
@@ -78,6 +84,9 @@ const memoryBacking: Backing = {
   async put(record) { memory.set(record.key, record); },
   async owned(project, user) {
     return [...memory.values()].filter((record) => record.project === project && record.user === user);
+  },
+  async everyone(project) {
+    return [...memory.values()].filter((record) => record.project === project);
   },
 };
 
@@ -110,6 +119,11 @@ export const localLabels = (project: string, user: string) => {
 
     async all(): Promise<LocalLabel[]> {
       return backing().owned(project, user);
+    },
+
+    /** The labels of every user of the project in this browser */
+    async everyone(): Promise<Array<LocalLabel & { user: string }>> {
+      return backing().everyone(project);
     },
   };
 };

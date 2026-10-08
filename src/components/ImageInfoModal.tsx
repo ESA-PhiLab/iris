@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useSegmentationStore } from '../stores/segmentationStore';
-import { backend, chosenBackend } from '../services/backend';
+import { backend } from '../services/backend';
+import { useThumbnail } from '../hooks/useThumbnail';
 import { useTheme } from '../contexts/ThemeContext';
 
 interface ImageInfoModalProps {
@@ -25,6 +26,7 @@ const ImageInfoModal: React.FC<ImageInfoModalProps> = ({ isOpen, onClose }) => {
   const { theme } = useTheme();
   
   const currentImageId = useSegmentationStore((state) => state.currentImageId);
+  const thumbnail = useThumbnail(isOpen ? currentImageId : null);
 
   useEffect(() => {
     if (isOpen) {
@@ -71,7 +73,6 @@ const ImageInfoModal: React.FC<ImageInfoModalProps> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   const imageId = currentImageId || 'Unknown';
-  const thumbnail = currentImageId ? chosenBackend()?.thumbnailUrl(currentImageId) ?? null : null;
 
   return (
     <div

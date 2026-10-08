@@ -8,6 +8,7 @@
  */
 
 import defaultConfig from './defaultConfig.json';
+import { fetchFile, resolvePath } from '../services/huggingface';
 
 type Json = Record<string, any>;
 
@@ -22,10 +23,6 @@ export const mergeDeep = (a: Json, b: Json): Json => {
   }
   return merged;
 };
-
-/** Address of a path of the project, relative to the project file */
-export const projectUrl = (path: string, projectFile: string) =>
-  new URL(path, new URL(projectFile, window.location.href)).href;
 
 export const imagePath = (template: string, imageId: string) => template.split('{id}').join(imageId);
 
@@ -54,14 +51,12 @@ export const normalizeProject = (raw: Json, projectFile: string): Json => {
 };
 
 /** Ids of the images of a project */
-export const loadImageIds = async (config: Json, projectFile: string): Promise<string[]> => {
+export const loadImageIds = async (config: Json, projectFile: string, token?: string | null): Promise<string[]> => {
   if (Array.isArray(config.images?.ids)) return config.images.ids.map(String);
-  const list = projectUrl(config.images?.list || 'images.json', projectFile);
-  const response = await fetch(list);
+  const list = config.images?.list || 'images.json';
+  const response = await fetchFile(resolvePath(list, projectFile), token);
   if (!response.ok) {
-    throw new Error(
-      `The project lists no images: give images.ids, or a list of ids in ${config.images?.list || 'images.json'}`
-    );
+    throw new Error(`The project lists no images: give images.ids, or a list of ids in ${list}`);
   }
   const ids = await response.json();
   return (Array.isArray(ids) ? ids : ids.ids || []).map(String);

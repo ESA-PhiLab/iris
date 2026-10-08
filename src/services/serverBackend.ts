@@ -54,6 +54,22 @@ export const serverBackend = (): Backend => {
       return response.ok ? response.json() : null;
     },
 
+    signInOptions: () => ({ register: true, forgotPassword: true, guest: true }),
+
+    async signIn(user, password) {
+      const response = await fetch('/user/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: user, password }),
+      });
+      if (!response.ok) throw new Error((await response.text()) || 'Login failed');
+    },
+
+    async enterAsGuest() {
+      const response = await fetch('/user/guest', { method: 'POST' });
+      if (!response.ok) throw new Error((await response.text()) || 'Could not enter as guest');
+    },
+
     loadProject: () => getJson('/segmentation/api/config'),
 
     async listImages() {
@@ -67,7 +83,7 @@ export const serverBackend = (): Backend => {
 
     pageUrl: (imageId) => `/segmentation/?image_id=${encodeURIComponent(imageId)}`,
 
-    imageFiles(project, imageId) {
+    async imageFiles(project, imageId) {
       const path = (project.images as any)?.path;
       const fileIds = path && typeof path === 'object' ? Object.keys(path) : ['pictures'];
       return Object.fromEntries(fileIds.map((fileId) => [fileId, {
@@ -79,7 +95,7 @@ export const serverBackend = (): Backend => {
       }]));
     },
 
-    thumbnailUrl: (imageId) => `/thumbnail/${encodeURIComponent(imageId)}`,
+    thumbnailUrl: async (imageId) => `/thumbnail/${encodeURIComponent(imageId)}`,
 
     async loadMetadata(imageId) {
       const response = await fetch(`/metadata/${encodeURIComponent(imageId)}?safe_html=True`, {
@@ -162,5 +178,11 @@ export const serverBackend = (): Backend => {
     async signOut() {
       await fetch('/user/logout', { credentials: 'same-origin' });
     },
+
+    // Masks are saved as soon as they are sent
+    async flush() {},
+
+    // Reviewing happens in the admin pages
+    review: () => null,
   };
 };

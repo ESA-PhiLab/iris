@@ -10,8 +10,16 @@ import { useSegmentationStore } from '../stores/segmentationStore';
 import { useUiStore } from '../stores/uiStore';
 import { backend } from '../services/backend';
 
-/** Open another image, without saving or asking */
-export const openImage = (imageId: string) => {
+/** Open another image, without saving or asking, once the saved masks are written */
+export const openImage = async (imageId: string) => {
+  try {
+    await backend().flush();
+  } catch (error) {
+    useUiStore.getState().showErrorModal(
+      error instanceof Error ? error.message : String(error), 'Could not save the mask'
+    );
+    return;
+  }
   window.location.href = backend().pageUrl(imageId);
 };
 
@@ -31,7 +39,7 @@ export const goToImage = async (imageId: string, { ask = true } = {}) => {
     useUiStore.getState().setLeavingTo(imageId);
     return;
   }
-  openImage(imageId);
+  await openImage(imageId);
 };
 
 export const goToNextImage = () => {

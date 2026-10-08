@@ -78,7 +78,7 @@ export const startSegmentation = async () => {
   viewManager.setImage(imageId);
 
   // Reading the image tells where it lies on the map and how large it is
-  await viewManager.openImage(imageId, source.imageFiles(config, imageId));
+  await viewManager.openImage(imageId, await source.imageFiles(config, imageId));
 
   // Without a mask area the mask covers the whole image
   const { georef } = useViewManagerStore.getState();

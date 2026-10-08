@@ -13,6 +13,7 @@ import SegmentationModals from './components/segmentation/SegmentationModals';
 import ViewerComparison from './components/segmentation/ViewerComparison';
 import ImageNotesDialog from './components/segmentation/ImageNotesDialog';
 import StatusLayer from './components/segmentation/StatusLayer';
+import ReviewModal from './components/ReviewModal';
 import TooltipLayer from './components/TooltipLayer';
 import { useSegmentationStore } from './stores/segmentationStore';
 import { useViewManagerStore } from './stores/viewManagerStore';
@@ -33,17 +34,18 @@ const SegmentationApp: React.FC = () => {
   const [isClassSelectionOpen, setIsClassSelectionOpen] = useState(false);
   const [isImageInfoOpen, setIsImageInfoOpen] = useState(false);
   const [isConfusionMatrixOpen, setIsConfusionMatrixOpen] = useState(false);
+  const [isReviewOpen, setIsReviewOpen] = useState(false);
+  const [canReview, setCanReview] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [backendKind, setBackendKind] = useState<'server' | 'static' | null>(null);
   const { leftExpanded, rightExpanded, toggleLeft, toggleRight } = useSidebars();
 
   // Find where the project is, then sign in unless the session is still open
   useEffect(() => {
     chooseBackend()
       .then(async (source) => {
-        setBackendKind(source.kind);
         const user = await source.currentUser();
         setIsAuthenticated(!!user);
+        setCanReview(!!source.review?.());
         if (!user) setIsLoginOpen(true);
       })
       .catch(() => setIsLoginOpen(true));
@@ -111,6 +113,7 @@ const SegmentationApp: React.FC = () => {
   useShortcut('profile', () => setIsProfileOpen((open) => !open));
   useShortcut('settings', () => setIsPreferencesOpen((open) => !open));
   useShortcut('help', () => setIsHelpOpen((open) => !open));
+  useShortcut('review', () => { if (canReview) setIsReviewOpen((open) => !open); });
   useShortcut('leftToolbar', toggleLeft);
   useShortcut('rightPanel', toggleRight);
   useEditorShortcuts({ onResetMask: handleResetMask });
@@ -150,11 +153,13 @@ const SegmentationApp: React.FC = () => {
         <BottomBar
           onOpenImageInfo={handleOpenImageInfo}
           onOpenConfusionMatrix={handleOpenConfusionMatrix}
+          onOpenReview={canReview ? () => setIsReviewOpen(true) : undefined}
         />
 
         <TooltipLayer />
         <StatusLayer />
         <ImageNotesDialog />
+        {canReview && <ReviewModal isOpen={isReviewOpen} onClose={() => setIsReviewOpen(false)} />}
 
         <SegmentationModals
           isPreferencesOpen={isPreferencesOpen}
@@ -162,7 +167,7 @@ const SegmentationApp: React.FC = () => {
           isProfileOpen={isProfileOpen}
           onCloseProfile={() => setIsProfileOpen(false)}
           profileUserId="current"
-          isLoginOpen={isLoginOpen && backendKind !== 'static'}
+          isLoginOpen={isLoginOpen}
           loginMode="login"
           onLoginSuccess={handleLoginSuccess}
           isHelpOpen={isHelpOpen}

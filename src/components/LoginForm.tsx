@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
+import { chosenBackend } from '../services/backend';
 
 interface LoginFormProps {
   onSuccess?: () => void;
@@ -19,6 +20,9 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, initialMode = '
   const [loading, setLoading] = useState(false);
 
   const { theme } = useTheme();
+  // Accounts of the server, or of credentials.json when there is none
+  const source = chosenBackend();
+  const options = source?.signInOptions() ?? { register: true, forgotPassword: true, guest: true };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,15 +61,19 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, initialMode = '
     }
 
     try {
-      const endpoint = mode === 'login' ? '/user/login' : '/user/register';
-      const body = mode === 'login' ? { username, password } : { username, password, email };
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      const responseText = await response.text();
-      if (!response.ok) { setError(responseText || `${mode === 'login' ? 'Login' : 'Registration'} failed`); setLoading(false); return; }
+      if (mode === 'login' && source) {
+        await source.signIn(username, password);
+      } else {
+        const endpoint = mode === 'login' ? '/user/login' : '/user/register';
+        const body = mode === 'login' ? { username, password } : { username, password, email };
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        const responseText = await response.text();
+        if (!response.ok) { setError(responseText || `${mode === 'login' ? 'Login' : 'Registration'} failed`); setLoading(false); return; }
+      }
       if (onSuccess) { onSuccess(); } else { window.location.reload(); }
     } catch (err) {
       setError(err instanceof Error ? err.message : `${mode === 'login' ? 'Login' : 'Registration'} failed`);
@@ -78,11 +86,15 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, initialMode = '
     setSuccess(null);
     setLoading(true);
     try {
-      const response = await fetch('/user/guest', { method: 'POST' });
-      if (!response.ok) {
-        setError((await response.text()) || 'Could not enter as guest');
-        setLoading(false);
-        return;
+      if (source) {
+        await source.enterAsGuest();
+      } else {
+        const response = await fetch('/user/guest', { method: 'POST' });
+        if (!response.ok) {
+          setError((await response.text()) || 'Could not enter as guest');
+          setLoading(false);
+          return;
+        }
       }
       if (onSuccess) { onSuccess(); } else { window.location.reload(); }
     } catch (err) {
@@ -297,7 +309,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, initialMode = '
 
               {mode === 'login' && (
                 <>
-                  <button
+                  {options.guest && <button
                     type="button"
                     onClick={enterAsGuest}
                     disabled={loading}
@@ -316,8 +328,8 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, initialMode = '
                     onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = theme.buttonSecondaryBg)}
                   >
                     Continue without account
-                  </button>
-                  <button
+                  </button>}
+                  {options.register && <button
                     type="button"
                     onClick={() => switchMode('register')}
                     disabled={loading}
@@ -335,8 +347,8 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, initialMode = '
                     onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = theme.buttonSecondaryBg)}
                   >
                     I have no account yet
-                  </button>
-                  <button
+                  </button>}
+                  {options.forgotPassword && <button
                     type="button"
                     onClick={() => switchMode('forgot-password')}
                     disabled={loading}
@@ -354,7 +366,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, initialMode = '
                     onMouseLeave={(e) => (e.currentTarget.style.color = theme.primary)}
                   >
                     Forgot Password?
-                  </button>
+                  </button>}
                 </>
               )}
 

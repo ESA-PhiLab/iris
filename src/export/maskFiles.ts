@@ -4,7 +4,6 @@
  * predicted it (0), georeferenced like the image
  */
 
-import { fromArrayBuffer } from 'geotiff';
 import { writeCog } from '../raster/writeCog';
 import type { Georef } from '../utils/georef';
 import type { UserMask } from '../services/backend';
@@ -29,6 +28,8 @@ export const maskCog = (
 
 /** Read a mask file back; null when it does not have the size of the mask area */
 export const readMaskCog = async (bytes: ArrayBuffer, length: number): Promise<UserMask | null> => {
+  // The reader of the worker, loaded here only when masks are read from files
+  const { fromArrayBuffer } = await import('geotiff');
   const image = await (await fromArrayBuffer(bytes)).getImage();
   const [mask, userMask] = await image.readRasters({ interleave: false }) as unknown as Uint8Array[];
   if (!mask || mask.length !== length) return null;
