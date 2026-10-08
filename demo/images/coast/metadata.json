@@ -1,6 +1,10 @@
 {
     "spacecraft_id": "Sentinel2",
-    "scene_id": "Hollstein\\scene_01",
-    "location": [-26.3981, 113.3077],
+    "scene_id": "S2B_T49JGL_20260627T023245_L2A",
+    "datetime": "2026-06-27T02:35:13.181000Z",
+    "location": [
+        -26.3981,
+        113.3077
+    ],
     "resolution": 20.0
 }
