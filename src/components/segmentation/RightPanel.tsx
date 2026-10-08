@@ -50,6 +50,76 @@ const LayerToggle: React.FC<{
   );
 };
 
+const FOLDED_SECTIONS_KEY = 'iris-right-panel-folded';
+
+/** Sections of the panel the user folded, remembered across reloads */
+const readFoldedSections = (): Record<string, boolean> => {
+  try {
+    return JSON.parse(localStorage.getItem(FOLDED_SECTIONS_KEY) || '{}');
+  } catch {
+    return {};
+  }
+};
+
+/** Section of the panel whose title folds and unfolds it */
+const CollapsibleSection: React.FC<{
+  title: string;
+  style?: React.CSSProperties;
+  children: React.ReactNode;
+}> = ({ title, style, children }) => {
+  const { theme } = useTheme();
+  const [folded, setFolded] = React.useState(() => Boolean(readFoldedSections()[title]));
+
+  const toggle = () => {
+    const next = !folded;
+    setFolded(next);
+    try {
+      localStorage.setItem(
+        FOLDED_SECTIONS_KEY, JSON.stringify({ ...readFoldedSections(), [title]: next })
+      );
+    } catch { /* ignore */ }
+  };
+
+  return (
+    <div style={{
+      paddingBottom: folded ? '12px' : '20px',
+      marginBottom: folded ? '12px' : '20px',
+      borderBottom: `1px solid ${theme.panelBorder}`,
+      ...style
+    }}>
+      <button
+        onClick={toggle}
+        aria-expanded={!folded}
+        title={folded ? `Show ${title.toLowerCase()}` : `Hide ${title.toLowerCase()}`}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          width: '100%',
+          margin: folded ? 0 : '0 0 12px 0',
+          padding: 0,
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer',
+          fontSize: '11px',
+          fontWeight: '600',
+          color: theme.gray600,
+          letterSpacing: '0.5px',
+          textTransform: 'uppercase',
+        }}
+      >
+        <span>{title}</span>
+        <span style={{
+          display: 'inline-block',
+          transform: folded ? 'rotate(-90deg)' : 'none',
+          transition: 'transform 0.15s ease',
+        }}>▾</span>
+      </button>
+      {!folded && children}
+    </div>
+  );
+};
+
 interface RightPanelProps {
   onSelectClass: () => void;
   isCollapsed: boolean;
@@ -114,32 +184,6 @@ const RightPanel: React.FC<RightPanelProps> = ({ onSelectClass, isCollapsed, onT
       }
     }
   }, [brightness, saturation, contrast, invert]);
-
-  // Modern card section wrapper
-  const SectionCard: React.FC<{ children: React.ReactNode; style?: React.CSSProperties }> = ({ children, style }) => (
-    <div style={{
-      paddingBottom: '20px',
-      marginBottom: '20px',
-      borderBottom: `1px solid ${theme.panelBorder}`,
-      ...style
-    }}>
-      {children}
-    </div>
-  );
-
-  // Modern section header
-  const SectionHeader: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-    <h3 style={{
-      margin: '0 0 12px 0',
-      fontSize: '11px',
-      fontWeight: '600',
-      color: theme.gray600,
-      letterSpacing: '0.5px',
-      textTransform: 'uppercase',
-    }}>
-      {children}
-    </h3>
-  );
 
   // Segmented control for mask types
   const SegmentedControl: React.FC<{
@@ -356,8 +400,7 @@ const RightPanel: React.FC<RightPanelProps> = ({ onSelectClass, isCollapsed, onT
         )}
 
       {/* Class Selection */}
-      <SectionCard style={{ borderBottom: 'none', paddingBottom: '16px', marginBottom: '16px' }}>
-        <SectionHeader>Class</SectionHeader>
+      <CollapsibleSection title="Class">
         <button
           onClick={onSelectClass}
           style={{
@@ -393,11 +436,10 @@ const RightPanel: React.FC<RightPanelProps> = ({ onSelectClass, isCollapsed, onT
           />
           <span style={{ flex: 1, textAlign: 'left', fontWeight: '500' }}>{currentClassName}</span>
         </button>
-      </SectionCard>
+      </CollapsibleSection>
 
       {/* Mask Layers */}
-      <SectionCard>
-        <SectionHeader>Layers</SectionHeader>
+      <CollapsibleSection title="Layers">
         
         {/* Show/Hide Toggles */}
         <LayerToggle label="Show Mask" title="Toggle mask visibility" on={showMask} onToggle={toggleMask} />
@@ -417,11 +459,10 @@ const RightPanel: React.FC<RightPanelProps> = ({ onSelectClass, isCollapsed, onT
             onChange={(type) => setMaskType(type as 'final' | 'user' | 'errors')}
           />
         </div>
-      </SectionCard>
+      </CollapsibleSection>
 
       {/* Filters */}
-      <SectionCard style={{ borderBottom: 'none' }}>
-        <SectionHeader>Adjustments</SectionHeader>
+      <CollapsibleSection title="Adjustments" style={{ borderBottom: 'none' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {/* Brightness Slider */}
           <div>
@@ -609,7 +650,7 @@ const RightPanel: React.FC<RightPanelProps> = ({ onSelectClass, isCollapsed, onT
             Reset
           </button>
         </div>
-      </SectionCard>
+      </CollapsibleSection>
     </div>
     </>
   );
