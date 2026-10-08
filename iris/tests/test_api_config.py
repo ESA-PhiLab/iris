@@ -442,7 +442,7 @@ def test_full_workflow_get_modify_validate_put_get(logged_in_admin, restore_conf
     assert updated_config["name"] != original_name
 
 
-def test_workflow_validate_fails_put_not_attempted(logged_in_admin, sample_valid_config):
+def test_workflow_validate_fails_put_not_attempted(logged_in_admin, sample_valid_config, restore_config_file):
     """Test that invalid config is caught by validation before PUT"""
     # Make config invalid
     sample_valid_config["port"] = 99999  # Invalid port
