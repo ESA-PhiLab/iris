@@ -53,8 +53,11 @@ export interface ViewManagerState {
   /** Layers of the map views that can be switched off (the mask is in segmentationStore) */
   showImage: boolean;
   showSatellite: boolean;
+  /** Stable project identity used to isolate persisted layouts */
+  storageScope: string;
 
   setViews: (views: { [name: string]: ViewConfig }) => void;
+  setStorageScope: (scope: string) => void;
   setViewGroups: (groups: ViewGroup) => void;
   setCurrentGroup: (group: string) => void;
   showNextGroup: () => void;
@@ -76,12 +79,12 @@ export interface ViewManagerState {
   toggleSatellite: () => void;
 }
 
-const VIEW_STATE_KEY = 'iris-view-state';
+const viewStateKey = (scope: string) => `iris-view-state|${scope}`;
 
 /** Remember the current group and the layout of the groups */
-const persistViewState = ({ currentGroup, viewGroups }: ViewManagerState) => {
+const persistViewState = ({ currentGroup, viewGroups, storageScope }: ViewManagerState) => {
   try {
-    localStorage.setItem(VIEW_STATE_KEY, JSON.stringify({ currentGroup, viewLayouts: viewGroups }));
+    localStorage.setItem(viewStateKey(storageScope), JSON.stringify({ currentGroup, viewLayouts: viewGroups }));
   } catch { /* ignore */ }
 };
 
@@ -106,14 +109,16 @@ export const useViewManagerStore = create<ViewManagerState>((set, get) => {
     georef: null,
     showImage: true,
     showSatellite: true,
+    storageScope: 'default',
 
     setViews: (views) => set({ views }),
+    setStorageScope: (storageScope) => set({ storageScope }),
 
     setViewGroups: (viewGroups) => {
       set({ viewGroups });
       // Restore the layout the user left, for the groups that still exist
       try {
-        const saved = JSON.parse(localStorage.getItem(VIEW_STATE_KEY) || 'null');
+        const saved = JSON.parse(localStorage.getItem(viewStateKey(get().storageScope)) || 'null');
         if (!saved) return;
         const groups = { ...viewGroups };
         for (const [group, layout] of Object.entries(saved.viewLayouts || {})) {

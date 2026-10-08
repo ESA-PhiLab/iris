@@ -37,6 +37,7 @@ describe('credentials.json', () => {
 
   it('removes users and refuses short passwords', async () => {
     expect(run(['add', 'carol'], { IRIS_PASSWORD: 'short' }).status).toBe(1);
+    expect(run(['add', '../carol'], { IRIS_PASSWORD: 'a sufficiently long password' }).status).toBe(1);
     expect(run(['remove', 'bob']).status).toBe(0);
     const file: CredentialsFile = JSON.parse(readFileSync(path, 'utf8'));
     expect(Object.keys(file.users)).toHaveLength(1);

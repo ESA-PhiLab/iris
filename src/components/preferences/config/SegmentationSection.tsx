@@ -29,13 +29,18 @@ const SegmentationSection = forwardRef<any, {}>((_props, ref) => {
     meshgridCells: '3x3',
   });
 
+  const bandsFromText = (value: string) => {
+    const bands = value.split(',').map((band) => band.trim()).filter(Boolean);
+    return bands.length ? bands : null;
+  };
+
   const getData = () => ({
     mask_area: maskAreaEnabled ? maskAreaCoords : null,
     score: scoreEnum,
     unverified_threshold: aiConfig.unverifiedThreshold,
     ai_model: aiModelEnabled
       ? {
-          bands: aiConfig.bands.trim() ? aiConfig.bands : null,
+          bands: bandsFromText(aiConfig.bands),
           train_ratio: aiConfig.trainRatio,
           max_train_pixels: aiConfig.maxTrainPixels,
           n_estimators: aiConfig.nEstimators,
@@ -73,7 +78,7 @@ const SegmentationSection = forwardRef<any, {}>((_props, ref) => {
         setAiConfig({
           unverifiedThreshold: data.unverified_threshold ?? 1,
           aiModel: 'IrisSegAIModel*',
-          bands: m.bands !== null ? String(m.bands) : '',
+          bands: Array.isArray(m.bands) ? m.bands.join(', ') : '',
           trainRatio: m.train_ratio ?? 0.8,
           maxTrainPixels: m.max_train_pixels ?? 20000,
           nEstimators: m.n_estimators ?? 20,

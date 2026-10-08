@@ -58,7 +58,8 @@ const pageEngine = (): RasterEngine => {
 
 /** Views rendered so far, by image and view */
 const rendered = new Map<string, Promise<RenderedImage>>();
-const KEPT_RENDERS = 32;
+// A render is a full RGBA image. Keep this deliberately small for large COGs.
+const KEPT_RENDERS = 8;
 
 const cached = (engine: RasterEngine): RasterEngine => ({
   open: engine.open,

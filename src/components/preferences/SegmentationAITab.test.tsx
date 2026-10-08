@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
 import SegmentationAITab from './SegmentationAITab';
 import { UserConfig } from '../../types/iris';
@@ -16,7 +16,7 @@ const mockConfig: UserConfig = {
       max_depth: -1,
       train_ratio: 0.8,
       max_train_pixels: 10000,
-      suppression_threshold: 0.5,
+      suppression_threshold: 50,
       suppression_filter_size: 5,
       suppression_default_class: 0,
       use_edge_filter: false,
@@ -59,6 +59,22 @@ describe('SegmentationAITab', () => {
 
     const nEstimatorsInput = screen.getByTestId('input-n-estimators') as HTMLInputElement;
     expect(nEstimatorsInput.value).toBe('100');
+    expect((screen.getByTestId('input-suppression-threshold') as HTMLInputElement).value).toBe('50');
+  });
+
+  it('keeps the suppression threshold as a percentage', () => {
+    const updateAIModelConfig = vi.fn();
+    renderWithTheme(
+      <SegmentationAITab
+        config={mockConfig}
+        allBands={['B1', 'B2']}
+        updateAIModelConfig={updateAIModelConfig}
+        moveBands={vi.fn()}
+      />
+    );
+
+    fireEvent.change(screen.getByTestId('input-suppression-threshold'), { target: { value: '75' } });
+    expect(updateAIModelConfig).toHaveBeenCalledWith('suppression_threshold', 75);
   });
 
   it('renders with themed styling', () => {

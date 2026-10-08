@@ -8,7 +8,7 @@ const store = () => useViewManagerStore.getState();
 describe('viewManagerStore', () => {
   beforeEach(() => {
     localStorage.clear();
-    useViewManagerStore.setState({ currentGroup: 'default', camera: null });
+    useViewManagerStore.setState({ currentGroup: 'default', camera: null, storageScope: 'project-a' });
     store().setViews({ RGB: view('RGB'), SWIR: view('SWIR'), Snow: view('Snow') });
     store().setViewGroups({ default: ['RGB', 'SWIR'], radar: ['Snow'] });
   });
@@ -41,6 +41,13 @@ describe('viewManagerStore', () => {
 
     expect(store().viewGroups.default).toEqual(['RGB', 'Snow']);
     expect(store().currentGroup).toBe('radar');
+  });
+
+  it('keeps layouts separate for each project', () => {
+    store().replaceView(1, 'Snow');
+    store().setStorageScope('project-b');
+    store().setViewGroups({ default: ['RGB', 'SWIR'] });
+    expect(store().viewGroups.default).toEqual(['RGB', 'SWIR']);
   });
 
   it('fits the image again when the views are reset', () => {

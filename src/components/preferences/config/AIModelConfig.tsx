@@ -36,7 +36,7 @@ const AIModelConfig: React.FC<AIModelConfigProps> = ({ config, onChange }) => {
         value={config.unverifiedThreshold}
         onChange={(value) => updateField('unverifiedThreshold', parseInt(value) || 0)}
         type="number"
-        description="TODO Number of unverified users contributing masks above which to tag an image 'unverified'."
+        description="Scores remain unverified while this many users or fewer have annotated the image."
       />
 
       <FormSelect
@@ -52,7 +52,7 @@ const AIModelConfig: React.FC<AIModelConfigProps> = ({ config, onChange }) => {
         value={config.bands}
         onChange={(value) => updateField('bands', value)}
         type="text"
-        required
+        description="Comma-separated band names, for example $Sentinel2.B2, $Sentinel2.B3. Leave empty to use every band."
       />
 
       <FormSlider

@@ -14,7 +14,7 @@
 
 import { zipSync } from 'fflate';
 import { imagePath, loadImageIds, normalizeProject } from '../project/project';
-import type { AIModelConfig, ProjectConfig, UserConfig, UserInfo } from '../types/iris';
+import type { AIModelConfig, ProjectConfig, UserInfo } from '../types/iris';
 import type { Backend, Preferences, Profile, UserMask } from './backend';
 import { CredentialsFile, Session, clearSession, saveSession, savedSession, unlock } from './credentials';
 import { fetchFile, hub, hubRepo, isHfPath, parseHfPath, readableUrl, resolvePath } from './huggingface';
@@ -22,6 +22,7 @@ import { downloadFile } from '../utils/download';
 import { LabelStorage, browserStorage, hubStorage } from './labelStorage';
 import { rasterEngine } from '../raster/engine';
 import { maskCog } from '../export/maskFiles';
+import { maskAreaBoundsError } from '../project/validate';
 
 export interface SiteConfig {
   project: string;
@@ -35,9 +36,11 @@ const GUEST = 'guest';
 
 const settingsKey = (project: string) => `iris-settings|${project}`;
 
-const readSettings = (project: string): Partial<AIModelConfig> => {
+const readSettings = (project: string, legacyProject?: string): Partial<AIModelConfig> => {
   try {
-    return JSON.parse(localStorage.getItem(settingsKey(project)) || '{}');
+    const current = localStorage.getItem(settingsKey(project));
+    const legacy = legacyProject ? localStorage.getItem(settingsKey(legacyProject)) : null;
+    return JSON.parse(current || legacy || '{}');
   } catch {
     return {};
   }
@@ -47,13 +50,19 @@ export const staticBackend = (site: SiteConfig): Backend => {
   const siteKey = new URL('iris.json', window.location.href).href;
   // Paths of the site are relative to the page, those of the project to the project file
   const projectFile = resolvePath(site.project, window.location.href);
-  let project: Record<string, any> | null = null;
+  let project: ProjectConfig | null = null;
   let storage: LabelStorage | null = null;
 
   const session = (): Session | null =>
     (site.credentials ? savedSession(siteKey) : { user: LOCAL_USER, role: 'admin' });
   const token = () => session()?.hfToken ?? null;
   const userName = () => session()?.user ?? GUEST;
+  const requireAdmin = () => {
+    const current = session();
+    if (!current || current.role !== 'admin' || current.guest) {
+      throw new Error('Only an administrator can edit the project');
+    }
+  };
 
   const loaded = () => {
     if (!project) throw new Error('The project is not loaded yet');
@@ -67,7 +76,7 @@ export const staticBackend = (site: SiteConfig): Backend => {
       const current = session();
       storage = site.labels && current && !current.guest
         ? hubStorage(resolvePath(site.labels, window.location.href), current.hfToken ?? null)
-        : browserStorage(loaded().name);
+        : browserStorage(projectFile, loaded().name);
     }
     return storage;
   };
@@ -79,13 +88,17 @@ export const staticBackend = (site: SiteConfig): Backend => {
   /** Size and place of the mask area of an image, read from its COG */
   const maskGeoreference = async (imageId: string) => {
     const config = loaded();
-    const georef = await rasterEngine().open(imageId, await backend.imageFiles(config as ProjectConfig, imageId));
+    const georef = await rasterEngine().open(imageId, await backend.imageFiles(config, imageId));
     const area: [number, number, number, number] = config.segmentation?.mask_area
       ?? [0, 0, georef.width, georef.height];
+    const error = maskAreaBoundsError(area, georef.width, georef.height);
+    if (error) throw new Error(error);
     return { georef, area };
   };
 
   const backend: Backend = {
+    projectId: () => projectFile,
+
     async currentUser(): Promise<UserInfo | null> {
       const current = session();
       if (!current) return null;
@@ -123,7 +136,7 @@ export const staticBackend = (site: SiteConfig): Backend => {
           : `Could not read the project ${site.project} (${response.status})`);
       }
       project = normalizeProject(await response.json(), projectFile);
-      return project as ProjectConfig;
+      return project;
     },
 
     async listImages() {
@@ -150,7 +163,7 @@ export const staticBackend = (site: SiteConfig): Backend => {
     pageUrl: (imageId) => `${window.location.pathname}?image_id=${encodeURIComponent(imageId)}`,
 
     async imageFiles(config, imageId) {
-      const paths = (config.images as any).path as Record<string, string>;
+      const paths = config.images.path;
       const sources = await Promise.all(Object.entries(paths).map(async ([fileId, template]) => {
         const location = resolvePath(imagePath(template, imageId), projectFile);
         // The worker reads the files by their own address, without the token
@@ -186,21 +199,17 @@ export const staticBackend = (site: SiteConfig): Backend => {
       });
     },
 
-    saveMaskOnUnload(imageId, mask) {
-      // Writing usually finishes while the page closes
-      this.saveMask(imageId, mask).then(() => labels().flush()).catch(() => {});
-    },
-
     loadNotes: (imageId) => labels().loadNotes(userName(), imageId),
     saveNotes: (imageId, notes) => labels().saveNotes(userName(), imageId, notes),
 
     async loadPreferences(allBands): Promise<Preferences> {
       const config = loaded();
-      const aiModel = { ...config.segmentation.ai_model, ...readSettings(config.name) };
+      const projectModel = config.segmentation.ai_model === false ? {} : config.segmentation.ai_model;
+      const aiModel = { ...projectModel, ...readSettings(projectFile, config.name) } as AIModelConfig;
       if (!aiModel.bands?.length) aiModel.bands = allBands;
       const current = session();
       return {
-        config: { segmentation: { ai_model: aiModel }, classes: config.classes } as UserConfig,
+        config: { segmentation: { ai_model: aiModel }, classes: config.classes },
         allBands,
         // Admins can edit the project
         isAdmin: current?.role === 'admin' && !current.guest,
@@ -209,7 +218,7 @@ export const staticBackend = (site: SiteConfig): Backend => {
 
     async savePreferences(config) {
       try {
-        localStorage.setItem(settingsKey(loaded().name), JSON.stringify(config.segmentation.ai_model));
+        localStorage.setItem(settingsKey(projectFile), JSON.stringify(config.segmentation.ai_model));
       } catch {
         throw new Error('This browser does not let IRIS keep settings');
       }
@@ -268,6 +277,7 @@ export const staticBackend = (site: SiteConfig): Backend => {
     flush: () => labels().flush(),
 
     async loadProjectFile() {
+      requireAdmin();
       const response = await fetchFile(projectFile, token(), { cache: 'no-store' });
       if (!response.ok) throw new Error(`Could not read the project ${site.project} (${response.status})`);
       return {
@@ -278,6 +288,7 @@ export const staticBackend = (site: SiteConfig): Backend => {
     },
 
     async saveProjectFile(config) {
+      requireAdmin();
       const text = `${JSON.stringify(config, null, 2)}\n`;
       if (isHfPath(projectFile) && token()) {
         const location = parseHfPath(projectFile);

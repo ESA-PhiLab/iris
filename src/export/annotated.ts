@@ -88,7 +88,7 @@ export const exportMergedImages = async (
   for (const [i, imageId] of imageIds.entries()) {
     onProgress(i, imageIds.length);
     // Look for masks before reading the image, when the size of the mask area is known
-    const area: Area | undefined = config.segmentation?.mask_area;
+    const area: Area | undefined = config.segmentation?.mask_area ?? undefined;
     const size = (a: Area) => (a[2] - a[0]) * (a[3] - a[1]);
     let mask = area ? await mergedMask(imageId, size(area)) : null;
     if (area && !mask) continue;

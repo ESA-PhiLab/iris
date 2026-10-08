@@ -36,6 +36,13 @@ describe('splitTrainingPixels', () => {
     expect(split.testPixels).toHaveLength(25);
   });
 
+  it('accepts a class with exactly the minimum number of pixels', () => {
+    const exactMask = Uint8Array.from([...new Array(10).fill(0), ...new Array(10).fill(1)]);
+    const exactUserMask = new Uint8Array(20).fill(1);
+    const split = splitTrainingPixels(exactMask, exactUserMask, 2, { trainRatio: 0.8, maxTrainPixels: 100 });
+    expect(split.classes).toEqual([0, 1]);
+  });
+
   it('scores the predictions on the test pixels', () => {
     const split = { classes: [0, 1], trainPixels: [], trainLabels: [], testPixels: [0, 1, 2], testLabels: [0, 1, 1] };
     const result = testPredictions(split, Uint8Array.from([0, 0, 1, 1]), 2);

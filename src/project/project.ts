@@ -8,6 +8,8 @@
 
 import defaultConfig from './defaultConfig.json';
 import { fetchFile, resolvePath } from '../services/huggingface';
+import { validateProject } from './validate';
+import type { ProjectConfig } from '../types/iris';
 
 type Json = Record<string, any>;
 
@@ -26,7 +28,8 @@ export const mergeDeep = (a: Json, b: Json): Json => {
 export const imagePath = (template: string, imageId: string) => template.split('{id}').join(imageId);
 
 /** The project as the browser uses it */
-export const normalizeProject = (raw: Json, projectFile: string): Json => {
+export const normalizeProject = (raw: Json, projectFile: string): ProjectConfig => {
+  if (!isObject(raw)) throw new Error('The project file must contain a JSON object');
   const config = mergeDeep(defaultConfig, raw);
   if (!config.name) {
     config.name = projectFile.split('/').pop()!.replace(/\.(json|ya?ml)$/i, '');
@@ -46,17 +49,31 @@ export const normalizeProject = (raw: Json, projectFile: string): Json => {
   if (!config.view_groups?.default) {
     config.view_groups = { ...config.view_groups, default: Object.keys(config.views || {}).slice(0, 3) };
   }
-  return config;
+  const validation = validateProject(config);
+  if (!validation.valid) {
+    throw new Error(`Invalid project configuration:\n${validation.errors.map((error) => `- ${error}`).join('\n')}`);
+  }
+  return config as ProjectConfig;
 };
 
 /** Ids of the images of a project */
 export const loadImageIds = async (config: Json, projectFile: string, token?: string | null): Promise<string[]> => {
-  if (Array.isArray(config.images?.ids)) return config.images.ids.map(String);
-  const list = config.images?.list || 'images.json';
-  const response = await fetchFile(resolvePath(list, projectFile), token);
-  if (!response.ok) {
-    throw new Error(`The project lists no images: give images.ids, or a list of ids in ${list}`);
+  let values: unknown[];
+  if (Array.isArray(config.images?.ids)) {
+    values = config.images.ids;
+  } else {
+    const list = config.images?.list || 'images.json';
+    const response = await fetchFile(resolvePath(list, projectFile), token);
+    if (!response.ok) {
+      throw new Error(`The project lists no images: give images.ids, or a list of ids in ${list}`);
+    }
+    const ids = await response.json();
+    values = Array.isArray(ids) ? ids : ids.ids || [];
   }
-  const ids = await response.json();
-  return (Array.isArray(ids) ? ids : ids.ids || []).map(String);
+  const imageIds = values.map(String);
+  if (!imageIds.length) throw new Error('The project has no image ids');
+  if (new Set(imageIds).size !== imageIds.length) throw new Error('The project has duplicate image ids');
+  const unsafe = imageIds.find((id) => !id || id.includes('\\') || id.split('/').some((part) => part === '.' || part === '..'));
+  if (unsafe !== undefined) throw new Error(`Image id '${unsafe}' is not a safe path`);
+  return imageIds;
 };

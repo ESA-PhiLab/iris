@@ -10,8 +10,8 @@ import { ImageFileSource, ImagePixels, rasterOf, readImage } from './cog';
 import { RenderedImage, ViewSpec, renderView } from './render';
 import { PredictionRequest, predictMask } from '../ai/segment';
 
-/** How many images stay in memory: the current one and the one before */
-const KEPT_IMAGES = 2;
+/** Navigation reloads the page, so only the current image needs to stay */
+const KEPT_IMAGES = 1;
 
 export const createRasterCore = () => {
   const images = new Map<string, Promise<ImagePixels>>();

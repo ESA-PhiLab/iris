@@ -52,10 +52,10 @@ const croppedBands = (
   return { cropped, scale, width, height };
 };
 
-/** Index of the cell of each row (or column), as numpy.repeat(arange(cells), size // cells + 1) */
+/** Index of the grid cell at a position, distributing cells across the axis */
 const cellIndex = (cells: number, size: number) => {
-  const repeat = Math.trunc(size / cells) + 1;
-  return (position: number) => Math.min(cells - 1, Math.floor(position / repeat));
+  const count = Math.max(1, Math.min(Math.trunc(cells), size));
+  return (position: number) => Math.min(count - 1, Math.floor((position * count) / size));
 };
 
 export const pixelFeatures = (
@@ -72,13 +72,12 @@ export const pixelFeatures = (
   }
 
   if (options.use_meshgrid) {
-    // The server's grid: the columns split into the cells of meshgrid_cells,
-    // the rows always into three
-    const cells = options.meshgrid_cells === 'pixelwise' || !options.meshgrid_cells
-      ? height
-      : Number(options.meshgrid_cells.split('x')[0]) || 3;
-    const byColumn = cellIndex(cells, height);
-    const byRow = cellIndex(3, width);
+    const pixelwise = options.meshgrid_cells === 'pixelwise';
+    const [configuredColumns, configuredRows] = options.meshgrid_cells?.split('x').map(Number) ?? [];
+    const columns = pixelwise ? width : configuredColumns || 3;
+    const rows = pixelwise ? height : configuredRows || 3;
+    const byColumn = cellIndex(columns, width);
+    const byRow = cellIndex(rows, height);
     const columnCells = new Float32Array(width * height);
     const rowCells = new Float32Array(width * height);
     for (let y = 0; y < height; y++) {

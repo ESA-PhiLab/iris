@@ -15,7 +15,7 @@ Admins can also edit the project in the preferences of IRIS.
   * [segmentation](#segmentation)
 
 ## name
-Optional name for this project. Defaults to the name of the project file. Masks kept in the browser are kept per project name.
+Optional name for this project. Defaults to the name of the project file. Browser data is isolated by the full project-file location, so two projects may use the same display name safely.
 
 <i>Example:</i>
 ```

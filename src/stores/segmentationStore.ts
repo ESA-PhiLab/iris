@@ -10,7 +10,7 @@
  */
 
 import { create } from 'zustand';
-import type { AIModelConfig, ClassConfig, ConfusionMatrix, ProjectConfig, UserInfo } from '../types/iris';
+import type { ClassConfig, ConfusionMatrix, ProjectConfig, UserInfo } from '../types/iris';
 import { Rect, brushMaskRect, fillRect, strokePositions, unionRect } from '../segmentation/brush';
 import { MaskType, maskPixels } from '../segmentation/maskColours';
 import { MIN_CLASS_PIXELS, splitTrainingPixels, testPredictions } from '../segmentation/training';
@@ -57,7 +57,7 @@ const countUserPixels = (
 
 const classesWithEnoughPixels = (counts: PixelCounts, classCount: number) => {
   let classes = 0;
-  for (let c = 0; c < classCount; c++) if (counts[c] > MIN_CLASS_PIXELS) classes++;
+  for (let c = 0; c < classCount; c++) if (counts[c] >= MIN_CLASS_PIXELS) classes++;
   return classes;
 };
 
@@ -527,7 +527,7 @@ export const useSegmentationStore = create<SegmentationState>((set, get) => {
         // The user's own AI settings, if any
         const bands = useViewManagerStore.getState().georef?.bands ?? [];
         const preferences = await backend().loadPreferences(bands).catch(() => null);
-        const model: Partial<AIModelConfig> = {
+        const model: Partial<AiModelSettings & { train_ratio: number; max_train_pixels: number }> = {
           ...config?.segmentation?.ai_model,
           ...preferences?.config.segmentation.ai_model,
         };

@@ -43,6 +43,8 @@ export interface ReviewSource {
 }
 
 export interface Backend {
+  /** Stable identity used to isolate this project's browser state */
+  projectId(): string;
   /** The person using IRIS, null when they have to sign in first */
   currentUser(): Promise<UserInfo | null>;
   signInOptions(): SignInOptions;
@@ -63,8 +65,6 @@ export interface Backend {
   loadMetadata(imageId: string): Promise<Record<string, unknown> | null>;
   loadMask(imageId: string, length: number): Promise<UserMask | null>;
   saveMask(imageId: string, mask: UserMask): Promise<void>;
-  /** Save while the page closes */
-  saveMaskOnUnload(imageId: string, mask: UserMask): void;
   /** Notes about a mask the user saved, null before the first save */
   loadNotes(imageId: string): Promise<ImageNotes | null>;
   saveNotes(imageId: string, notes: ImageNotes): Promise<void>;

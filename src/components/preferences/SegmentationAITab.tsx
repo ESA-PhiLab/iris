@@ -71,6 +71,23 @@ const SegmentationAITab: React.FC<SegmentationAITabProps> = ({
   moveBands,
 }) => {
   const { theme } = useTheme();
+  const model: AIModelConfig = Object.assign({
+    bands: [],
+    n_estimators: 20,
+    max_depth: 10,
+    n_leaves: 10,
+    train_ratio: 0.8,
+    max_train_pixels: 20000,
+    suppression_threshold: 0,
+    suppression_filter_size: 5,
+    suppression_default_class: 0,
+    use_edge_filter: false,
+    use_meshgrid: false,
+    meshgrid_cells: '3x3',
+    use_superpixels: false,
+  }, config.segmentation.ai_model, {
+    bands: config.segmentation.ai_model.bands ?? [],
+  });
 
   const rowStyle: React.CSSProperties = {
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -112,14 +129,14 @@ const SegmentationAITab: React.FC<SegmentationAITabProps> = ({
           <span style={labelStyle}>Number of estimators</span>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '0 0 220px' }}>
             <input type="number" data-testid="input-n-estimators" min="10" max="200"
-              value={config.segmentation.ai_model.n_estimators}
+              value={model.n_estimators}
               onChange={(e) => updateAIModelConfig('n_estimators', parseInt(e.target.value) || 10)}
               style={numberInputStyle}
               onFocus={(e) => (e.currentTarget.style.borderColor = theme.inputBorderFocus)}
               onBlur={(e) => (e.currentTarget.style.borderColor = theme.inputBorder)}
             />
             <input type="range" min="10" max="200" style={sliderStyle}
-              value={config.segmentation.ai_model.n_estimators}
+              value={model.n_estimators}
               onChange={(e) => updateAIModelConfig('n_estimators', parseInt(e.target.value))}
             />
           </div>
@@ -128,14 +145,14 @@ const SegmentationAITab: React.FC<SegmentationAITabProps> = ({
           <span style={labelStyle}>Maximal depth</span>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '0 0 220px' }}>
             <input type="number" data-testid="input-max-depth" min="5" max="100"
-              value={config.segmentation.ai_model.max_depth}
+              value={model.max_depth}
               onChange={(e) => updateAIModelConfig('max_depth', parseInt(e.target.value) || 5)}
               style={numberInputStyle}
               onFocus={(e) => (e.currentTarget.style.borderColor = theme.inputBorderFocus)}
               onBlur={(e) => (e.currentTarget.style.borderColor = theme.inputBorder)}
             />
             <input type="range" min="5" max="100" style={sliderStyle}
-              value={config.segmentation.ai_model.max_depth}
+              value={model.max_depth}
               onChange={(e) => updateAIModelConfig('max_depth', parseInt(e.target.value))}
             />
           </div>
@@ -144,14 +161,14 @@ const SegmentationAITab: React.FC<SegmentationAITabProps> = ({
           <span style={labelStyle}>Number of leaves</span>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '0 0 220px' }}>
             <input type="number" data-testid="input-n-leaves" min="5" max="100"
-              value={config.segmentation.ai_model.n_leaves}
+              value={model.n_leaves}
               onChange={(e) => updateAIModelConfig('n_leaves', parseInt(e.target.value) || 5)}
               style={numberInputStyle}
               onFocus={(e) => (e.currentTarget.style.borderColor = theme.inputBorderFocus)}
               onBlur={(e) => (e.currentTarget.style.borderColor = theme.inputBorder)}
             />
             <input type="range" min="5" max="100" style={sliderStyle}
-              value={config.segmentation.ai_model.n_leaves}
+              value={model.n_leaves}
               onChange={(e) => updateAIModelConfig('n_leaves', parseInt(e.target.value))}
             />
           </div>
@@ -161,7 +178,7 @@ const SegmentationAITab: React.FC<SegmentationAITabProps> = ({
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '0 0 220px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
               <input type="number" min="10" max="100"
-                value={Math.round(config.segmentation.ai_model.train_ratio * 100)}
+                value={Math.round(model.train_ratio * 100)}
                 onChange={(e) => updateAIModelConfig('train_ratio', (parseInt(e.target.value) || 10) / 100)}
                 style={numberInputStyle}
                 onFocus={(e) => (e.currentTarget.style.borderColor = theme.inputBorderFocus)}
@@ -170,7 +187,7 @@ const SegmentationAITab: React.FC<SegmentationAITabProps> = ({
               <span style={{ fontSize: '13px', color: theme.gray600 }}>%</span>
             </div>
             <input type="range" min="10" max="100" style={sliderStyle}
-              value={config.segmentation.ai_model.train_ratio * 100}
+              value={model.train_ratio * 100}
               onChange={(e) => updateAIModelConfig('train_ratio', parseInt(e.target.value) / 100)}
             />
           </div>
@@ -179,14 +196,14 @@ const SegmentationAITab: React.FC<SegmentationAITabProps> = ({
           <span style={labelStyle}>Max. training pixels per class</span>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '0 0 220px' }}>
             <input type="number" min="100" max="50000"
-              value={config.segmentation.ai_model.max_train_pixels}
+              value={model.max_train_pixels}
               onChange={(e) => updateAIModelConfig('max_train_pixels', parseInt(e.target.value) || 100)}
               style={{ ...numberInputStyle, width: '80px' }}
               onFocus={(e) => (e.currentTarget.style.borderColor = theme.inputBorderFocus)}
               onBlur={(e) => (e.currentTarget.style.borderColor = theme.inputBorder)}
             />
             <input type="range" min="100" max="50000" style={sliderStyle}
-              value={config.segmentation.ai_model.max_train_pixels}
+              value={model.max_train_pixels}
               onChange={(e) => updateAIModelConfig('max_train_pixels', parseInt(e.target.value))}
             />
           </div>
@@ -199,7 +216,7 @@ const SegmentationAITab: React.FC<SegmentationAITabProps> = ({
           <span style={labelStyle}>Use edge filter?</span>
           <label style={checkboxLabelStyle}>
             <input type="checkbox" data-testid="checkbox-use-edge-filter"
-              checked={config.segmentation.ai_model.use_edge_filter}
+              checked={model.use_edge_filter}
               onChange={(e) => updateAIModelConfig('use_edge_filter', e.target.checked)}
               style={{ width: '16px', height: '16px', accentColor: theme.primary, cursor: 'pointer' }}
             />
@@ -209,7 +226,7 @@ const SegmentationAITab: React.FC<SegmentationAITabProps> = ({
           <span style={labelStyle}>Use meshgrid?</span>
           <label style={checkboxLabelStyle}>
             <input type="checkbox" data-testid="checkbox-use-meshgrid"
-              checked={config.segmentation.ai_model.use_meshgrid}
+              checked={model.use_meshgrid}
               onChange={(e) => updateAIModelConfig('use_meshgrid', e.target.checked)}
               style={{ width: '16px', height: '16px', accentColor: theme.primary, cursor: 'pointer' }}
             />
@@ -218,7 +235,7 @@ const SegmentationAITab: React.FC<SegmentationAITabProps> = ({
         <div style={rowStyle}>
           <span style={labelStyle}>Meshgrid cells</span>
           <select data-testid="select-meshgrid-cells" style={selectStyle}
-            value={config.segmentation.ai_model.meshgrid_cells}
+            value={model.meshgrid_cells}
             onChange={(e) => updateAIModelConfig('meshgrid_cells', e.target.value)}
           >
             {['3x3', '5x5', '7x7', '10x10', '20x20', 'pixelwise'].map((value) => (
@@ -230,7 +247,7 @@ const SegmentationAITab: React.FC<SegmentationAITabProps> = ({
           <span style={labelStyle}>Use superpixels?</span>
           <label style={checkboxLabelStyle}>
             <input type="checkbox" data-testid="checkbox-use-superpixels"
-              checked={config.segmentation.ai_model.use_superpixels}
+              checked={model.use_superpixels}
               onChange={(e) => updateAIModelConfig('use_superpixels', e.target.checked)}
               style={{ width: '16px', height: '16px', accentColor: theme.primary, cursor: 'pointer' }}
             />
@@ -246,7 +263,7 @@ const SegmentationAITab: React.FC<SegmentationAITabProps> = ({
                 Bands to include
               </div>
               <BandSelector
-                bands={config.segmentation.ai_model.bands}
+                bands={model.bands}
                 onSelectionChange={() => {}}
                 id="bands-included"
                 data-testid="select-bands-included"
@@ -293,7 +310,7 @@ const SegmentationAITab: React.FC<SegmentationAITabProps> = ({
                 Bands to exclude
               </div>
               <BandSelector
-                bands={allBands.filter((band) => !config.segmentation.ai_model.bands.includes(band))}
+                bands={allBands.filter((band) => !model.bands.includes(band))}
                 onSelectionChange={() => {}}
                 id="bands-excluded"
                 data-testid="select-bands-excluded"
@@ -308,7 +325,7 @@ const SegmentationAITab: React.FC<SegmentationAITabProps> = ({
         <div style={rowStyle}>
           <span style={labelStyle}>Suppression filter size</span>
           <select data-testid="select-suppression-filter-size" style={selectStyle}
-            value={config.segmentation.ai_model.suppression_filter_size}
+            value={model.suppression_filter_size}
             onChange={(e) => updateAIModelConfig('suppression_filter_size', parseInt(e.target.value))}
           >
             <option value="3">3</option>
@@ -321,8 +338,8 @@ const SegmentationAITab: React.FC<SegmentationAITabProps> = ({
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '0 0 220px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
               <input type="number" data-testid="input-suppression-threshold" min="0" max="100"
-                value={Math.round((config.segmentation.ai_model.suppression_threshold || 0) * 100)}
-                onChange={(e) => updateAIModelConfig('suppression_threshold', (parseInt(e.target.value) || 0) / 100)}
+                value={Math.round(model.suppression_threshold || 0)}
+                onChange={(e) => updateAIModelConfig('suppression_threshold', parseInt(e.target.value) || 0)}
                 style={numberInputStyle}
                 onFocus={(e) => (e.currentTarget.style.borderColor = theme.inputBorderFocus)}
                 onBlur={(e) => (e.currentTarget.style.borderColor = theme.inputBorder)}
@@ -330,15 +347,15 @@ const SegmentationAITab: React.FC<SegmentationAITabProps> = ({
               <span style={{ fontSize: '13px', color: theme.gray600 }}>%</span>
             </div>
             <input type="range" min="0" max="100" style={sliderStyle}
-              value={Math.round((config.segmentation.ai_model.suppression_threshold || 0) * 100)}
-              onChange={(e) => updateAIModelConfig('suppression_threshold', parseInt(e.target.value) / 100)}
+              value={Math.round(model.suppression_threshold || 0)}
+              onChange={(e) => updateAIModelConfig('suppression_threshold', parseInt(e.target.value))}
             />
           </div>
         </div>
         <div style={{ ...rowStyle, borderBottom: 'none' }}>
           <span style={labelStyle}>Suppression background class</span>
           <select style={selectStyle}
-            value={config.segmentation.ai_model.suppression_default_class}
+            value={model.suppression_default_class}
             onChange={(e) => updateAIModelConfig('suppression_default_class', parseInt(e.target.value))}
           >
             {config.classes.map((cls, index) => (

@@ -67,6 +67,23 @@ describe('ProjectConfigTab', () => {
     await waitFor(() => expect(screen.getByText(/Project saved to its dataset/)).toBeInTheDocument());
   });
 
+  it('keeps AI bands as an array when the project is saved', async () => {
+    const config = project();
+    config.segmentation.ai_model = {
+      bands: ['$B1', '$B2'],
+      suppression_threshold: 25,
+    } as any;
+    loadProjectFile.mockResolvedValue({ config, location: 'demo/p.json', savesTo: 'download' });
+    saveProjectFile.mockResolvedValue('download');
+    render(<ProjectConfigTab />);
+
+    await waitFor(() => expect(screen.getByDisplayValue('$B1, $B2')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Download the project file'));
+
+    await waitFor(() => expect(saveProjectFile).toHaveBeenCalled());
+    expect(saveProjectFile.mock.calls[0][0].segmentation.ai_model.bands).toEqual(['$B1', '$B2']);
+  });
+
   it('does not save a project that cannot work', async () => {
     loadProjectFile.mockResolvedValue({
       config: { ...project(), images: { path: 'images/{id}.png' } },

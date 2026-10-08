@@ -7,13 +7,12 @@ import { useSegmentationStore } from '../stores/segmentationStore';
 import { ViewConfig, ViewGroup, useViewManagerStore } from '../stores/viewManagerStore';
 import { backend, loadSiteConfig, setBackend } from '../services/backend';
 import { staticBackend } from '../services/staticBackend';
+import { maskAreaBoundsError } from '../project/validate';
+import type { ProjectConfig } from '../types/iris';
 
 /** Views of the project, with their band expressions */
-export const projectViews = (config: any): { [name: string]: ViewConfig } => {
-  const entries: Array<[string, any]> = Array.isArray(config.views)
-    ? config.views.map((view: any) => [view.name, view])
-    : Object.entries(config.views || {});
-  return Object.fromEntries(entries.map(([name, view]) => [name, {
+export const projectViews = (config: ProjectConfig): { [name: string]: ViewConfig } =>
+  Object.fromEntries(Object.entries(config.views).map(([name, view]) => [name, {
     name,
     type: 'image',
     description: view.description || '',
@@ -23,19 +22,10 @@ export const projectViews = (config: any): { [name: string]: ViewConfig } => {
     vmin: view.vmin,
     vmax: view.vmax,
   }]));
-};
 
 /** Groups of views of the project; a group 'default' with the first three views if none */
-export const projectViewGroups = (config: any, views: { [name: string]: ViewConfig }): ViewGroup => {
-  const groups = config.view_groups;
-  if (groups && !Array.isArray(groups)) return groups;
-  if (Array.isArray(groups) && groups.length) {
-    return Array.isArray(groups[0])
-      ? Object.fromEntries(groups.map((group: string[], i: number) => [`group_${i}`, group]))
-      : { default: groups };
-  }
-  return { default: Object.keys(views).slice(0, 3) };
-};
+export const projectViewGroups = (config: ProjectConfig, views: { [name: string]: ViewConfig }): ViewGroup =>
+  Object.keys(config.view_groups).length ? config.view_groups : { default: Object.keys(views).slice(0, 3) };
 
 /** Image of the page, named in the address */
 export const pageImageId = (): string | null =>
@@ -57,6 +47,7 @@ export const startSegmentation = async () => {
   if (user) editor.setUser(user);
 
   const views = projectViews(config);
+  viewManager.setStorageScope(source.projectId());
   viewManager.setViews(views);
   viewManager.setViewGroups(projectViewGroups(config, views));
 
@@ -80,6 +71,11 @@ export const startSegmentation = async () => {
 
   // Without a mask area the mask covers the whole image
   const { georef } = useViewManagerStore.getState();
+  const configuredArea = useSegmentationStore.getState().maskArea;
+  if (configuredArea && georef) {
+    const error = maskAreaBoundsError(configuredArea, georef.width, georef.height);
+    if (error) throw new Error(error);
+  }
   if (!useSegmentationStore.getState().maskArea && georef) {
     editor.setMaskArea([0, 0, georef.width, georef.height]);
   }

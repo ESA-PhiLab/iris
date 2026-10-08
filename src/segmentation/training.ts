@@ -38,7 +38,7 @@ export class RNG {
   }
 }
 
-/** Classes need more than this many drawn pixels to take part */
+/** Classes need at least this many drawn pixels to take part */
 export const MIN_CLASS_PIXELS = 10;
 
 export interface TrainingSplit {
@@ -63,12 +63,12 @@ export const splitTrainingPixels = (
   for (let i = 0; i < mask.length; i++) {
     if (userMask[i] && mask[i] < classCount) counts[mask[i]]++;
   }
-  const classes = counts.flatMap((count, c) => (count > MIN_CLASS_PIXELS ? [c] : []));
+  const classes = counts.flatMap((count, c) => (count >= MIN_CLASS_PIXELS ? [c] : []));
 
   const pixels: number[] = [];
   const labels: number[] = [];
   for (let i = 0; i < mask.length; i++) {
-    if (userMask[i] && counts[mask[i]] > MIN_CLASS_PIXELS) {
+    if (userMask[i] && counts[mask[i]] >= MIN_CLASS_PIXELS) {
       pixels.push(i);
       labels.push(mask[i]);
     }

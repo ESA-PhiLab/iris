@@ -11,7 +11,7 @@ describe('normalizeProject', () => {
 
     expect(config.name).toBe('clouds');
     expect(config.images.path).toEqual({ pictures: 'images/{id}.tif' });
-    expect(config.segmentation.ai_model.n_estimators).toBe(20);
+    expect(config.segmentation.ai_model && config.segmentation.ai_model.n_estimators).toBe(20);
     expect(config.segmentation.score).toBe('f1');
     expect(config.views.RGB.name).toBe('RGB');
     expect(config.view_groups).toEqual({ default: ['RGB', 'SWIR'] });
@@ -21,6 +21,7 @@ describe('normalizeProject', () => {
     const config = normalizeProject({
       name: 'mine',
       images: { path: { S2: 'a/{id}.tif' } },
+      classes: [{ name: 'Cloud', colour: [255, 255, 0, 70] }],
       segmentation: { ai_model: { n_estimators: 50 } },
       view_groups: { default: ['RGB'] },
       views: { RGB: { data: '$S2.B1' } },
@@ -57,5 +58,10 @@ describe('project files', () => {
   it('says how to list the images', async () => {
     vi.spyOn(global, 'fetch').mockResolvedValue(new Response('', { status: 404 }));
     await expect(loadImageIds({ images: {} }, 'p.json')).rejects.toThrow(/images.ids/);
+  });
+
+  it('rejects duplicate and path-traversing image ids', async () => {
+    await expect(loadImageIds({ images: { ids: ['a', 'a'] } }, 'p.json')).rejects.toThrow(/duplicate/);
+    await expect(loadImageIds({ images: { ids: ['../secret'] } }, 'p.json')).rejects.toThrow(/safe path/);
   });
 });

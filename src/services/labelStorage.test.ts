@@ -35,7 +35,9 @@ describe('masks on the Hugging Face Hub', () => {
       for (const { path, content } of files) uploaded.set(path, await bytesOf(content));
     });
     vi.spyOn(global, 'fetch').mockImplementation(async (url) => {
-      const path = decodeURIComponent(String(url).replace(/^.*\/resolve\/(main\/)?/, ''));
+      const address = String(url);
+      const resolved = address.split('/resolve/')[1] ?? '';
+      const path = decodeURIComponent(address.includes('/datasets/') ? resolved.split('/').slice(1).join('/') : resolved);
       const blob = uploaded.get(path);
       return blob ? new Response(blob as Uint8Array<ArrayBuffer>) : new Response('', { status: 404 });
     });
@@ -64,17 +66,15 @@ describe('masks on the Hugging Face Hub', () => {
     expect(notes).toMatchObject({ difficulty: 4, notes: 'clouds', complete: true, user: 'alice' });
   });
 
-  it('commits the saves to a dataset together', async () => {
+  it('does not report a dataset save until its commit finishes', async () => {
     const storage = hubStorage('hf://datasets/org/clouds@labels', 'hf_token');
     await storage.saveMask('bob', 'coast', mask, file);
-    await storage.saveNotes('bob', 'coast', { difficulty: 2, notes: '', complete: true });
-    expect(uploadFiles).not.toHaveBeenCalled();
-    // What is waiting can be read already
+    expect(uploadFiles).toHaveBeenCalledTimes(1);
     expect(await storage.loadMask('bob', 'coast', 4)).toEqual(mask);
 
-    await storage.flush();
+    await storage.saveNotes('bob', 'coast', { difficulty: 2, notes: '', complete: true });
 
-    expect(uploadFiles).toHaveBeenCalledTimes(1);
+    expect(uploadFiles).toHaveBeenCalledTimes(2);
     const call = uploadFiles.mock.calls[0][0];
     expect(call.branch).toBe('labels');
     expect(call.files.map((f: { path: string }) => f.path).sort()).toEqual([
@@ -84,12 +84,26 @@ describe('masks on the Hugging Face Hub', () => {
 
   it('keeps the saves that could not be committed', async () => {
     const storage = hubStorage('hf://datasets/org/clouds', 'hf_token');
-    await storage.saveMask('bob', 'coast', mask, file);
     uploadFiles.mockRejectedValueOnce(new Error('rate limited'));
-    await expect(storage.flush()).rejects.toThrow('rate limited');
-    await storage.flush();
+    await expect(storage.saveMask('bob', 'coast', mask, file)).rejects.toThrow('rate limited');
+
+    // A new page can read and retry the durable browser outbox.
+    const reopened = hubStorage('hf://datasets/org/clouds', 'hf_token');
+    expect(await reopened.loadMask('bob', 'coast', 4)).toEqual(mask);
+    await reopened.flush();
     expect(uploadFiles).toHaveBeenCalledTimes(2);
     expect(uploaded.has('segmentation/coast/bob_mask.tif')).toBe(true);
+  });
+
+  it('queues note edits when the existing remote notes cannot be read', async () => {
+    const storage = hubStorage('hf://datasets/org/clouds', 'hf_token');
+    vi.mocked(global.fetch).mockRejectedValueOnce(new Error('offline'));
+
+    await storage.saveNotes('bob', 'coast', { difficulty: 5, notes: 'check coast', complete: false });
+
+    expect(JSON.parse(textOf('segmentation/coast/bob.json'))).toMatchObject({
+      difficulty: 5, notes: 'check coast', complete: false, user: 'bob',
+    });
   });
 
   it('lists the masks of every user', async () => {
@@ -123,5 +137,15 @@ describe('masks in the browser', () => {
     expect(await storage.loadMask('bob', 'coast', 4)).toBeNull();
     expect((await storage.list()).map(({ user, imageId }) => `${user}/${imageId}`).sort())
       .toEqual(['alice/coast', 'bob/mountains']);
+  });
+
+  it('isolates projects with the same display name and reads legacy labels', async () => {
+    await browserStorage('clouds').saveMask('alice', 'coast', mask, file);
+    const first = browserStorage('https://example.test/a/project.json', 'clouds');
+    const second = browserStorage('https://example.test/b/project.json', 'clouds');
+    expect(await first.loadMask('alice', 'coast', 4)).toEqual(mask);
+
+    await first.saveMask('alice', 'mountains', mask, file);
+    expect(await second.loadMask('alice', 'mountains', 4)).toBeNull();
   });
 });

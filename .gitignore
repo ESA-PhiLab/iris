@@ -128,3 +128,8 @@ dmypy.json
 /projects/
 
 node_modules
+
+# Local workspace state and remnants of the removed Python server
+/.claude/
+/demo/
+/iris/

@@ -25,6 +25,10 @@ const usage = () => {
 
 const [command, user, ...rest] = process.argv.slice(2);
 if (!['add', 'remove'].includes(command) || !user) usage();
+if (user === '.' || user === '..' || /[\\/\u0000-\u001f]/.test(user)) {
+  console.error('User names cannot contain path separators or control characters');
+  process.exit(1);
+}
 const option = (name, fallback) => {
   const index = rest.indexOf(`--${name}`);
   return index >= 0 ? rest[index + 1] : fallback;
@@ -66,8 +70,8 @@ if (command === 'remove') {
   delete file.users[id];
 } else {
   const password = await askPassword();
-  if (password.length < 12) {
-    console.error('Use a password of at least 12 characters: the file is public');
+  if (password.length < 16) {
+    console.error('Use a password of at least 16 characters: the file is public');
     process.exit(1);
   }
   const salt = crypto.getRandomValues(new Uint8Array(16));

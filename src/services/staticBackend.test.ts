@@ -3,6 +3,7 @@ import { staticBackend } from './staticBackend';
 import { clearMemoryLabels } from './localLabels';
 import { unzipSync } from 'fflate';
 import { readMaskCog } from '../export/maskFiles';
+import { saveSession } from './credentials';
 
 vi.mock('../raster/engine', () => ({
   rasterEngine: () => ({
@@ -26,6 +27,7 @@ describe('staticBackend', () => {
   beforeEach(async () => {
     clearMemoryLabels();
     localStorage.clear();
+    sessionStorage.clear();
     vi.spyOn(global, 'fetch').mockImplementation(async (url) => {
       if (String(url).endsWith('/demo/clouds.json')) return new Response(JSON.stringify(project));
       if (String(url).endsWith('/demo/images/coast/meta.json')) return new Response('{"spacecraft": "S2"}');
@@ -113,5 +115,13 @@ describe('staticBackend', () => {
     await source.loadProject();
     expect(await source.loadMetadata('coast')).toEqual({ spacecraft: 'S2' });
     expect(await source.loadMetadata('mountains')).toBeNull();
+  });
+
+  it('does not let an annotator use the project editor API', async () => {
+    const siteKey = new URL('iris.json', window.location.href).href;
+    saveSession(siteKey, { user: 'alice', role: 'annotator', hfToken: 'hf_alice' });
+    const source = staticBackend({ project: 'demo/clouds.json', credentials: 'credentials.json' });
+    await expect(source.loadProjectFile()).rejects.toThrow(/administrator/);
+    await expect(source.saveProjectFile(project)).rejects.toThrow(/administrator/);
   });
 });

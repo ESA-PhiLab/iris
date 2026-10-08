@@ -13,7 +13,7 @@ Tool for manual image segmentation of satellite imagery. It was designed to acce
 
 ## Quick start
 
-IRIS needs [Node.js](https://nodejs.org/) 22 or higher.
+IRIS needs [Node.js](https://nodejs.org/) 22.22.2 or higher.
 
 ```bash
 git clone https://github.com/ESA-PhiLab/iris
@@ -56,7 +56,7 @@ IRIS only reads Cloud Optimized GeoTIFFs: tiled, with a CRS, so that each image 
 gdal_translate -of COG input.tif image.tif
 ```
 
-The browser reads the parts of the files it needs with HTTP range requests, so the files must be served by a host that answers them (GitHub Pages, the Hugging Face Hub and S3 do) and, when they are on another site than the page, that allows it with CORS.
+The browser uses HTTP range requests to read the COGs, so the files must be served by a host that answers them (GitHub Pages, the Hugging Face Hub and S3 do) and, when they are on another site than the page, that allows it with CORS. IRIS currently decodes every band of the current image into browser memory. Large scenes should therefore be tiled or downsampled to a size appropriate for the users' devices.
 
 ### Data on the Hugging Face Hub
 
@@ -75,7 +75,7 @@ segmentation/<image>/<user>_mask.tif   the mask: a COG of the mask area with two
 segmentation/<image>/<user>.json       the notes about the image and when the mask was saved
 ```
 
-In a bucket each save simply replaces the files. In a dataset each save is a commit, so saves close together go in one commit.
+In a bucket each save simply replaces the files. In a dataset each save is a commit. Before an upload starts, IRIS keeps the files in a durable browser outbox; a failed upload can therefore be retried after reloading the page.
 
 ### Accounts
 
@@ -88,7 +88,9 @@ npm run credentials -- add <user> --role admin --file public/credentials.json
 npm run credentials -- remove <user> --file public/credentials.json
 ```
 
-The script asks for the password (or reads `IRIS_PASSWORD`) and reads the user's Hugging Face token from `HF_TOKEN`. Anyone who knows a password can read the token in that entry, so give each user a [fine-grained token](https://huggingface.co/docs/hub/security-tokens) limited to the project's dataset and bucket, and long random passwords (at least 12 characters).
+The script asks for the password (or reads `IRIS_PASSWORD`) and reads the user's Hugging Face token from `HF_TOKEN`. Anyone who knows a password can read the token in that entry, so give each user a [fine-grained token](https://huggingface.co/docs/hub/security-tokens) limited to the project's dataset and bucket, and long random passwords (at least 16 characters).
+
+Accounts are intended for a trusted team. Because IRIS has no server, roles control the interface but cannot enforce authorization: a user can access their own decrypted token and perform anything that token permits. Tokens must therefore grant only the minimum repositories and operations that user needs. If users must be isolated from one another, place an authenticated service in front of the storage instead of publishing tokens in `credentials.json`.
 
 ### Masks, review and export
 

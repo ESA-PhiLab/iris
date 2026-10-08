@@ -17,12 +17,12 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 22.22.2
 
       - name: Dependency security audit
         run: |
           npm ci
-          npm audit --audit-level=moderate || echo "npm audit found vulnerabilities"
+          npm audit --audit-level=moderate
 
   secrets:
     name: Secret Scan
@@ -35,7 +35,7 @@ jobs:
 
       - name: Run TruffleHog secret detection (PR)
         if: github.event_name == 'pull_request'
-        uses: trufflesecurity/trufflehog@main
+        uses: trufflesecurity/trufflehog@b2b0a92070f206ab7b5a1105d82a7f2f48d92341 # v3.99.0
         with:
           path: ./
           base: ${{ github.event.pull_request.base.sha }}
@@ -44,7 +44,7 @@ jobs:
 
       - name: Run TruffleHog secret detection (Push)
         if: github.event_name == 'push'
-        uses: trufflesecurity/trufflehog@main
+        uses: trufflesecurity/trufflehog@b2b0a92070f206ab7b5a1105d82a7f2f48d92341 # v3.99.0
         with:
           path: ./
           extra_args: --only-verified

@@ -76,14 +76,37 @@ const SegmentationApp: React.FC = () => {
 
   // Keep unsaved changes when the page closes
   useEffect(() => {
-    const onPageHide = () => {
-      const { maskChanged, currentImageId, maskData, userMaskData } = useSegmentationStore.getState();
-      if (maskChanged && currentImageId && maskData && userMaskData) {
-        backend().saveMaskOnUnload(currentImageId, { mask: maskData, userMask: userMaskData });
-      }
+    let saving = false;
+    const saveChangedMask = () => {
+      if (saving) return;
+      const { maskChanged, currentImageId, maskData, userMaskData, maskVersion } = useSegmentationStore.getState();
+      if (!maskChanged || !currentImageId || !maskData || !userMaskData) return;
+      saving = true;
+      const snapshot = { mask: new Uint8Array(maskData), userMask: new Uint8Array(userMaskData) };
+      backend().saveMask(currentImageId, snapshot).then(() => {
+        const current = useSegmentationStore.getState();
+        if (current.currentImageId === currentImageId && current.maskVersion === maskVersion) {
+          useSegmentationStore.setState({ maskChanged: false, lastSaveTime: new Date() });
+        }
+      }).catch(() => {}).finally(() => { saving = false; });
     };
-    window.addEventListener('pagehide', onPageHide);
-    return () => window.removeEventListener('pagehide', onPageHide);
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!useSegmentationStore.getState().maskChanged) return;
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    const onVisibilityChange = () => { if (document.visibilityState === 'hidden') saveChangedMask(); };
+    const onOnline = () => { backend().flush().catch(() => {}); };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    window.addEventListener('pagehide', saveChangedMask);
+    window.addEventListener('online', onOnline);
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => {
+      window.removeEventListener('beforeunload', onBeforeUnload);
+      window.removeEventListener('pagehide', saveChangedMask);
+      window.removeEventListener('online', onOnline);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
   }, []);
 
   const handleOpenPreferences = useCallback(() => setIsPreferencesOpen(true), []);

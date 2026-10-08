@@ -2,7 +2,11 @@
   "name": "iris",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "description": "Segmentation of satellite images in the browser, without a server",
+  "engines": {
+    "node": ">=22.22.2"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -15,7 +19,7 @@
   "dependencies": {
     "@developmentseed/epsg": "0.8.1",
     "@huggingface/hub": "2.17.6",
-    "fflate": "0.8.2",
+    "fflate": "0.8.3",
     "geotiff": "3.0.5",
     "maplibre-gl": "^6.11.2",
     "proj4": "2.20.9",
@@ -24,16 +28,15 @@
     "zustand": "^5.0.9"
   },
   "devDependencies": {
-    "@testing-library/jest-dom": "^6.1.5",
+    "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^14.1.2",
     "@types/node": "^22.20.5",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
-    "@vitejs/plugin-react": "^4.0.0",
-    "jsdom": "^23.0.1",
-    "patch-package": "^8.0.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "jsdom": "^30.1.2",
     "typescript": "^5.0.0",
-    "vite": "^5.4.21",
-    "vitest": "^1.0.4"
+    "vite": "^8.3.4",
+    "vitest": "^5.0.3"
   }
 }

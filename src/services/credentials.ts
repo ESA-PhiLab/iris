@@ -31,6 +31,9 @@ const fromBase64 = (text: string) => Uint8Array.from(atob(text), (character) => 
 const toBase64Url = (bytes: Uint8Array) =>
   btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 
+const safeUserName = (user: unknown): user is string =>
+  typeof user === 'string' && !!user && user !== '.' && user !== '..' && !/[\\/\u0000-\u001f]/.test(user);
+
 /** Where the entry of a user is: a hash of the salted name */
 export const userEntryId = async (salt: string, user: string) => {
   const name = new TextEncoder().encode(user);
@@ -70,7 +73,9 @@ export const unlock = async (file: CredentialsFile, user: string, password: stri
       fromBase64(entry.ciphertext) as Uint8Array<ArrayBuffer>
     );
     const payload = JSON.parse(new TextDecoder().decode(plain));
-    return { user: payload.user ?? user, role: payload.role === 'admin' ? 'admin' : 'annotator', hfToken: payload.hfToken ?? null };
+    const openedUser = payload.user ?? user;
+    if (!safeUserName(openedUser)) throw new Error('Unsafe user name');
+    return { user: openedUser, role: payload.role === 'admin' ? 'admin' : 'annotator', hfToken: payload.hfToken ?? null };
   } catch {
     throw new WrongCredentials();
   }

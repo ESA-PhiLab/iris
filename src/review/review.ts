@@ -25,6 +25,17 @@ export interface ImageReview {
   unverified: boolean;
 }
 
+const mapConcurrent = async <T>(items: T[], limit: number, visit: (item: T) => Promise<void>) => {
+  let next = 0;
+  const worker = async () => {
+    while (next < items.length) {
+      const item = items[next++];
+      await visit(item);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+};
+
 /** Who annotated each image, with their notes */
 export const collectReview = async (
   source: ReviewSource,
@@ -33,11 +44,11 @@ export const collectReview = async (
 ): Promise<{ images: ImageReview[]; shared: boolean }> => {
   const { entries, shared } = await source.list();
   const byImage = new Map<string, Annotation[]>(imageIds.map((id) => [id, []]));
-  await Promise.all(entries.map(async (entry) => {
+  await mapConcurrent(entries, 8, async (entry) => {
     const notes = await source.loadNotes(entry.user, entry.imageId).catch(() => null);
     if (!byImage.has(entry.imageId)) byImage.set(entry.imageId, []);
     byImage.get(entry.imageId)!.push({ user: entry.user, modified: entry.modified, notes });
-  }));
+  });
   const images = [...byImage.entries()].map(([imageId, annotations]) => ({
     imageId,
     annotations: annotations.sort((a, b) => a.user.localeCompare(b.user)),

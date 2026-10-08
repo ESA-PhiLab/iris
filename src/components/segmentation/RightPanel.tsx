@@ -256,6 +256,9 @@ const RightPanel: React.FC<RightPanelProps> = ({ expanded, onToggle, onSelectCla
     { value: 'errors', label: 'Errors', title: 'Error mask', shortcut: 'maskErrors' },
   ];
 
+  const opaqueClassColour = currentClassConfig
+    ? `rgb(${currentClassConfig.colour.slice(0, 3).join(', ')})`
+    : 'transparent';
   const swatch = (
     <span style={{
       display: 'inline-block',
@@ -264,10 +267,7 @@ const RightPanel: React.FC<RightPanelProps> = ({ expanded, onToggle, onSelectCla
       flexShrink: 0,
       borderRadius: '3px',
       border: `1px solid ${theme.panelBorder}`,
-      backgroundColor: currentClassConfig
-        // Solid, so even a nearly transparent class colour shows
-        ? `rgb(${currentClassConfig.colour.slice(0, 3).join(',')})`
-        : 'transparent',
+      backgroundColor: opaqueClassColour,
     }} />
   );
   const className = currentClassConfig ? currentClassConfig.name : 'No class';

@@ -11,6 +11,7 @@ export interface AIModelConfig {
   use_meshgrid: boolean;
   meshgrid_cells: string;
   use_superpixels: boolean;
+  /** Bands used by the model; preferences resolve all bands explicitly */
   bands: string[];
   suppression_filter_size: number;
   suppression_threshold: number;
@@ -25,34 +26,42 @@ export interface ClassConfig {
   user_colour?: [number, number, number, number]; // Optional user-specific color
 }
 
-// PHASE 2: Navigation & Actions Types
-export interface ProjectConfig {
-  name: string;
-  host: string;
-  port: number;
-  images: string | string[];
-  classes: ClassConfig[];
-  views: ViewConfig[] | { [key: string]: ViewConfig }; // Support both array and object formats
-  view_groups: string[][] | { [key: string]: string[] }; // Support both array and object formats
-  segmentation: {
-    mask_path: string;
-    mask_area?: [number, number, number, number]; // Optional mask area coordinates
-    ai_model: AIModelConfig;
-    scoring: {
-      enabled: boolean;
-      metrics: string[];
-    };
-  };
+export interface ProjectImagesConfig {
+  path: Record<string, string>;
+  ids?: string[];
+  list?: string;
+  thumbnails?: string | false;
+  metadata?: string | false;
 }
 
-export interface ViewConfig {
+export interface ProjectViewConfig {
+  name?: string;
+  type?: 'image';
+  description?: string;
+  data: string | string[];
+  cmap?: string;
+  clip?: number | null;
+  vmin?: number | null;
+  vmax?: number | null;
+}
+
+export interface ProjectAIModelConfig extends Omit<AIModelConfig, 'bands'> {
+  /** Null in a project file means every band */
+  bands: string[] | null;
+}
+
+export interface ProjectConfig {
   name: string;
-  type: string;
-  bands?: string[];
-  expression?: string;
-  colormap?: string;
-  vmin?: number;
-  vmax?: number;
+  images: ProjectImagesConfig;
+  classes: ClassConfig[];
+  views: Record<string, ProjectViewConfig>;
+  view_groups: Record<string, string[]>;
+  segmentation: {
+    mask_area?: [number, number, number, number] | null;
+    score: 'f1' | 'jaccard' | 'accuracy';
+    unverified_threshold: number;
+    ai_model: ProjectAIModelConfig | false;
+  };
 }
 
 export interface UserInfo {

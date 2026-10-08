@@ -38,9 +38,8 @@ const ClassSelectionModal: React.FC<ClassSelectionModalProps> = ({ isOpen, onClo
     onClose();
   };
 
-  const rgba2css = (colour: number[]) => {
-    if (!colour || colour.length < 4) return 'rgba(128, 128, 128, 1)';
-    // Solid, so even a nearly transparent class colour shows
+  const opaqueClassColour = (colour: number[]) => {
+    if (!colour || colour.length < 3) return 'rgb(128, 128, 128)';
     return `rgb(${colour[0]}, ${colour[1]}, ${colour[2]})`;
   };
 
@@ -142,7 +141,7 @@ const ClassSelectionModal: React.FC<ClassSelectionModalProps> = ({ isOpen, onClo
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             {classes.map((classItem, index) => {
               const isSelected = currentClass === index;
-              const color = rgba2css(classItem.colour);
+              const color = opaqueClassColour(classItem.colour);
               return (
                 <button
                   key={index}

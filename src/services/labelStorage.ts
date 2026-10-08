@@ -3,14 +3,14 @@
  *
  * In this browser (IndexedDB), or on the Hugging Face Hub, where every user
  * of the project writes: a storage bucket (recommended, files are simply
- * replaced) or a dataset (each save is a commit, so saves close together go
- * in one commit). On the Hub the masks are laid out as:
+ * replaced) or a dataset (each save is a commit). Files first enter a durable
+ * browser outbox, so a failed upload can be retried. On the Hub they are:
  *   segmentation/<image>/<user>_mask.tif   the mask (see export/maskFiles.ts)
  *   segmentation/<image>/<user>.json       the notes and when it was saved
  */
 
 import type { UserMask } from './backend';
-import { DEFAULT_NOTES, ImageNotes, localLabels } from './localLabels';
+import { DEFAULT_NOTES, ImageNotes, localLabels, localOutbox } from './localLabels';
 import { HfLocation, fetchFile, formatHfPath, hub, hubRepo, parseHfPath } from './huggingface';
 import { readMaskCog } from '../export/maskFiles';
 
@@ -37,11 +37,12 @@ export interface LabelStorage {
 }
 
 /** Masks in this browser */
-export const browserStorage = (project: string): LabelStorage => ({
+export const browserStorage = (project: string, legacyProject?: string): LabelStorage => ({
   shared: false,
 
   async loadMask(user, imageId, length) {
-    const label = await localLabels(project, user).get(imageId);
+    const label = await localLabels(project, user).get(imageId)
+      ?? (legacyProject ? await localLabels(legacyProject, user).get(imageId) : null);
     if (!label?.mask || !label.userMask || label.mask.length !== length) return null;
     return { mask: new Uint8Array(label.mask), userMask: new Uint8Array(label.userMask) };
   },
@@ -51,7 +52,8 @@ export const browserStorage = (project: string): LabelStorage => ({
   },
 
   async loadNotes(user, imageId) {
-    const label = await localLabels(project, user).get(imageId);
+    const label = await localLabels(project, user).get(imageId)
+      ?? (legacyProject ? await localLabels(legacyProject, user).get(imageId) : null);
     return label?.mask ? label.notes : null;
   },
 
@@ -60,7 +62,11 @@ export const browserStorage = (project: string): LabelStorage => ({
   },
 
   async list() {
-    return (await localLabels(project, '').everyone())
+    const current = await localLabels(project, '').everyone();
+    const legacy = legacyProject ? await localLabels(legacyProject, '').everyone() : [];
+    const labels = new Map<string, (typeof current)[number]>();
+    for (const label of [...legacy, ...current]) labels.set(`${label.user}|${label.imageId}`, label);
+    return [...labels.values()]
       .filter((label) => label.mask)
       .map(({ user, imageId, modified }) => ({ user, imageId, modified }));
   },
@@ -73,23 +79,29 @@ type Notes = ImageNotes & { modified: string; user: string };
 const ownerPath = (base: HfLocation, imageId: string, file: string) =>
   [base.path, 'segmentation', imageId, file].filter(Boolean).join('/');
 
-/** How long a dataset waits for more saves before committing them */
-const COMMIT_DELAY = 4000;
-
 /** Masks on the Hugging Face Hub, in a bucket or a dataset */
 export const hubStorage = (location: string, token: string | null): LabelStorage => {
   const base = parseHfPath(location);
   const at = (imageId: string, file: string) => formatHfPath({ ...base, path: ownerPath(base, imageId, file) });
-  const notesCache = new Map<string, Notes>();
+  const outbox = localOutbox(location);
 
-  // Files waiting for the next commit of a dataset, by path
+  // Files are durable in IndexedDB before they are uploaded. This map mirrors
+  // that outbox while this page is open.
   const pending = new Map<string, Uint8Array>();
-  let timer: ReturnType<typeof setTimeout> | null = null;
+  let restoring: Promise<void> | null = null;
   let committing: Promise<void> = Promise.resolve();
 
+  const restore = () => {
+    if (!restoring) {
+      restoring = outbox.all().then((files) => {
+        for (const { path, bytes } of files) if (!pending.has(path)) pending.set(path, bytes);
+      });
+    }
+    return restoring;
+  };
+
   const commit = async () => {
-    if (timer) clearTimeout(timer);
-    timer = null;
+    await restore();
     if (!pending.size) return;
     const files = [...pending.entries()].map(([path, bytes]) => ({ path, bytes }));
     pending.clear();
@@ -102,6 +114,8 @@ export const hubStorage = (location: string, token: string | null): LabelStorage
         branch: base.revision,
         commitTitle: `Save ${files.length} mask files from IRIS`,
       });
+      // A newer save of the same path may have arrived during the upload.
+      await outbox.remove(files.filter(({ path }) => !pending.has(path)).map(({ path }) => path));
     } catch (error) {
       // Keep them for the next try, unless saved again since
       for (const { path, bytes } of files) if (!pending.has(path)) pending.set(path, bytes);
@@ -109,45 +123,39 @@ export const hubStorage = (location: string, token: string | null): LabelStorage
     }
   };
 
+  const flush = async () => {
+    const done = committing.then(commit);
+    committing = done.catch(() => {});
+    await done;
+  };
+
   const write = async (files: Record<string, Uint8Array>) => {
-    if (base.type === 'bucket') {
-      const { uploadFiles } = await hub();
-      await uploadFiles({
-        repo: hubRepo(base),
-        accessToken: token ?? undefined,
-        files: Object.entries(files).map(([path, bytes]) => ({
-          path, content: new Blob([bytes as Uint8Array<ArrayBuffer>]),
-        })),
-      });
-      return;
-    }
+    await restore();
+    await outbox.put(files);
     for (const [path, bytes] of Object.entries(files)) pending.set(path, bytes);
-    if (timer) clearTimeout(timer);
-    timer = setTimeout(() => {
-      committing = committing.then(commit).catch((error) => console.error('Could not commit the masks:', error));
-    }, COMMIT_DELAY);
+    await flush();
   };
 
   const readNotes = async (user: string, imageId: string): Promise<Notes | null> => {
-    const key = `${user}|${imageId}`;
-    if (notesCache.has(key)) return notesCache.get(key)!;
+    await restore();
+    const path = ownerPath(base, imageId, `${user}.json`);
+    const waiting = pending.get(path);
+    if (waiting) return { ...DEFAULT_NOTES, ...JSON.parse(new TextDecoder().decode(waiting)) };
     const response = await fetchFile(at(imageId, `${user}.json`), token, { cache: 'no-store' });
     if (response.status === 404) return null;
     if (!response.ok) throw new Error(`Could not read the notes of ${user} on ${imageId} (${response.status})`);
-    const notes: Notes = { ...DEFAULT_NOTES, ...(await response.json()) };
-    notesCache.set(key, notes);
-    return notes;
+    return { ...DEFAULT_NOTES, ...(await response.json()) };
   };
 
-  const writeNotes = async (user: string, imageId: string, notes: Notes) => {
-    notesCache.set(`${user}|${imageId}`, notes);
-    return { [ownerPath(base, imageId, `${user}.json`)]: new TextEncoder().encode(JSON.stringify(notes, null, 2)) };
-  };
+  const writeNotes = async (user: string, imageId: string, notes: Notes) => ({
+    [ownerPath(base, imageId, `${user}.json`)]: new TextEncoder().encode(JSON.stringify(notes, null, 2)),
+  });
 
   return {
     shared: true,
 
     async loadMask(user, imageId, length) {
+      await restore();
       const waiting = pending.get(ownerPath(base, imageId, `${user}_mask.tif`));
       if (waiting) return readMaskCog(waiting.slice().buffer, length);
       const response = await fetchFile(at(imageId, `${user}_mask.tif`), token, { cache: 'no-store' });
@@ -171,24 +179,29 @@ export const hubStorage = (location: string, token: string | null): LabelStorage
     },
 
     async saveNotes(user, imageId, notes) {
-      const previous = await readNotes(user, imageId);
+      // Editing notes remains durable while temporarily offline, just like a
+      // mask save. A pending local note is still returned by readNotes.
+      const previous = await readNotes(user, imageId).catch(() => null);
       await write(await writeNotes(user, imageId, {
         ...DEFAULT_NOTES, ...previous, ...notes, user, modified: previous?.modified ?? new Date().toISOString(),
       }));
     },
 
     async list() {
+      await restore();
       const { listFiles } = await hub();
       const folder = [base.path, 'segmentation'].filter(Boolean).join('/');
-      const entries: LabelEntry[] = [];
+      const entries = new Map<string, LabelEntry>();
+      const escapedFolder = folder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const maskPath = new RegExp(`^${escapedFolder}/(.+)/([^/]+)_mask\\.tif$`);
       try {
         for await (const file of listFiles({
           repo: hubRepo(base), path: folder, recursive: true, expand: true,
           revision: base.revision, accessToken: token ?? undefined,
         })) {
-          const match = file.type === 'file' && new RegExp(`^${folder}/(.+)/([^/]+)_mask\\.tif$`).exec(file.path);
+          const match = file.type === 'file' && maskPath.exec(file.path);
           if (match) {
-            entries.push({
+            entries.set(`${match[1]}|${match[2]}`, {
               imageId: match[1],
               user: match[2],
               modified: file.uploadedAt ?? file.lastCommit?.date ?? '',
@@ -199,13 +212,14 @@ export const hubStorage = (location: string, token: string | null): LabelStorage
         // A new bucket or dataset has no segmentation folder yet
         if (!/not found|404/i.test(String(error))) throw error;
       }
-      return entries;
+      for (const { path, modified } of await outbox.all()) {
+        const match = maskPath.exec(path);
+        if (match) entries.set(`${match[1]}|${match[2]}`, { imageId: match[1], user: match[2], modified });
+      }
+      if (pending.size) void flush().catch((error) => console.error('Could not retry pending mask uploads:', error));
+      return [...entries.values()];
     },
 
-    async flush() {
-      const done = committing.then(commit);
-      committing = done.catch(() => {});
-      await done;
-    },
+    flush,
   };
 };
