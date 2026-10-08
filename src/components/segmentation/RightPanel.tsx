@@ -290,7 +290,8 @@ const RightPanel: React.FC<RightPanelProps> = ({ expanded, onToggle, onSelectCla
       borderRadius: '3px',
       border: `1px solid ${theme.panelBorder}`,
       backgroundColor: currentClassConfig
-        ? `rgba(${currentClassConfig.colour.slice(0, 3).join(',')}, ${Math.max(currentClassConfig.colour[3] / 255, 0.15)})`
+        // Solid, so even a nearly transparent class colour shows
+        ? `rgb(${currentClassConfig.colour.slice(0, 3).join(',')})`
         : 'transparent',
     }} />
   );

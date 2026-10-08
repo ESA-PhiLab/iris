@@ -40,7 +40,8 @@ const ClassSelectionModal: React.FC<ClassSelectionModalProps> = ({ isOpen, onClo
 
   const rgba2css = (colour: number[]) => {
     if (!colour || colour.length < 4) return 'rgba(128, 128, 128, 1)';
-    return `rgba(${colour[0]}, ${colour[1]}, ${colour[2]}, ${colour[3] / 255})`;
+    // Solid, so even a nearly transparent class colour shows
+    return `rgb(${colour[0]}, ${colour[1]}, ${colour[2]})`;
   };
 
   const niceNumber = (num: number): string => {

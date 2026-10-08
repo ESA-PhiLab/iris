@@ -120,8 +120,7 @@ This is a list of classes that you want to allow the user to label. Each class i
     {
         "name": "Clear",
         "description": "All clear pixels.",
-        "colour": [255,255,255,0],
-        "user_colour": [0,255,255,70]
+        "colour": [0,150,255,70]
     },
     {
         "name": "Cloud",

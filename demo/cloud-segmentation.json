@@ -13,18 +13,12 @@
     {
       "name": "Clear",
       "colour": [
-        255,
-        255,
-        255,
-        0
-      ],
-      "description": "All clear pixels, i.e. without cloud contamination or cloud shadows.",
-      "user_colour": [
         0,
-        255,
+        150,
         255,
         70
-      ]
+      ],
+      "description": "All clear pixels, i.e. without cloud contamination or cloud shadows."
     },
     {
       "name": "Thick Cloud",
