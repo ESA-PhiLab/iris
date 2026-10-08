@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from iris.project import project
-from iris.segmentation import encode_mask, get_score, image_dict_to_array
+from iris.segmentation import encode_mask, get_score
 
 
 def test_encode_mask_integer_and_binary_and_unknown(tmp_path, monkeypatch):
@@ -15,13 +15,6 @@ def test_encode_mask_integer_and_binary_and_unknown(tmp_path, monkeypatch):
     assert out_bin.dtype == bool
     with pytest.raises(ValueError):
         encode_mask(mask, mode="bogus")
-
-
-def test_image_dict_to_array_and_passthrough():
-    a = np.ones((2, 2), dtype=np.uint8)
-    d = {"a": a, "b": a * 2}
-    out = image_dict_to_array(d)
-    assert out.shape[0] == 2 and out.shape[2] == 2
 
 
 @pytest.mark.parametrize(

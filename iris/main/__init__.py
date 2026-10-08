@@ -1,11 +1,7 @@
-import io
 import json
 
 import flask
 import markupsafe
-import numpy as np
-from PIL import Image as PILImage
-from skimage.transform import resize
 
 from iris.models import Action, db
 from iris.project import project
@@ -22,11 +18,6 @@ def index():
     return flask.redirect(
         flask.url_for('segmentation_spa.segmentation_spa')
     )
-
-@main_app.route('/image/<image_id>/<view>')
-def image(image_id, view):
-    image = project.render_image(image_id, project['views'][view])
-    return array_to_png(image)
 
 @main_app.route('/image_info/<image_id>')
 @requires_auth
@@ -101,22 +92,8 @@ def metadata(image_id):
 
 @main_app.route('/thumbnail/<image_id>', methods=['GET'])
 def thumbnail(image_id):
-    size = flask.request.args.get("size", None)
-    array = project.get_thumbnail(image_id)
-
-    if size is not None:
-        print(size, tuple(size.split("x")))
-        size = map(int, size.split("x"))
-        array = resize(array, size)
-
-    return array_to_png(array)
-
-def array_to_png(array):
-    if issubclass(array.dtype.type, np.floating):
-        array = np.clip(array * 255., 0, 255).astype('uint8')
-
-    img = PILImage.fromarray(array) # convert arr to image
-    file_object = io.BytesIO()   # create file in memory
-    img.save(file_object, 'PNG') # save PNG in file in memory
-    file_object.seek(0)          # move to beginning of file
-    return flask.send_file(file_object,  mimetype='image/png')
+    """The thumbnail file of an image; the browser scales it"""
+    filename = project.get_thumbnail_path(image_id)
+    if not filename:
+        return flask.make_response("No thumbnail found!", 404)
+    return flask.send_file(filename, max_age=0)

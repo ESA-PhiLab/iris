@@ -3,31 +3,9 @@ import os
 import numpy as np
 import pytest
 import rasterio as rio
-from skimage.io import imsave
 
 from iris import project
 from iris.project import Project
-
-
-@pytest.mark.parametrize("expr", ["max(B1)", "mean($B1) + 1"])
-def test_check_band_expression_allows(expr):
-    project._check_band_expression(expr)  # should not raise
-
-
-@pytest.mark.parametrize(
-    "bad",
-    [
-        "lambda x: x",
-        "__import__('os')",
-        "1; import os",
-        "eval('1')",
-        "a; b",
-        "except: pass",
-    ],
-)
-def test_check_band_expression_forbids(bad):
-    with pytest.raises(Exception):  # noqa: B017
-        project._check_band_expression(bad)
 
 
 def test_make_absolute_varieties(tmp_path, monkeypatch):
@@ -115,8 +93,9 @@ def test_load_image_rejects_non_cogs(tmp_path):
 
     npyfile = tmp_path / "img.npy"
     np.save(str(npyfile), arr, allow_pickle=False)
+    # Any file that is not a TIFF, e.g. a PNG
     png = tmp_path / "img.png"
-    imsave(str(png), arr, check_contrast=False)
+    png.write_bytes(b"\x89PNG\r\n\x1a\n")
     # A GeoTIFF without tiles and without CRS
     striped = tmp_path / "striped.tif"
     with rio.open(

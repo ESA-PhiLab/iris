@@ -6,7 +6,7 @@
  * the server.
  */
 
-type Pixels = Float32Array | Float64Array;
+type Pixels = Float32Array<ArrayBufferLike> | Float64Array<ArrayBufferLike>;
 
 /** scipy.ndimage 'reflect' mode: (d c b a | a b c d | d c b a) */
 export const reflect = (i: number, size: number) => {

@@ -458,75 +458,59 @@ class TestImagesAPIEndpoint(TestAdminAPIEndpoints):
         assert response.status_code in [302, 401, 403]
 
 
-class TestExportMergedGeoTIFFEndpoint(TestAdminAPIEndpoints):
-    """Test /admin/api/export-merged-geotiff/<image_id> endpoint."""
+class TestMergedMaskEndpoint(TestAdminAPIEndpoints):
+    """Test /admin/api/merged-mask/<image_id> endpoint."""
 
-    def test_export_requires_admin_privileges(self, client):
-        """Test that only admins can export merged GeoTIFF."""
-        # Login as regular user
+    def test_merged_mask_requires_admin_privileges(self, client):
         self.login_regular(client)
 
-        response = client.get("/admin/api/export-merged-geotiff/image_001")
-        assert response.status_code == 403
+        response = client.get("/admin/api/merged-mask/image_001")
 
-        # The @requires_admin decorator returns plain text, not JSON
+        assert response.status_code == 403
         assert b"admin rights" in response.data
 
-    def test_export_validates_image_exists(self, client):
-        """Test that export validates image_id exists in project."""
+    def test_merged_mask_validates_image_exists(self, client):
         self.login_admin(client)
 
-        response = client.get("/admin/api/export-merged-geotiff/nonexistent_image")
+        response = client.get("/admin/api/merged-mask/nonexistent_image")
+
         assert response.status_code == 404
+        assert "Image not found" in json.loads(response.data)["error"]
 
-        data = json.loads(response.data)
-        assert "error" in data
-        assert "Image not found" in data["error"]
+    def test_merged_mask_needs_masks(self, client, app, tmp_path, project_snapshot):
+        from iris.project import project
 
-    def test_export_requires_mask_data(self, client, app):
-        """Test that export fails if no masks exist for image."""
+        with app.app_context():
+            project["path"] = str(tmp_path)
         self.login_admin(client)
-        response = client.get("/admin/api/export-merged-geotiff/nonexistent_image_with_no_masks_12345")
 
-        # Should return 404 - either image not found or no masks
+        response = client.get(f"/admin/api/merged-mask/{project.image_ids[0]}")
+
         assert response.status_code == 404
-        data = json.loads(response.data)
-        assert "error" in data
 
-    def test_export_returns_geotiff_file(self, client, app, tmp_path, project_snapshot):
-        """Test that export returns a georeferenced GeoTIFF when masks exist."""
+    def test_merged_mask_is_the_vote_of_the_users(self, client, app, tmp_path, project_snapshot):
         import numpy as np
-        from rasterio.io import MemoryFile
 
         from iris.project import project
         from iris.segmentation import get_mask_filename, write_mask_cog
 
         with app.app_context():
             project["path"] = str(tmp_path)
-            test_image_id = project.image_ids[0]
-
-            # Two users agree on class 2 everywhere
+            image_id = project.image_ids[0]
             width, height = project['segmentation']['mask_shape']
-            bands = np.zeros((2, height, width), dtype=np.uint8)
-            bands[0] = 2
-            for user_id in [1, 2]:
-                write_mask_cog(get_mask_filename(test_image_id, user_id), test_image_id, bands)
+            # Two users say class 2, one says class 1
+            for user_id, klass in [(1, 2), (2, 2), (3, 1)]:
+                bands = np.zeros((2, height, width), dtype=np.uint8)
+                bands[0] = klass
+                write_mask_cog(get_mask_filename(image_id, user_id), image_id, bands)
 
         self.login_admin(client)
-        response = client.get(f"/admin/api/export-merged-geotiff/{test_image_id}")
+        response = client.get(f"/admin/api/merged-mask/{image_id}")
 
         assert response.status_code == 200
-        assert response.mimetype == "image/tiff"
-        assert f"{test_image_id}_merged.tif" in response.headers.get("Content-Disposition", "")
-
-        crs, transform, _, _ = project.get_georef(test_image_id)
-        x0, y0 = project['segmentation']['mask_area'][:2]
-        with MemoryFile(response.data) as memfile, memfile.open() as exported:
-            assert exported.count == 4
-            assert (exported.width, exported.height) == (width, height)
-            assert exported.crs == crs
-            assert exported.transform * (0, 0) == transform * (x0, y0)
-            assert (exported.read(4) == 2).all()
+        mask = np.frombuffer(response.data, dtype=np.uint8)
+        assert mask.shape == (width * height,)
+        assert (mask == 2).all()
 
 
 class TestAdminAPIIntegration(TestAdminAPIEndpoints):

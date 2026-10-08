@@ -1,13 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { segmentationUrl } from '../utils/urls';
 import { ImageData, ImagesApiResponse } from '../types/iris';
-
-// Declare global function from base.html
-declare global {
-  interface Window {
-    goto_image: (mode: string, imageId: string) => void;
-  }
-}
+import { downloadFile, exportMergedImages } from '../export/annotated';
 
 const ImagesPage: React.FC = () => {
   const [images, setImages] = useState<ImageData[]>([]);
@@ -35,50 +29,35 @@ const ImagesPage: React.FC = () => {
     }
   };
 
-  const handleExportAll = async (): Promise<void> => {
+  /** GeoTIFFs with the masks merged from all users, made in the browser */
+  const exportImages = async (imageIds: string[]): Promise<void> => {
     if (isExporting) return;
-
-    const outputDir = prompt('Enter output directory (default: exports):', 'exports');
-    if (outputDir === null) return; // User cancelled
-
     setIsExporting(true);
-    setExportMessage('Exporting all images...');
-
+    setExportMessage('Exporting...');
     try {
-      const response = await fetch('/admin/api/export-all-geotiffs', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          output_dir: outputDir || 'exports'
-        }),
+      const result = await exportMergedImages(imageIds, (done, total) => {
+        setExportMessage(`Exporting ${done} of ${total} images...`);
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Export failed');
+      if (!result) {
+        setExportMessage('❌ No image has annotations to export.');
+      } else {
+        downloadFile(result.bytes, result.name, result.name.endsWith('.zip') ? 'application/zip' : 'image/tiff');
+        setExportMessage(
+          `✅ Export complete! Exported ${result.count} images. `
+          + `Skipped ${imageIds.length - result.count} images (no annotations).`
+        );
       }
-
-      const result = await response.json();
-      setExportMessage(
-        `✅ Export complete! Exported ${result.exported_count} images to ${result.output_dir}. ` +
-        `Skipped ${result.skipped_count} images (no annotations).`
-      );
-
-      // Clear message after 10 seconds
-      setTimeout(() => setExportMessage(''), 10000);
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown error';
       setExportMessage(`❌ Export failed: ${errorMsg}`);
       console.error('Export error:', error);
-
-      // Clear error message after 10 seconds
-      setTimeout(() => setExportMessage(''), 10000);
     } finally {
       setIsExporting(false);
+      setTimeout(() => setExportMessage(''), 10000);
     }
   };
+
+  const handleExportAll = () => exportImages(images.map((image) => image.image_id));
 
   useEffect(() => {
     fetchImages();
@@ -185,8 +164,8 @@ const ImagesPage: React.FC = () => {
                 <td>
                   {hasAnnotations ? (
                     <a
-                      href={`/admin/api/export-merged-geotiff/${image.image_id}`}
-                      download={`${image.image_id}_merged.tif`}
+                      href="#"
+                      onClick={(e) => { e.preventDefault(); exportImages([image.image_id]); }}
                       style={{ textDecoration: 'underline', cursor: 'pointer' }}
                     >
                       GeoTIFF

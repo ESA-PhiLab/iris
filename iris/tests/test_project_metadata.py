@@ -2,7 +2,6 @@ import json
 
 import numpy as np
 import yaml
-from skimage.io import imsave
 
 from iris.project import project
 
@@ -35,14 +34,12 @@ def test_get_metadata_json_yaml_and_raw(tmp_path, project_snapshot):
 
 
 def test_get_thumbnail_and_image_path_and_bands(tmp_path, project_snapshot, monkeypatch):
-    # setup a small thumbnail
-    img = (np.arange(6).reshape(3, 2)).astype(np.uint8)
-    thumb = tmp_path / "thumb.png"
-    imsave(str(thumb), img)
-
-    project["images"] = {"thumbnails": str(thumb)}
-    t = project.get_thumbnail("1")
-    assert t.shape[0] == 3
+    # The thumbnail is a file the browser shows as it is
+    thumb = tmp_path / "1.png"
+    thumb.write_bytes(b"png")
+    project["images"] = {"thumbnails": str(tmp_path / "{id}.png")}
+    assert project.get_thumbnail_path("1") == str(thumb)
+    assert project.get_thumbnail_path("2") is None
 
     # image path non-dict
     project["images"] = {"path": str(tmp_path / "{id}.tif")}

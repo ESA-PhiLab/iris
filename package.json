@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@developmentseed/epsg": "0.8.1",
+    "fflate": "0.8.2",
     "geotiff": "3.0.5",
     "maplibre-gl": "^6.11.2",
     "proj4": "2.20.9",

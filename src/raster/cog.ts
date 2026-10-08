@@ -10,6 +10,7 @@
 import { GeoTIFFImage, fromArrayBuffer, fromUrl } from 'geotiff';
 import type { Corners, Georef } from '../utils/georef';
 import { toLngLat } from './crs';
+import type { Raster } from './expression';
 
 /** Where a file of an image can be read from */
 export interface ImageFileSource {
@@ -34,11 +35,13 @@ const GEOGRAPHIC_KEYS = ['ProjectedCSTypeGeoKey', 'GeographicTypeGeoKey'] as con
 const USER_DEFINED = 32767;
 
 /** EPSG code of the coordinate reference system of an image */
-export const imageEpsg = (image: GeoTIFFImage): number => {
+export const imageEpsg = (image: GeoTIFFImage): { epsg: number; geographic: boolean } => {
   const keys = image.getGeoKeys() || {};
   for (const key of GEOGRAPHIC_KEYS) {
     const code = keys[key];
-    if (typeof code === 'number' && code !== USER_DEFINED) return code;
+    if (typeof code === 'number' && code !== USER_DEFINED) {
+      return { epsg: code, geographic: key === 'GeographicTypeGeoKey' };
+    }
   }
   throw new Error('The image has no EPSG coordinate reference system');
 };
@@ -73,11 +76,11 @@ const applyAffine = ([a, b, c, d, e, f]: Affine, col: number, row: number): [num
 export const imageGeoref = async (image: GeoTIFFImage): Promise<Georef> => {
   const width = image.getWidth();
   const height = image.getHeight();
-  const epsg = imageEpsg(image);
+  const { epsg, geographic } = imageEpsg(image);
   const transform = imageTransform(image);
   const pixels: Array<[number, number]> = [[0, 0], [width, 0], [width, height], [0, height]];
   const corners = await toLngLat(epsg, pixels.map(([col, row]) => applyAffine(transform, col, row)));
-  return { width, height, crs: `EPSG:${epsg}`, corners: corners as Corners };
+  return { width, height, crs: `EPSG:${epsg}`, corners: corners as Corners, epsg, geographic, transform };
 };
 
 const INTEGER_RANGES: Record<string, number> = {
@@ -129,3 +132,23 @@ export const readImage = async (
 
   return { width, height, georef: await imageGeoref(images[0]), files, integerRange };
 };
+
+/** Bands of an image for the band expressions, $File.Bn or $Bn */
+export const rasterOf = (pixels: ImagePixels): Raster => ({
+  width: pixels.width,
+  height: pixels.height,
+  band: (file, band) => {
+    const ids = Object.keys(pixels.files);
+    if (file === null && ids.length > 1) {
+      throw new Error(`The image has several files, write the band as $${ids[0]}.B${band}`);
+    }
+    const bands = pixels.files[file ?? ids[0]];
+    if (!bands) {
+      throw new Error(`The image has no file '${file}', it has ${ids.join(', ')}`);
+    }
+    if (band > bands.length) {
+      throw new Error(`$${file ? `${file}.` : ''}B${band} does not exist, the file has ${bands.length} bands`);
+    }
+    return bands[band - 1];
+  },
+});

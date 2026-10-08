@@ -5,6 +5,11 @@ import { useViewManagerStore } from './viewManagerStore';
 import { encodeMask } from '../services/masks';
 import type { ClassConfig, ProjectConfig } from '../types/iris';
 
+const predict = vi.fn();
+vi.mock('../raster/engine', () => ({
+  rasterEngine: () => ({ predict, open: vi.fn(), render: vi.fn() }),
+}));
+
 const classes: ClassConfig[] = [
   { name: 'Clear', colour: [0, 150, 255, 70] },
   { name: 'Cloud', colour: [255, 255, 0, 70] },
@@ -216,10 +221,17 @@ describe('segmentationStore', () => {
     const drawn = new Uint8Array(store().userMaskData!);
 
     // The AI says class 1 everywhere: right for half the test pixels
-    const predictions = new Uint8Array(80).fill(1);
-    vi.spyOn(global, 'fetch').mockResolvedValue(new Response(predictions));
+    predict.mockResolvedValue(new Uint8Array(80).fill(1));
+    // The user has no AI settings of their own
+    vi.spyOn(global, 'fetch').mockResolvedValue(new Response('', { status: 404 }));
 
     await store().predictMask();
+
+    const [imageId, request] = predict.mock.calls[0];
+    expect(imageId).toBe('coast');
+    expect(request.maskArea).toEqual([100, 200, 110, 208]);
+    expect(request.model).toMatchObject({ n_estimators: 20, n_leaves: 10 });
+    expect(request.trainPixels.length).toBe(request.trainLabels.length);
 
     for (let i = 0; i < 80; i++) {
       if (!drawn[i]) expect(store().maskData![i]).toBe(1);

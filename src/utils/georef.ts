@@ -1,8 +1,8 @@
 /**
  * Where an image lies on the map
  *
- * The server gives the corners of the image as [longitude, latitude],
- * clockwise from the top left. The map views draw the image between these
+ * The corners of the image are [longitude, latitude], clockwise from the top
+ * left, read from the COG. The map views draw the image between these
  * corners with MapLibre's "flat" warp, which interpolates bilinearly in Web
  * Mercator. The functions here use the same interpolation to go between map
  * locations and image pixels, so the brush lands exactly on the pixels the
@@ -19,6 +19,11 @@ export interface Georef {
   crs: string;
   /** Corners of the image: top left, top right, bottom right, bottom left */
   corners: Corners;
+  /** EPSG code of the CRS, and whether it is geographic (degrees) */
+  epsg?: number;
+  geographic?: boolean;
+  /** Pixel to CRS, as rasterio: x = a*col + b*row + c, y = d*col + e*row + f */
+  transform?: [number, number, number, number, number, number];
 }
 
 type Point = [number, number];

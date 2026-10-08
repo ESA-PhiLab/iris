@@ -29,7 +29,7 @@ def test_segmentation_spa_blueprint_registration():
 
     endpoints = [rule.endpoint for rule in app.url_map.iter_rules()]
     assert 'segmentation_spa.segmentation_spa' in endpoints
-    for endpoint in ['segmentation.load_mask', 'segmentation.save_mask', 'segmentation.predict_mask']:
+    for endpoint in ['segmentation.load_mask', 'segmentation.save_mask']:
         assert endpoint in endpoints
 
 

@@ -7,18 +7,12 @@ import re
 import struct
 from copy import deepcopy
 from glob import glob
-from numbers import Number
 from os.path import basename, dirname, exists, getmtime, isabs, join, normpath
-from pprint import pprint
 
 import markupsafe
 import numpy as np
 import rasterio as rio
 import yaml
-from matplotlib import cm
-from skimage.filters import sobel
-from skimage.io import imread
-from skimage.segmentation import felzenszwalb
 
 from iris.utils import merge_deep_dicts
 
@@ -377,105 +371,6 @@ class Project:
         with open_cog(path) as file:
             return file.crs, file.transform, file.width, file.height
 
-    def render_image(self, image_id, view):
-        # Find all required variables
-        bands = re.findall(r'(?:\$\w+\.{0,1}\w+)', ";".join(view['data']))
-        image = self.get_image(image_id, bands=bands)
-        environment = self._get_render_environment(image)
-
-        rgb_bands = []
-        for i, expression_raw in enumerate(view['data']):
-            expression = re.sub(r'\$(\w+)\.(\w+)', r'\1["\2"]', expression_raw)
-            expression = re.sub(r'\$(\w+)', r'\1', expression)
-            try:
-                # Since one should never rely on evaluating an expression from
-                # untrusted sources, we will have to find a different solution
-                # to make it safe.
-                self._check_band_expression(expression)
-                rgb_bands.append(
-                    eval(expression, {"__builtins__": None}, environment)
-                )
-            except Exception as error:
-                print(
-                    f"Could not parse {i}th expression of {view['name']}\n",
-                    f"Raw expression: {expression_raw}\n",
-                    f"Python expression: {expression}\n",
-                    f"Error: {error}\n",
-                    "Environment:"
-                )
-                pprint(environment)
-
-        # Broadcast (single numbers are converted to an array with the size of
-        # image)
-        image_size = project['images']['shape'][0] * project['images']['shape'][1]
-        for i, band in enumerate(rgb_bands):
-            if isinstance(band, Number):
-                band = np.repeat(band, image_size)
-                band = band.reshape(*project['images']['shape'])
-
-            rgb_bands[i] = band
-
-        # Stretch between 0->1, with percentile clip if specified in view
-        if 'clip' in view:
-            if 'vmin' in view or 'vmax' in view:
-                raise ValueError("Cannot specify both 'clip' and 'vmin'/'vmax' in view")
-            clip = float(view['clip'])
-            def linear_scale(z):
-                return np.clip(
-                            (z - np.percentile(z,clip))/(np.percentile(z,100-clip)-np.percentile(z,clip)),
-                            0,
-                            1
-                            )
-        elif 'vmin' in view or 'vmax' in view:
-            if 'vmin' in view and 'vmax' in view:
-                def linear_scale(z):
-                    return np.clip((z - view['vmin'])/(view['vmax']-view['vmin']), 0, 1)
-            elif 'vmin' in view:
-                def linear_scale(z):
-                    return np.clip((z - view['vmin'])/(z.max()-view['vmin']), 0, 1)
-            elif 'vmax' in view:
-                def linear_scale(z):
-                    return np.clip((z - z.min())/(view['vmax']-z.min()), 0, 1)
-        else:
-            def linear_scale(z):
-                return (z - z.min())/(z.max()-z.min())
-        rgb_bands = list(map(linear_scale, rgb_bands))
-
-        if len(rgb_bands) == 1:
-            rgb_bands = cm.get_cmap(view['cmap'])(rgb_bands)[..., :3]
-
-        rgb_bands = np.dstack(rgb_bands)
-        return (255*rgb_bands).astype('uint8')
-
-    def _get_render_environment(self, image):
-        return {
-            'max': np.max,
-            'min': np.min,
-            'mean': np.mean,
-            'median': np.median,
-            'log': np.log,
-            'exp': np.exp,
-            'sin': np.sin,
-            'cos': np.cos,
-            'PI': np.pi,
-            'edges': sobel,
-            'superpixels': felzenszwalb,
-            **{
-                key.strip('$'): value
-                for key, value in image.items()
-            },
-        }
-
-    def _check_band_expression(self, expression):
-        forbidden_tokens = ['lambda', '__', 'except', 'eval', ';']
-
-        for forbidden in forbidden_tokens:
-            if forbidden in expression:
-                raise Exception(
-                    f"'{forbidden}' is not allowed in band expressions!\n"
-                    + f"Expression: {expression}"
-                )
-
     def get_metadata(self, image_id):
         filename = self['images'].get('metadata', False)
         if not filename:
@@ -493,12 +388,12 @@ class Project:
 
         return metadata
 
-    def get_thumbnail(self, image_id):
+    def get_thumbnail_path(self, image_id):
         filename = self['images'].get('thumbnails', False)
         if not filename:
             return None
-
-        return imread(filename.format(id=image_id))
+        filename = filename.format(id=image_id)
+        return filename if exists(filename) else None
 
     def get_user_config(self, user_id):
         filename = join(self['path'], 'user_config', f'{user_id}.json')

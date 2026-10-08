@@ -1,4 +1,3 @@
-import json
 import os
 import time
 from datetime import datetime
@@ -6,15 +5,10 @@ from glob import glob
 from os.path import basename, dirname, join
 
 import flask
-import lightgbm as lgb
 import numpy as np
 import rasterio as rio
 from rasterio.transform import Affine
-from scipy.ndimage import convolve
-from skimage.filters import sobel
-from skimage.segmentation import felzenszwalb
 from sklearn.metrics import accuracy_score, f1_score, jaccard_score
-from sklearn.model_selection import train_test_split
 
 from iris.models import Action, User, db
 from iris.project import project
@@ -131,18 +125,6 @@ def write_mask_cog(filename, image_id, bands, descriptions=None):
         file.write(bands.astype(np.uint8))
         for i, description in enumerate(descriptions or []):
             file.set_band_description(i+1, description)
-
-def write_annotated_geotiff(filename, image_id, rgb, mask, mask_description):
-    """Write the RGB view and a mask, cropped to the mask area, as COG"""
-    x0, y0, x1, y1 = project['segmentation']['mask_area']
-    bands = np.concatenate([
-        np.moveaxis(rgb[y0:y1, x0:x1, :3], -1, 0),
-        mask[np.newaxis, ...],
-    ])
-    write_mask_cog(
-        filename, image_id, bands,
-        descriptions=['Red', 'Green', 'Blue', mask_description]
-    )
 
 def compute_merged_mask(final_masks):
     """
@@ -348,116 +330,3 @@ def save_mask(image_id):
 
     # We need this to send a successful response to the client
     return flask.make_response('Masks successfully saved!')
-
-def image_dict_to_array(image_dict):
-    if isinstance(image_dict, np.ndarray):
-        return image_dict
-
-    return np.dstack(
-        [image_dict_to_array(v) for v in image_dict.values()]
-    )
-
-@segmentation_app.route('/predict_mask/<image_id>', methods=['POST'])
-@requires_auth
-def predict_mask(image_id):
-    config = project.get_user_config(flask.session['user_id'])
-    config = config['segmentation']
-
-    print('Fit options:', config)
-
-    # How to exclude certain bands?
-    image_dict = project.get_image(image_id, bands=config['ai_model']['bands'])
-    image = image_dict_to_array(image_dict)
-
-    n_channels = image.shape[-1]
-
-    # Select only the masking area:
-    mask_area = (
-        slice(config['mask_area'][1], config['mask_area'][3]),
-        slice(config['mask_area'][0], config['mask_area'][2]),
-        slice(None, None, None)
-    )
-    mask_size = config['mask_shape'][0] * config['mask_shape'][1]
-    image = image[mask_area]
-
-    data = json.loads(flask.request.data)
-    user_indices = np.array(data['user_pixels'])
-    user_labels = np.array(data['user_labels'])
-
-    inputs = [image]
-    if config['ai_model']['use_edge_filter']:
-        edges = np.dstack([
-            sobel(image[..., i])
-            for i in range(n_channels)
-        ])
-        inputs.append(edges)
-
-    if config['ai_model']['use_meshgrid']:
-        if config['ai_model']['meshgrid_cells'] == "pixelwise":
-            x_size, y_size = image.shape[0], image.shape[1]
-        else:
-            x_size, y_size = map(int, config['ai_model']['meshgrid_cells'].split('x'))
-        y_size = 3
-        x = np.repeat(np.arange(x_size), int(image.shape[0]/x_size)+1)
-        y = np.repeat(np.arange(y_size), int(image.shape[1]/y_size)+1)
-        x_grid, y_grid = np.meshgrid(x[:image.shape[0]], y[:image.shape[1]])
-        inputs.append(x_grid[..., np.newaxis])
-        inputs.append(y_grid[..., np.newaxis])
-
-    if config['ai_model']['use_superpixels']:
-        super_pixels = felzenszwalb(
-            image, scale=image.shape[0]/5, sigma=4, min_size=100
-        )
-        inputs.append(super_pixels)
-
-    inputs = np.dstack(inputs).reshape(mask_size, -1)
-
-    train_indices, val_indices, train_labels, val_labels = train_test_split(
-        user_indices, user_labels, stratify=user_labels,
-        test_size=0.3, random_state=42
-    )
-
-    gbm = lgb.LGBMClassifier(
-        num_leaves=config['ai_model']['n_leaves'],
-        max_bin=128,
-        max_depth=config['ai_model']['max_depth'],
-        # min_data_in_leaf=1000,
-        # bagging_fraction=0.2,
-        # boosting_type='dart',
-        tree_learner='data',
-        learning_rate=0.05,
-        n_estimators=config['ai_model']['n_estimators'],
-        n_jobs=10,
-    )
-    early_stopping = lgb.early_stopping(4, verbose=False)
-    gbm.fit(
-        inputs[train_indices, :], train_labels,
-        eval_set=[(inputs[val_indices, :], val_labels)],
-        callbacks=[early_stopping]
-    )
-
-    # predict the mask for the whole image:
-    predictions = gbm.predict(
-        inputs, num_iteration=gbm.best_iteration_
-    )
-    predictions = predictions.astype(np.uint8)
-
-    # Apply suppression filter:
-    if config['ai_model']['suppression_threshold'] != 0:
-        other_classes = (predictions != config['ai_model']['suppression_default_class']).astype(int)
-        other_classes = other_classes.reshape(*config['mask_shape'])
-        window_size = config['ai_model']['suppression_filter_size']
-        window = np.ones((window_size, window_size))
-        window[window_size//2, window_size//2] = 0
-        neighbourhood_ratio = convolve(
-            other_classes, window, mode='constant', cval=0.5
-        ) / (window_size**2 - 1)
-        suppress = 100 * neighbourhood_ratio.ravel() < config['ai_model']['suppression_threshold']
-        predictions[suppress] = config['ai_model']['suppression_default_class']
-
-    # Return the results:
-    response = flask.make_response(
-        predictions.tobytes()
-    )
-    response.headers.set('Content-Type', 'application/octet-stream')
-    return response

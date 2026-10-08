@@ -1,5 +1,5 @@
 /**
- * Masks, AI predictions and notes of the current user, kept by the server
+ * Masks and notes of the current user, kept by the server
  *
  * A mask travels as bytes: 254, the class of each pixel, whether the user drew
  * each pixel (1) or the AI predicted it (0), 254.
@@ -71,26 +71,6 @@ export const saveMaskOnUnload = (imageId: string, mask: UserMask) =>
     `${SEGMENTATION}save_mask/${encodeURIComponent(imageId)}`,
     new Blob([encodeMask(mask)], { type: 'application/octet-stream' })
   );
-
-/** Class of every pixel of the mask area, predicted from the training pixels */
-export const requestPrediction = async (
-  imageId: string,
-  pixels: number[],
-  labels: number[],
-  length: number
-): Promise<Uint8Array> => {
-  const response = await fetch(`${SEGMENTATION}predict_mask/${encodeURIComponent(imageId)}`, {
-    method: 'POST',
-    body: JSON.stringify({ user_pixels: pixels, user_labels: labels }),
-    credentials: 'same-origin',
-  });
-  if (!response.ok) throw await failure(response, 'predict the mask');
-  const predictions = new Uint8Array(await response.arrayBuffer());
-  if (predictions.length !== length) {
-    throw new Error('The prediction does not have the size of the mask area');
-  }
-  return predictions;
-};
 
 /** The notes of the user about an image, null if the user has not saved a mask */
 export const fetchActionInfo = async (imageId: string): Promise<ActionInfo | null> => {

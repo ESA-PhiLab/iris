@@ -44,7 +44,7 @@ const joinTrees = (forest: Int32Array, n: number, m: number) => {
  * @returns one label per pixel, from 0 to the number of segments - 1
  */
 export const felzenszwalb = (
-  channels: Array<Float32Array | Float64Array>,
+  channels: Array<Float32Array<ArrayBufferLike> | Float64Array<ArrayBufferLike>>,
   width: number,
   height: number,
   { scale = 1, sigma = 0.8, minSize = 20 }: FelzenszwalbOptions = {}

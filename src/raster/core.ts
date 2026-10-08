@@ -6,31 +6,12 @@
  */
 
 import type { Georef } from '../utils/georef';
-import { ImageFileSource, ImagePixels, readImage } from './cog';
-import type { Raster } from './expression';
+import { ImageFileSource, ImagePixels, rasterOf, readImage } from './cog';
 import { RenderedImage, ViewSpec, renderView } from './render';
+import { PredictionRequest, predictMask } from '../ai/segment';
 
 /** How many images stay in memory: the current one and the one before */
 const KEPT_IMAGES = 2;
-
-export const rasterOf = (pixels: ImagePixels): Raster => ({
-  width: pixels.width,
-  height: pixels.height,
-  band: (file, band) => {
-    const ids = Object.keys(pixels.files);
-    if (file === null && ids.length > 1) {
-      throw new Error(`The image has several files, write the band as $${ids[0]}.B${band}`);
-    }
-    const bands = pixels.files[file ?? ids[0]];
-    if (!bands) {
-      throw new Error(`The image has no file '${file}', it has ${ids.join(', ')}`);
-    }
-    if (band > bands.length) {
-      throw new Error(`$${file ? `${file}.` : ''}B${band} does not exist, the file has ${bands.length} bands`);
-    }
-    return bands[band - 1];
-  },
-});
 
 export const createRasterCore = () => {
   const images = new Map<string, Promise<ImagePixels>>();
@@ -65,6 +46,11 @@ export const createRasterCore = () => {
 
     async pixels(imageId: string): Promise<ImagePixels> {
       return pixelsOf(imageId);
+    },
+
+    /** Train the AI on the drawn pixels and predict the whole mask area */
+    async predict(imageId: string, request: PredictionRequest): Promise<Uint8Array> {
+      return predictMask(await pixelsOf(imageId), request);
     },
   };
 };

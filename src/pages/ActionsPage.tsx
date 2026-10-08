@@ -3,12 +3,6 @@ import { segmentationUrl } from '../utils/urls';
 import { useParams } from 'react-router-dom';
 import { Action, ActionsApiResponse } from '../types/iris';
 
-// Declare global function from base.html
-declare global {
-  interface Window {
-    goto_image: (mode: string, imageId: string) => void;
-  }
-}
 
 const ActionsPage: React.FC = () => {
   const params = useParams();

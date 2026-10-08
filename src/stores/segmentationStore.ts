@@ -14,7 +14,10 @@ import type { ClassConfig, ConfusionMatrix, ProjectConfig, UserInfo } from '../t
 import { Rect, brushMaskRect, fillRect, strokePositions, unionRect } from '../segmentation/brush';
 import { MaskType, maskPixels } from '../segmentation/maskColours';
 import { MIN_CLASS_PIXELS, splitTrainingPixels, testPredictions } from '../segmentation/training';
-import { fetchMask, requestPrediction, saveMask } from '../services/masks';
+import { fetchMask, saveMask } from '../services/masks';
+import { fetchAiModel } from '../services/userConfig';
+import { rasterEngine } from '../raster/engine';
+import type { AiModelSettings } from '../ai/segment';
 import { useUiStore } from './uiStore';
 import { useViewManagerStore } from './viewManagerStore';
 
@@ -515,19 +518,27 @@ export const useSegmentationStore = create<SegmentationState>((set, get) => {
         throw new Error('You need to draw at least 10 pixels for more than one class to use the AI.');
       }
 
-      const model = config?.segmentation?.ai_model;
-      const split = splitTrainingPixels(maskData, userMaskData, classes.length, {
-        trainRatio: model?.train_ratio ?? 0.8,
-        maxTrainPixels: model?.max_train_pixels ?? 20000,
-      });
-
       const ui = useUiStore.getState();
       set({ isLoading: true });
       ui.setBusy('Train AI...');
       try {
-        const predictions = await requestPrediction(
-          currentImageId, split.trainPixels, split.trainLabels, maskData.length
-        );
+        const model = await fetchAiModel(config?.segmentation?.ai_model ?? {});
+        const split = splitTrainingPixels(maskData, userMaskData, classes.length, {
+          trainRatio: model.train_ratio ?? 0.8,
+          maxTrainPixels: model.max_train_pixels ?? 20000,
+        });
+        // The AI learns in the browser, next to the pixels of the image
+        const predictions = await rasterEngine().predict(currentImageId, {
+          maskArea: get().maskArea!,
+          trainPixels: split.trainPixels,
+          trainLabels: split.trainLabels,
+          model: {
+            n_estimators: 20,
+            max_depth: 10,
+            n_leaves: 10,
+            ...model,
+          } as AiModelSettings,
+        });
         const result = testPredictions(split, predictions, classes.length);
         const confusionMatrix = get().createConfusionMatrix(
           result.matrix, result.truePositives, split.classes, classes.map((c) => c.name)

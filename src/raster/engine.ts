@@ -9,12 +9,15 @@
 import type { Georef } from '../utils/georef';
 import type { ImageFileSource } from './cog';
 import type { RenderedImage, ViewSpec } from './render';
+import type { PredictionRequest } from '../ai/segment';
 
 export interface RasterEngine {
   /** Start reading an image, resolves with its georeference */
   open(imageId: string, sources: Record<string, ImageFileSource>): Promise<Georef>;
   /** Pixels of a view of an open image */
   render(imageId: string, view: ViewSpec): Promise<RenderedImage>;
+  /** Class of every pixel of the mask area, learnt from the drawn pixels */
+  predict(imageId: string, request: PredictionRequest): Promise<Uint8Array>;
 }
 
 const workerEngine = (): RasterEngine => {
@@ -39,6 +42,7 @@ const workerEngine = (): RasterEngine => {
   return {
     open: (imageId, sources) => call<Georef>('open', imageId, sources),
     render: (imageId, view) => call<RenderedImage>('render', imageId, view),
+    predict: (imageId, request) => call<Uint8Array>('predict', imageId, request),
   };
 };
 
@@ -48,6 +52,7 @@ const pageEngine = (): RasterEngine => {
   return {
     open: async (imageId, sources) => (await core).open(imageId, sources),
     render: async (imageId, view) => (await core).render(imageId, view),
+    predict: async (imageId, request) => (await core).predict(imageId, request),
   };
 };
 
@@ -57,6 +62,7 @@ const KEPT_RENDERS = 32;
 
 const cached = (engine: RasterEngine): RasterEngine => ({
   open: engine.open,
+  predict: engine.predict,
   render: (imageId, view) => {
     const key = JSON.stringify([imageId, view.data, view.cmap, view.clip, view.vmin, view.vmax]);
     let image = rendered.get(key);

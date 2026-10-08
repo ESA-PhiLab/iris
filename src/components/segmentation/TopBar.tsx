@@ -1,6 +1,8 @@
 import React from 'react';
 import { useSegmentationStore } from '../../stores/segmentationStore';
 import { useUiStore } from '../../stores/uiStore';
+import { useViewManagerStore } from '../../stores/viewManagerStore';
+import { annotatedGeoTiff, downloadFile, exportView } from '../../export/annotated';
 import { goToImage, goToNextImage, goToPreviousImage } from '../../segmentation/navigation';
 import { saveMask } from '../../segmentation/commands';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -44,26 +46,21 @@ const TopBar: React.FC<TopBarProps> = ({ onOpenPreferences, onOpenHelp, onOpenPr
   const handleSave = () => { saveMask(); };
 
   const handleExportGeoTIFF = async () => {
-    const imageId = useSegmentationStore.getState().currentImageId;
-    if (!imageId) return;
+    const { currentImageId, maskData, maskArea } = useSegmentationStore.getState();
+    const { georef, views } = useViewManagerStore.getState();
+    if (!currentImageId || !maskData || !maskArea || !georef) return;
     const ui = useUiStore.getState();
     ui.notify('Exporting GeoTIFF...');
     try {
-      const response = await fetch(`/segmentation/api/export-geotiff/${encodeURIComponent(imageId)}`, {
-        credentials: 'same-origin'
+      const bytes = await annotatedGeoTiff({
+        imageId: currentImageId,
+        georef,
+        maskArea,
+        mask: maskData,
+        description: 'Segmentation Mask',
+        view: exportView(views),
       });
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({}));
-        throw new Error(error.message || error.error || `Export failed (${response.status})`);
-      }
-      const url = window.URL.createObjectURL(await response.blob());
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${imageId}_annotated.tif`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      downloadFile(bytes, `${currentImageId}_annotated.tif`);
       ui.notify('GeoTIFF exported successfully', 2000);
     } catch (error) {
       ui.showErrorModal(error instanceof Error ? error.message : String(error), 'Could not export GeoTIFF');
