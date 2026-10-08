@@ -216,9 +216,9 @@ def create_app(project_file, args):
     return app
 
 def create_default_admin(app, admin_user=None, admin_password=None):
-    # Add a default admin account:
+    # Add a default admin account, unless the project has one already:
     with app.app_context():
-        admin = User.query.filter_by(name='admin').first()
+        admin = User.query.filter_by(admin=True).first()
     if admin is not None:
         return
 
