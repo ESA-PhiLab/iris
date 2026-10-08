@@ -389,6 +389,24 @@ def test_load_from_normalizes_images_path(tmp_path, sample_valid_config, make_co
     assert p.config["images"]["shape"] == [32, 32]
 
 
+def test_load_from_rejects_bingmap_views(tmp_path, sample_valid_config, make_cog):
+    """Every view shows the COG on the map, views of other types are an error"""
+    proj_dir = tmp_path / "proj"
+    (proj_dir / "images").mkdir(parents=True)
+    make_cog(proj_dir / "images" / "0001.tif", np.zeros((32, 32), dtype=np.uint8))
+
+    cfg = dict(sample_valid_config)
+    cfg["images"] = dict(cfg["images"], path="images/{id}.tif")
+    cfg["views"] = dict(cfg["views"], Bing={"type": "bingmap"})
+    cfg["segmentation"]["mask_area"] = [0, 0, 32, 32]
+    proj_file = proj_dir / "project.json"
+    with open(proj_file, "w") as f:
+        json.dump(cfg, f)
+
+    with pytest.raises(Exception, match="Only 'image'"):
+        Project().load_from(str(proj_file))
+
+
 # ============================================================================
 # Integration Tests - Full Workflows
 # ============================================================================

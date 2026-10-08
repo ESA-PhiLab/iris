@@ -46,7 +46,6 @@ export const getReactLayers = (type?: string) => {
     ...(w.reactRGBLayers || []),
     ...(w.reactMaskLayers || []),
     ...(w.reactPreviewLayers || []),
-    ...(w.reactBingLayers || []),
   ];
   
   if (type) {

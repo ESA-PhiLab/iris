@@ -152,6 +152,11 @@ class Project:
 
         # Make sure the HTML is understood in the descriptions:
         for name, view in self.config['views'].items():
+            if view.get('type', 'image') != 'image':
+                raise Exception(
+                    f"[CONFIG] View '{name}' has type '{view['type']}'! Only 'image' "
+                    "views exist: every view shows the COG at its place on the map."
+                )
             view['name'] = name
             view['description'] = markupsafe.Markup(
                 view.get('description', view['name'])

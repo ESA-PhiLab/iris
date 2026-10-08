@@ -10,8 +10,7 @@ import { Georef } from '../utils/georef';
 
 export interface ViewConfig {
   name: string;
-  /** 'bingmap' is the former name of 'basemap' */
-  type: 'image' | 'basemap' | 'bingmap';
+  type: 'image';
   description: string;
   // Add other view properties as needed
 }

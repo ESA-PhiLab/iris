@@ -77,35 +77,6 @@ describe('ViewListEditor', () => {
       });
     });
 
-    it('returns basemap view without data field', () => {
-      const ref = React.createRef<any>();
-      const { container } = render(<ViewListEditor ref={ref} />);
-      
-      fireEvent.click(screen.getByText('+ Add'));
-      
-      const keyInput = screen.getByPlaceholderText('e.g., RGB, Cirrus, NDVI');
-      fireEvent.change(keyInput, { target: { value: 'BingMap' } });
-      
-      const typeSelect = container.querySelector('select') as HTMLSelectElement;
-      fireEvent.change(typeSelect, { target: { value: 'Basemap' } });
-      
-      // Clear the default cmap value (even though a basemap doesn't use it)
-      const textInputs = container.querySelectorAll('input[type="text"]');
-      const cmapInput = Array.from(textInputs).find(input => 
-        (input as HTMLInputElement).value === 'jet'
-      ) as HTMLInputElement;
-      if (cmapInput) {
-        fireEvent.change(cmapInput, { target: { value: '' } });
-      }
-      
-      const data = ref.current?.getData();
-      expect(data).toEqual({
-        BingMap: {
-          type: 'basemap',
-        },
-      });
-    });
-
     it('includes description when not empty', () => {
       const ref = React.createRef<any>();
       render(<ViewListEditor ref={ref} />);
@@ -195,23 +166,6 @@ describe('ViewListEditor', () => {
       expect(screen.getByDisplayValue('$B2')).toBeInTheDocument();
     });
 
-    it('loads basemap view, also under its former name bingmap', () => {
-      const ref = React.createRef<any>();
-      const { container } = render(<ViewListEditor ref={ref} />);
-      
-      act(() => {
-        ref.current?.setData({
-          BingMap: {
-            type: 'bingmap',
-          },
-        });
-      });
-      
-      expect(screen.getByDisplayValue('BingMap')).toBeInTheDocument();
-      const typeSelect = container.querySelector('select') as HTMLSelectElement;
-      expect(typeSelect.value).toBe('Basemap');
-    });
-
     it('handles monochrome data wrapped in single-element array', () => {
       const ref = React.createRef<any>();
       const { container } = render(<ViewListEditor ref={ref} />);
@@ -268,16 +222,6 @@ describe('ViewListEditor', () => {
       expect(screen.getByPlaceholderText('e.g., $Sentinel2.B3')).toBeInTheDocument();
     });
 
-    it('shows info message for basemap type', () => {
-      const { container } = render(<ViewListEditor />);
-      
-      fireEvent.click(screen.getByText('+ Add'));
-      
-      const typeSelect = container.querySelector('select') as HTMLSelectElement;
-      fireEvent.change(typeSelect, { target: { value: 'Basemap' } });
-      
-      expect(screen.getByText(/Basemap views don't require a data field/)).toBeInTheDocument();
-    });
   });
 
   describe('Add/Remove functionality', () => {

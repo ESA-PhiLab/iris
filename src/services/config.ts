@@ -23,7 +23,7 @@ export interface ProjectConfig {
     user_colour?: [number, number, number, number];
   }>;
   views: Record<string, {
-    type: 'image' | 'basemap' | 'bingmap';
+    type: 'image';
     description?: string;
     data?: string | string[];
     cmap?: string;

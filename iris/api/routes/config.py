@@ -395,14 +395,11 @@ def validate_project_config():
                 for view_name, view_data in config_data['views'].items():
                     if 'type' not in view_data:
                         errors.append(f'View {view_name}: type is required')
-                    elif view_data['type'] not in ['image', 'basemap', 'bingmap']:
-                        errors.append(f'View {view_name}: type must be "image" or "basemap"')
+                    elif view_data['type'] != 'image':
+                        errors.append(f'View {view_name}: type must be "image"')
 
                     if view_data.get('type') == 'image' and 'data' not in view_data:
                         errors.append(f'View {view_name}: data is required for image views')
-
-                    if view_data.get('type') in ['basemap', 'bingmap'] and 'data' in view_data:
-                        warnings.append(f'View {view_name}: data field is not used for basemap views')
 
         # Validate view_groups
         if 'view_groups' in config_data:

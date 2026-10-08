@@ -1,10 +1,9 @@
 /**
  * Map view of one IRIS view
  *
- * Each view is a MapLibre map. Image views show the image the server renders
- * for the view, the mask, the brush and the mask area at their place on the
- * map. Basemap views show satellite imagery around the image. All map views
- * share one camera, so zooming or panning one moves the others.
+ * Each view is a MapLibre map showing the image the server renders for the
+ * view, the mask, the brush and the mask area at their place on the map. All
+ * map views share one camera, so zooming or panning one moves the others.
  */
 
 import React, { useEffect, useRef } from 'react';
@@ -15,9 +14,6 @@ import { ViewConfig, useViewManagerStore } from '../../stores/viewManagerStore';
 import { useSegmentationStore } from '../../stores/segmentationStore';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Georef, areaCorners, cornersBounds, lngLatToPixel, pixelToLngLat } from '../../utils/georef';
-
-const ESRI_IMAGERY =
-  'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
 
 /** Maps on screen, kept on the same camera */
 const maps = new Set<MapLibreMap>();
@@ -120,7 +116,6 @@ const ReactMapView: React.FC<ReactMapViewProps> = ({ view, imageId, viewCount })
   const georef = useViewManagerStore((state) => state.georef);
   const hiddenMaskCanvas = useSegmentationStore((state) => state.hiddenMaskCanvas);
   const maskArea = useSegmentationStore((state) => state.maskArea);
-  const isImageView = view.type === 'image';
 
   // Create the map
   useEffect(() => {
@@ -137,7 +132,7 @@ const ReactMapView: React.FC<ReactMapViewProps> = ({ view, imageId, viewCount })
       ...(camera
         ? { center: camera.center, zoom: camera.zoom }
         : { bounds: cornersBounds(georef.corners) }),
-      attributionControl: { compact: true },
+      attributionControl: false,
       dragRotate: false,
       pitchWithRotate: false,
       touchPitch: false,
@@ -171,17 +166,6 @@ const ReactMapView: React.FC<ReactMapViewProps> = ({ view, imageId, viewCount })
     });
 
     map.on('load', () => {
-      if (!isImageView) {
-        map.addSource('satellite', {
-          type: 'raster',
-          tiles: [ESRI_IMAGERY],
-          tileSize: 256,
-          maxzoom: 19,
-          attribution: 'Imagery © Esri',
-        });
-        map.addLayer({ id: 'satellite', type: 'raster', source: 'satellite' });
-      }
-
       map.addSource('brush', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
       map.addLayer({
         id: 'brush',
@@ -210,7 +194,7 @@ const ReactMapView: React.FC<ReactMapViewProps> = ({ view, imageId, viewCount })
       mapRef.current = null;
     };
     // The background follows the theme without recreating the map (see below)
-  }, [georef, isImageView]);
+  }, [georef]);
 
   /** Run fn once the map can take sources and layers */
   const whenReady = (fn: (map: MapLibreMap) => void) => {
@@ -249,7 +233,7 @@ const ReactMapView: React.FC<ReactMapViewProps> = ({ view, imageId, viewCount })
 
   // Image rendered by the server for this view
   useEffect(() => {
-    if (!georef || !isImageView) return;
+    if (!georef) return;
 
     const canvas = document.createElement('canvas');
     canvas.width = georef.width;
@@ -296,11 +280,11 @@ const ReactMapView: React.FC<ReactMapViewProps> = ({ view, imageId, viewCount })
       cancelReady();
       image.onload = null;
     };
-  }, [georef, imageId, isImageView, view.name]);
+  }, [georef, imageId, view.name]);
 
   // Mask, drawn by the legacy code into the hidden mask canvas
   useEffect(() => {
-    if (!georef || !isImageView || !hiddenMaskCanvas || !maskArea) return;
+    if (!georef || !hiddenMaskCanvas || !maskArea) return;
 
     const cancelReady = whenReady((map) => {
       if (map.getSource('mask')) return;
@@ -329,11 +313,11 @@ const ReactMapView: React.FC<ReactMapViewProps> = ({ view, imageId, viewCount })
       window.removeEventListener('react-mask-render', refresh);
       window.removeEventListener('iris-mask-loaded', refresh);
     };
-  }, [georef, isImageView, hiddenMaskCanvas, maskArea]);
+  }, [georef, hiddenMaskCanvas, maskArea]);
 
   // Brush preview, follows the cursor of whichever view the mouse is on
   useEffect(() => {
-    if (!georef || !isImageView) return;
+    if (!georef) return;
 
     const update = () => {
       const map = mapRef.current;
@@ -358,12 +342,12 @@ const ReactMapView: React.FC<ReactMapViewProps> = ({ view, imageId, viewCount })
       cancelReady();
       unsubscribe();
     };
-  }, [georef, isImageView]);
+  }, [georef]);
 
   // Drawing: the legacy mouse handlers get the image pixel under the mouse
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !georef || !isImageView) return;
+    if (!map || !georef) return;
 
     const forward = (handler: 'mouse_down' | 'mouse_move' | 'mouse_up') => (e: MapMouseEvent) => {
       const legacyHandler = (window as any)[handler];
@@ -385,7 +369,7 @@ const ReactMapView: React.FC<ReactMapViewProps> = ({ view, imageId, viewCount })
       map.off('mousemove', onMouseMove);
       map.off('mouseup', onMouseUp);
     };
-  }, [georef, isImageView]);
+  }, [georef]);
 
   // Panning: the move tool drags the map, the right and middle buttons always do
   useEffect(() => {
@@ -394,7 +378,7 @@ const ReactMapView: React.FC<ReactMapViewProps> = ({ view, imageId, viewCount })
     if (!map || !wrapper) return;
 
     const applyTool = (tool: string) => {
-      if (tool === 'move' || !isImageView) {
+      if (tool === 'move') {
         map.dragPan.enable();
         map.getCanvas().style.cursor = '';
       } else {
@@ -444,7 +428,7 @@ const ReactMapView: React.FC<ReactMapViewProps> = ({ view, imageId, viewCount })
       wrapper.removeEventListener('contextmenu', onContextMenu);
       wrapper.removeEventListener('wheel', onWheel, { capture: true });
     };
-  }, [georef, isImageView]);
+  }, [georef]);
 
   // Reset views: fit the image again
   useEffect(() => {

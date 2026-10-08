@@ -59,10 +59,6 @@
     }
   ],
   "views": {
-    "Satellite": {
-      "type": "basemap",
-      "description": "Satellite imagery (Esri World Imagery)"
-    },
     "Cirrus": {
       "type": "image",
       "description": "Cirrus band. High clouds are often picked up as red.",

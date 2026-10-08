@@ -34,7 +34,7 @@ const ViewGroupsSection = forwardRef<any, ViewGroupsSectionProps>(({ getAvailabl
           <small style={s.descriptionStyle}>
             Views are displayed in groups. The <code style={s.codeStyle}>default</code> group is required.
           </small>
-          <pre style={s.preStyle}>{`"view_groups": {\n  "default": ["Cirrus", "RGB", "Bing"],\n  "clouds": ["Cirrus"]\n}`}</pre>
+          <pre style={s.preStyle}>{`"view_groups": {\n  "default": ["Cirrus", "RGB", "Snow"],\n  "clouds": ["Cirrus"]\n}`}</pre>
           <ViewGroupListEditor ref={editorRef} getAvailableViews={getAvailableViews} />
         </div>
       )}
