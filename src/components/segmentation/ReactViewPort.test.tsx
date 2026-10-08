@@ -10,6 +10,7 @@ const mockView = {
   name: 'test-view',
   type: 'image' as const,
   description: 'Test view for unit testing',
+  data: '$B1',
 };
 
 describe('ReactViewPort', () => {

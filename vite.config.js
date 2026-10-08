@@ -22,6 +22,19 @@ const maplibreWorker = () => ({
 
 export default defineConfig({
   plugins: [react(), maplibreWorker()],
+  // Assets are found next to the bundle, wherever it is served from
+  base: './',
+  worker: {
+    format: 'es',
+    rollupOptions: {
+      output: {
+        entryFileNames: '[name].js',
+        // Apart from the page's chunks of the same libraries
+        chunkFileNames: 'worker-[name].js',
+        assetFileNames: '[name].[ext]'
+      }
+    }
+  },
   build: {
     outDir: 'iris/static/dist',
     // MapLibre alone is about 1 MB

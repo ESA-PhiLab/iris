@@ -115,7 +115,7 @@ describe('ViewManagerStore Image Dimensions', () => {
       
       // Set up mock views
       store.setViews({
-        'rgb': { name: 'rgb', type: 'image', description: 'RGB composite' }
+        'rgb': { name: 'rgb', type: 'image', description: 'RGB composite', data: ['$B4', '$B3', '$B2'] }
       });
       store.setViewGroups({ default: ['rgb'] });
       

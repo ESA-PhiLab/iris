@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { useSegmentationStore } from '../stores/segmentationStore';
-import { useViewManagerStore } from '../stores/viewManagerStore';
+import { ViewConfig, useViewManagerStore } from '../stores/viewManagerStore';
+import { imageFileSources } from '../services/imageFiles';
 
 export interface ConfigLoaderResult {
   loading: boolean;
@@ -65,30 +66,24 @@ export const useConfigLoader = (): ConfigLoaderResult => {
         segmentationStore.setCurrentClass(0);
       }
 
-      // Initialize ViewManager store
-      let views: { [name: string]: any } = {};
-      if (config.views) {
-        // Handle both array and object formats
-        if (Array.isArray(config.views)) {
-          config.views.forEach((view: any) => {
-            views[view.name] = {
-              name: view.name,
-              type: view.type || 'image',
-              description: view.description || '',
-            };
-          });
-        } else if (typeof config.views === 'object') {
-          Object.entries(config.views).forEach(([name, view]: [string, any]) => {
-            views[name] = {
-              name: name,
-              type: view.type || 'image',
-              description: view.description || '',
-            };
-          });
-        }
-        
-        viewManagerStore.setViews(views);
+      // Views with their band expressions, rendered in the browser
+      const views: { [name: string]: ViewConfig } = {};
+      const viewList: Array<[string, any]> = Array.isArray(config.views)
+        ? config.views.map((view: any) => [view.name, view])
+        : Object.entries(config.views || {});
+      for (const [name, view] of viewList) {
+        views[name] = {
+          name,
+          type: 'image',
+          description: view.description || '',
+          data: view.data,
+          cmap: view.cmap,
+          clip: view.clip,
+          vmin: view.vmin,
+          vmax: view.vmax,
+        };
       }
+      viewManagerStore.setViews(views);
 
       // Set view groups
       if (config.view_groups) {
@@ -146,8 +141,8 @@ export const useConfigLoader = (): ConfigLoaderResult => {
         const imageLocation = viewManagerStore.imageLocation || [0, 0];
         viewManagerStore.setImage(currentImageId, imageLocation);
 
-        // Where the image lies on the map
-        await viewManagerStore.loadGeoref(currentImageId);
+        // Read the image in the browser, which tells where it lies on the map
+        await viewManagerStore.openImage(currentImageId, imageFileSources(config, currentImageId));
       }
 
       if (w.IRIS_DEBUG) console.log('✅ React: All stores initialized successfully');

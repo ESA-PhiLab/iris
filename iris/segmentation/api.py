@@ -61,34 +61,25 @@ def save_user_config():
 
 
 
-@api_bp.route('/georef/<image_id>', methods=['GET'])
+@api_bp.route('/file/<image_id>/<file_id>', methods=['GET'])
 @requires_auth
-def get_georef(image_id):
+def get_image_file(image_id, file_id):
     """
-    Get where the image lies on the map.
+    Serve a COG file of an image.
 
-    Returns:
-        JSON response with the image size in pixels and the corners of the
-        image as [longitude, latitude], clockwise from the top left (the order
-        MapLibre expects for image sources).
+    The browser reads the pixels and the georeference of the image from it,
+    with range requests.
     """
-    from rasterio.warp import transform
-
     if image_id not in project.image_ids:
         return flask.jsonify({'error': 'Image not found'}), 404
 
-    crs, affine, width, height = project.get_georef(image_id)
+    paths = project.get_image_path(image_id)
+    if not isinstance(paths, dict):
+        paths = {'pictures': paths}
+    if file_id not in paths:
+        return flask.jsonify({'error': 'File not found'}), 404
 
-    pixels = [(0, 0), (width, 0), (width, height), (0, height)]
-    xs, ys = zip(*[affine * pixel for pixel in pixels])
-    lons, lats = transform(crs, 'EPSG:4326', xs, ys)
-
-    return flask.jsonify({
-        'width': width,
-        'height': height,
-        'crs': crs.to_string(),
-        'corners': [[lon, lat] for lon, lat in zip(lons, lats)],
-    })
+    return flask.send_file(paths[file_id], mimetype='image/tiff', conditional=True)
 
 
 @api_bp.route('/images/list', methods=['GET'])

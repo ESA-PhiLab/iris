@@ -7,12 +7,19 @@
 
 import { create } from 'zustand';
 import { Georef } from '../utils/georef';
+import type { ImageFileSource } from '../raster/cog';
+import { rasterEngine } from '../raster/engine';
 
 export interface ViewConfig {
   name: string;
   type: 'image';
   description: string;
-  // Add other view properties as needed
+  /** Band expressions, one (with cmap) or three (red, green, blue) */
+  data: string | string[];
+  cmap?: string;
+  clip?: number | null;
+  vmin?: number | null;
+  vmax?: number | null;
 }
 
 export interface ViewGroup {
@@ -162,7 +169,8 @@ export interface ViewManagerState {
   // Map views
   setCamera: (camera: MapCamera) => void;
   resetCanvas: () => void;
-  loadGeoref: (imageId: string) => Promise<void>;
+  /** Read an image in the browser and place it on the map */
+  openImage: (imageId: string, sources: Record<string, ImageFileSource>) => Promise<void>;
   toggleImage: () => void;
   toggleSatellite: () => void;
   
@@ -668,15 +676,10 @@ export const useViewManagerStore = create<ViewManagerState>((set, get) => ({
     set((state) => ({ camera: null, resetViewsCount: state.resetViewsCount + 1 }));
   },
 
-  loadGeoref: async (imageId) => {
-    const response = await fetch(
-      `/segmentation/api/georef/${encodeURIComponent(imageId)}`,
-      { credentials: 'same-origin' }
-    );
-    if (!response.ok) {
-      throw new Error(`Failed to load georeference of ${imageId}: ${response.statusText}`);
-    }
-    set({ georef: await response.json() });
+  openImage: async (imageId, sources) => {
+    const georef = await rasterEngine().open(imageId, sources);
+    set({ georef });
+    get().setImageDimensions(georef.width, georef.height);
   },
 
   toggleImage: () => {
@@ -849,6 +852,7 @@ export const useViewManagerStore = create<ViewManagerState>((set, get) => ({
               name: view.name,
               type: view.type || 'image',
               description: view.description || '',
+              data: view.data,
             };
           });
         } else if (typeof w.vars.config.views === 'object') {
@@ -857,6 +861,7 @@ export const useViewManagerStore = create<ViewManagerState>((set, get) => ({
               name: name,
               type: view.type || 'image',
               description: view.description || '',
+              data: view.data,
             };
           });
         }

@@ -1,13 +1,13 @@
 /**
  * Map view of one IRIS view
  *
- * Each view is a MapLibre map showing the image the server renders for the
- * view, the mask, the brush and the mask area at their place on the map, over
- * satellite imagery. All map views share one camera, so zooming or panning
- * one moves the others.
+ * Each view is a MapLibre map showing the view of the image, rendered in the
+ * browser from the COG, the mask, the brush and the mask area at their place
+ * on the map, over satellite imagery. All map views share one camera, so
+ * zooming or panning one moves the others.
  */
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { CanvasSource, GeoJSONSource, Map as MapLibreMap, MapMouseEvent } from 'maplibre-gl';
 import type { Feature } from 'geojson';
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -16,6 +16,7 @@ import { ViewConfig, useViewManagerStore } from '../../stores/viewManagerStore';
 import { useSegmentationStore } from '../../stores/segmentationStore';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Georef, areaCorners, cornersBounds, lngLatToPixel, pixelToLngLat } from '../../utils/georef';
+import { rasterEngine } from '../../raster/engine';
 
 const ESRI_IMAGERY =
   'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
@@ -118,6 +119,9 @@ const ReactMapView: React.FC<ReactMapViewProps> = ({ view, imageId, viewCount })
   /** Callbacks waiting for the style and our layers to be loaded */
   const pendingRef = useRef<Set<(map: MapLibreMap) => void> | null>(new Set());
   const { theme } = useTheme();
+  /** Error of the view, e.g. a wrong band expression */
+  const [viewError, setViewError] = useState<string | null>(null);
+  const [rendering, setRendering] = useState(true);
 
   const georef = useViewManagerStore((state) => state.georef);
   const hiddenMaskCanvas = useSegmentationStore((state) => state.hiddenMaskCanvas);
@@ -266,28 +270,40 @@ const ReactMapView: React.FC<ReactMapViewProps> = ({ view, imageId, viewCount })
     });
   }, [georef, maskArea, viewCount]);
 
-  // Image rendered by the server for this view
+  // The view, rendered in the browser from the pixels of the COG
+  const viewKey = JSON.stringify([view.data, view.cmap, view.clip, view.vmin, view.vmax]);
   useEffect(() => {
     if (!georef) return;
 
+    // The rendered view, and the canvas the map shows: the view with the
+    // filters of the right panel
+    const rendered = document.createElement('canvas');
+    rendered.width = georef.width;
+    rendered.height = georef.height;
     const canvas = document.createElement('canvas');
     canvas.width = georef.width;
     canvas.height = georef.height;
-    const image = new Image();
+    let cancelled = false;
     let cancelReady = () => {};
 
     const draw = () => {
       const ctx = canvas.getContext('2d');
-      if (!ctx || !image.complete || !image.naturalWidth) return;
+      if (!ctx) return;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.filter = imageFilter();
       ctx.imageSmoothingEnabled = false;
-      ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+      ctx.drawImage(rendered, 0, 0);
       if (mapRef.current) refreshCanvasSource(mapRef.current, 'image');
     };
 
-    image.onload = () => {
+    setRendering(true);
+    setViewError(null);
+    rasterEngine().render(imageId, view).then((image) => {
+      if (cancelled) return;
+      const ctx = rendered.getContext('2d');
+      ctx?.putImageData(new ImageData(new Uint8ClampedArray(image.data), image.width, image.height), 0, 0);
       draw();
+      setRendering(false);
       cancelReady = whenReady((map) => {
         if (!map.getSource('image')) {
           addCanvasSource(
@@ -296,10 +312,12 @@ const ReactMapView: React.FC<ReactMapViewProps> = ({ view, imageId, viewCount })
           );
         }
       });
-    };
-    image.onerror = () => console.error(`Failed to load image of view ${view.name}`);
-    const mainUrl = useSegmentationStore.getState().apiUrls?.main || '/';
-    image.src = `${mainUrl}image/${encodeURIComponent(imageId)}/${encodeURIComponent(view.name)}`;
+    }).catch((error: Error) => {
+      if (cancelled) return;
+      console.error(`Could not render view ${view.name}:`, error);
+      setRendering(false);
+      setViewError(error.message);
+    });
 
     // Brightness, contrast, saturation and invert are applied to the image only
     const unsubscribe = useSegmentationStore.subscribe((state, previous) => {
@@ -314,11 +332,16 @@ const ReactMapView: React.FC<ReactMapViewProps> = ({ view, imageId, viewCount })
     });
 
     return () => {
+      cancelled = true;
       unsubscribe();
       cancelReady();
-      image.onload = null;
+      const map = mapRef.current;
+      if (map?.getLayer('image')) map.removeLayer('image');
+      if (map?.getSource('image')) map.removeSource('image');
     };
-  }, [georef, imageId, view.name]);
+    // view is read through viewKey and its name
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [georef, imageId, view.name, viewKey]);
 
   // Mask, drawn by the legacy code into the hidden mask canvas
   useEffect(() => {
@@ -483,18 +506,24 @@ const ReactMapView: React.FC<ReactMapViewProps> = ({ view, imageId, viewCount })
   return (
     <div ref={wrapperRef} style={{ position: 'absolute', inset: 0 }}>
       <div ref={containerRef} style={{ position: 'absolute', inset: 0 }} />
-      {!georef && (
+      {(!georef || rendering || viewError) && (
         <div
           style={{
             position: 'absolute',
             top: '50%',
             left: '50%',
             transform: 'translate(-50%, -50%)',
-            color: theme.gray500,
+            maxWidth: '80%',
+            padding: viewError ? '8px 12px' : 0,
+            borderRadius: '6px',
+            backgroundColor: viewError ? theme.panelBg : 'transparent',
+            color: viewError ? theme.alert : theme.gray500,
             fontSize: '12px',
+            textAlign: 'center',
+            pointerEvents: 'none',
           }}
         >
-          Loading...
+          {viewError ? `View ${view.name}: ${viewError}` : 'Loading...'}
         </div>
       )}
     </div>
