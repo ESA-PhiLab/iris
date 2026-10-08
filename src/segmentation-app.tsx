@@ -19,8 +19,8 @@ import { useViewManagerStore } from './stores/viewManagerStore';
 import { useUiStore } from './stores/uiStore';
 import { useShortcut } from './hooks/useShortcut';
 import { useEditorShortcuts } from './hooks/useEditorShortcuts';
-import { startSegmentation } from './segmentation/startup';
-import { saveMaskOnUnload } from './services/masks';
+import { chooseBackend, startSegmentation } from './segmentation/startup';
+import { backend } from './services/backend';
 
 const HELP_SHOWN_KEY = 'iris-help-shown';
 
@@ -34,14 +34,17 @@ const SegmentationApp: React.FC = () => {
   const [isImageInfoOpen, setIsImageInfoOpen] = useState(false);
   const [isConfusionMatrixOpen, setIsConfusionMatrixOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [backendKind, setBackendKind] = useState<'server' | 'static' | null>(null);
   const { leftExpanded, rightExpanded, toggleLeft, toggleRight } = useSidebars();
 
-  // Sign in first, unless the session is still open
+  // Find where the project is, then sign in unless the session is still open
   useEffect(() => {
-    fetch('/user/get/current', { credentials: 'same-origin' })
-      .then((response) => {
-        setIsAuthenticated(response.ok);
-        if (!response.ok) setIsLoginOpen(true);
+    chooseBackend()
+      .then(async (source) => {
+        setBackendKind(source.kind);
+        const user = await source.currentUser();
+        setIsAuthenticated(!!user);
+        if (!user) setIsLoginOpen(true);
       })
       .catch(() => setIsLoginOpen(true));
   }, []);
@@ -81,7 +84,7 @@ const SegmentationApp: React.FC = () => {
     const onPageHide = () => {
       const { maskChanged, currentImageId, maskData, userMaskData } = useSegmentationStore.getState();
       if (maskChanged && currentImageId && maskData && userMaskData) {
-        saveMaskOnUnload(currentImageId, { mask: maskData, userMask: userMaskData });
+        backend().saveMaskOnUnload(currentImageId, { mask: maskData, userMask: userMaskData });
       }
     };
     window.addEventListener('pagehide', onPageHide);
@@ -159,7 +162,7 @@ const SegmentationApp: React.FC = () => {
           isProfileOpen={isProfileOpen}
           onCloseProfile={() => setIsProfileOpen(false)}
           profileUserId="current"
-          isLoginOpen={isLoginOpen}
+          isLoginOpen={isLoginOpen && backendKind !== 'static'}
           loginMode="login"
           onLoginSuccess={handleLoginSuccess}
           isHelpOpen={isHelpOpen}

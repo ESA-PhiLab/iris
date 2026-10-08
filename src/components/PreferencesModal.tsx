@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { UserConfig, UserConfigApiResponse, AIModelConfig } from '../types/iris';
+import { UserConfig, AIModelConfig } from '../types/iris';
+import { backend } from '../services/backend';
+import { useViewManagerStore } from '../stores/viewManagerStore';
 import SegmentationAITab from './preferences/SegmentationAITab';
 import ViewsTab from './preferences/ViewsTab';
 import ProjectConfigTab from './preferences/ProjectConfigTab';
@@ -103,13 +105,11 @@ const PreferencesModalContent: React.FC<PreferencesModalProps> = ({ isOpen, onCl
     setIsLoading(true);
     setError('');
     try {
-      const response = await fetch('/segmentation/api/user-config');
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-      const data: UserConfigApiResponse = await response.json();
+      const data = await backend().loadPreferences(useViewManagerStore.getState().georef?.bands ?? []);
       setConfig(data.config);
       setOriginalConfig(JSON.parse(JSON.stringify(data.config)));
-      setAllBands(data.all_bands);
-      const isAdminUser = data.is_admin || false;
+      setAllBands(data.allBands);
+      const isAdminUser = data.isAdmin;
       setIsAdmin(isAdminUser);
       if (isAdminUser) setActiveTab('configuration');
     } catch (error) {
@@ -153,12 +153,7 @@ const PreferencesModalContent: React.FC<PreferencesModalProps> = ({ isOpen, onCl
     setIsSaving(true);
     setError('');
     try {
-      const response = await fetch('/segmentation/api/user-config', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(config),
-      });
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      await backend().savePreferences(config);
       setOriginalConfig(JSON.parse(JSON.stringify(config)));
       onClose();
     } catch (error) {

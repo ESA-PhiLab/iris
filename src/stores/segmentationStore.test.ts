@@ -2,7 +2,8 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { useSegmentationStore } from './segmentationStore';
 import { useUiStore } from './uiStore';
 import { useViewManagerStore } from './viewManagerStore';
-import { encodeMask } from '../services/masks';
+import { encodeMask, serverBackend } from '../services/serverBackend';
+import { setBackend } from '../services/backend';
 import type { ClassConfig, ProjectConfig } from '../types/iris';
 
 const predict = vi.fn();
@@ -47,6 +48,7 @@ const stroke = (...points: Array<[number, number]>) => {
 
 describe('segmentationStore', () => {
   beforeEach(() => {
+    setBackend(serverBackend());
     startEditing();
   });
 

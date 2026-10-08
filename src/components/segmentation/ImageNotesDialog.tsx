@@ -9,7 +9,8 @@ import React, { useEffect, useState } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useSegmentationStore } from '../../stores/segmentationStore';
 import { useUiStore } from '../../stores/uiStore';
-import { ActionInfo, fetchActionInfo, saveActionInfo } from '../../services/masks';
+import { backend } from '../../services/backend';
+import type { ImageNotes } from '../../services/localLabels';
 import { openImage } from '../../segmentation/navigation';
 
 const DIFFICULTIES = ['very easy', 'easy', 'okay', 'difficult', 'very difficult'];
@@ -19,19 +20,21 @@ const ImageNotesDialog: React.FC = () => {
   const leavingTo = useUiStore((state) => state.leavingTo);
   const setLeavingTo = useUiStore((state) => state.setLeavingTo);
   const currentImageId = useSegmentationStore((state) => state.currentImageId);
-  const [info, setInfo] = useState<ActionInfo | null>(null);
+  const [info, setInfo] = useState<ImageNotes | null>(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!leavingTo || !currentImageId) return;
     let cancelled = false;
     setInfo(null);
-    fetchActionInfo(currentImageId).then((loaded) => {
-      if (cancelled) return;
-      // Without a saved mask there is nothing to note
-      if (loaded) setInfo(loaded);
-      else openImage(leavingTo);
-    });
+    backend().loadNotes(currentImageId)
+      .catch(() => null)
+      .then((loaded) => {
+        if (cancelled) return;
+        // Without a saved mask there is nothing to note
+        if (loaded) setInfo(loaded);
+        else openImage(leavingTo);
+      });
     return () => { cancelled = true; };
   }, [leavingTo, currentImageId]);
 
@@ -41,11 +44,7 @@ const ImageNotesDialog: React.FC = () => {
   const saveAndContinue = async () => {
     setSaving(true);
     try {
-      await saveActionInfo(info.id, {
-        difficulty: info.difficulty,
-        notes: info.notes,
-        complete: info.complete,
-      });
+      await backend().saveNotes(currentImageId!, info);
       useSegmentationStore.getState().setShowDialogueBeforeNextImage(false);
       openImage(leavingTo);
     } catch (error) {

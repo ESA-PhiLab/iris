@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useSegmentationStore } from '../stores/segmentationStore';
-import { segmentationUrl } from '../utils/urls';
-import type { UserProfile } from '../types/iris';
+import { Profile, backend } from '../services/backend';
+import { downloadFile } from '../export/annotated';
 import { useTheme } from '../contexts/ThemeContext';
 import type { ThemeName } from '../themes/colorschemes';
 
@@ -16,7 +16,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   onClose,
   userId = 'current'
 }) => {
-  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [accordionOpen, setAccordionOpen] = useState(true);
@@ -38,11 +38,9 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch(`/user/api/profile/${userId}`);
-        if (!response.ok) throw new Error(`Failed to load profile: ${response.statusText}`);
-        setProfile(await response.json());
+        setProfile(await backend().loadProfile(userId));
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load profile');
+        setError(`Failed to load profile: ${err instanceof Error ? err.message : err}`);
       } finally {
         setLoading(false);
       }
@@ -60,10 +58,24 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
     }
   }, [isOpen, onClose]);
 
+  const [downloading, setDownloading] = useState(false);
+  const handleDownloadMasks = async () => {
+    setDownloading(true);
+    try {
+      const file = await backend().downloadMasks!();
+      if (file) downloadFile(file.bytes, file.name, 'application/zip');
+      else setError('You have not saved any mask yet');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not download the masks');
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   const handleLogout = async () => {
     try {
-      const response = await fetch('/user/logout');
-      if (response.ok) window.location.href = '/';
+      await backend().signOut();
+      window.location.reload();
     } catch { setError('Failed to logout'); }
   };
 
@@ -108,7 +120,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
     // Keep the mask being edited, then open the image in a new tab
     const { maskChanged, saveCurrentMask } = useSegmentationStore.getState();
     if (maskChanged) saveCurrentMask().catch(() => {});
-    window.open(segmentationUrl(imageId));
+    window.open(backend().pageUrl(imageId));
     onClose();
   };
 
@@ -340,10 +352,21 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
                     </div>
                   </div>
 
-                  {/* Actions: Change Password / Logout */}
+                  {/* Actions: Download masks / Change Password / Logout */}
                   {!showPasswordForm ? (
                     <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
-                      <button onClick={() => setShowPasswordForm(true)} style={{
+                      {backend().downloadMasks && (
+                        <button onClick={handleDownloadMasks} disabled={downloading} style={{
+                          padding: '10px 16px', borderRadius: '8px',
+                          border: `1px solid ${theme.buttonSecondaryBorder}`,
+                          backgroundColor: theme.buttonSecondaryBg, color: theme.buttonSecondaryText,
+                          fontSize: '13px', fontWeight: 500, cursor: downloading ? 'wait' : 'pointer',
+                        }}
+                          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = theme.buttonSecondaryHover)}
+                          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = theme.buttonSecondaryBg)}
+                        >{downloading ? 'Preparing...' : 'Download my masks'}</button>
+                      )}
+                      {profile.canChangePassword && <button onClick={() => setShowPasswordForm(true)} style={{
                         padding: '10px 16px', borderRadius: '8px',
                         border: `1px solid ${theme.buttonSecondaryBorder}`,
                         backgroundColor: theme.buttonSecondaryBg, color: theme.buttonSecondaryText,
@@ -351,15 +374,15 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
                       }}
                         onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = theme.buttonSecondaryHover)}
                         onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = theme.buttonSecondaryBg)}
-                      >Change Password</button>
-                      <button onClick={handleLogout} style={{
+                      >Change Password</button>}
+                      {profile.canSignOut && <button onClick={handleLogout} style={{
                         padding: '10px 16px', borderRadius: '8px', border: 'none',
                         backgroundColor: theme.buttonDangerBg, color: theme.buttonDangerText,
                         fontSize: '13px', fontWeight: 500, cursor: 'pointer',
                       }}
                         onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = theme.buttonDangerHover)}
                         onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = theme.buttonDangerBg)}
-                      >Logout</button>
+                      >Logout</button>}
                     </div>
                   ) : (
                     <div style={sectionStyle}>

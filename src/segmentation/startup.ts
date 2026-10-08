@@ -1,17 +1,13 @@
 /**
- * Start the segmentation page: load the project and the user, read the image
- * in the browser and load the user's mask of it
+ * Start the segmentation page: choose the backend, load the project and the
+ * user, read the image in the browser and load the user's mask of it
  */
 
 import { useSegmentationStore } from '../stores/segmentationStore';
 import { ViewConfig, ViewGroup, useViewManagerStore } from '../stores/viewManagerStore';
-import { imageFileSources } from '../services/imageFiles';
-
-const getJson = async (url: string) => {
-  const response = await fetch(url, { credentials: 'same-origin' });
-  if (!response.ok) throw new Error(`Could not load ${url} (${response.status})`);
-  return response.json();
-};
+import { backend, loadSiteConfig, setBackend } from '../services/backend';
+import { serverBackend } from '../services/serverBackend';
+import { staticBackend } from '../services/staticBackend';
 
 /** Views of the project, with their band expressions */
 export const projectViews = (config: any): { [name: string]: ViewConfig } => {
@@ -46,32 +42,43 @@ export const projectViewGroups = (config: any, views: { [name: string]: ViewConf
 export const pageImageId = (): string | null =>
   new URLSearchParams(window.location.search).get('image_id');
 
+/** The server when there is one, else the project files next to the page */
+export const chooseBackend = async () => {
+  const site = await loadSiteConfig();
+  setBackend(site ? staticBackend(site) : serverBackend());
+  return backend();
+};
+
 export const startSegmentation = async () => {
   const editor = useSegmentationStore.getState();
   const viewManager = useViewManagerStore.getState();
+  const source = backend();
 
-  const [config, user] = await Promise.all([
-    getJson('/segmentation/api/config'),
-    getJson('/user/get/current'),
-  ]);
+  const [config, user] = await Promise.all([source.loadProject(), source.currentUser()]);
   editor.setConfig(config);
-  editor.setUser(user);
+  if (user) editor.setUser(user);
 
   const views = projectViews(config);
   viewManager.setViews(views);
   viewManager.setViewGroups(projectViewGroups(config, views));
 
-  const imageId = pageImageId();
+  const images = await source.listImages();
+  editor.setImages(images);
+
+  let imageId = pageImageId();
+  if (!imageId) {
+    imageId = await source.startImageId(images);
+    if (imageId) window.history.replaceState({}, '', source.pageUrl(imageId));
+  }
   if (!imageId) throw new Error('The project has no images');
+  if (!images.some((image) => image.image_id === imageId)) {
+    throw new Error(`The project has no image '${imageId}'`);
+  }
   editor.setCurrentImage(imageId);
   viewManager.setImage(imageId);
 
-  const [images] = await Promise.all([
-    getJson(`/segmentation/api/images/list?current_image_id=${encodeURIComponent(imageId)}`),
-    // Reading the image tells where it lies on the map and how large it is
-    viewManager.openImage(imageId, imageFileSources(config, imageId)),
-  ]);
-  editor.setImages(images.images);
+  // Reading the image tells where it lies on the map and how large it is
+  await viewManager.openImage(imageId, source.imageFiles(config, imageId));
 
   // Without a mask area the mask covers the whole image
   const { georef } = useViewManagerStore.getState();

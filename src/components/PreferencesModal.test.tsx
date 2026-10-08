@@ -3,6 +3,10 @@ import { render } from '@testing-library/react';
 import PreferencesModal from './PreferencesModal';
 import { ThemeProvider } from '../contexts/ThemeContext';
 import React from 'react';
+import { setBackend } from '../services/backend';
+import { serverBackend } from '../services/serverBackend';
+
+setBackend(serverBackend());
 
 const renderWithTheme = (ui: React.ReactElement) => render(<ThemeProvider>{ui}</ThemeProvider>);
 

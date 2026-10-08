@@ -2,6 +2,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '../test/test-utils';
 import { UserProfileModal } from './UserProfileModal';
 import type { UserProfile } from '../types/iris';
+import { setBackend } from '../services/backend';
+import { serverBackend } from '../services/serverBackend';
+
+setBackend(serverBackend());
 
 describe('UserProfileModal', () => {
   beforeEach(() => {

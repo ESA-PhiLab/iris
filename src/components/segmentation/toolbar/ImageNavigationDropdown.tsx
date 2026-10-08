@@ -8,6 +8,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
+import { chosenBackend } from '../../../services/backend';
 import { useSegmentationStore } from '../../../stores/segmentationStore';
 import { useTheme } from '../../../contexts/ThemeContext';
 
@@ -64,10 +65,7 @@ export const ImageNavigationDropdown: React.FC<ImageNavigationDropdownProps> = (
     return theme.gray500; // No annotations - gray
   };
 
-  const getThumbnailUrl = (imageId: string) => {
-    // Use the same thumbnail endpoint as ImageInfoModal
-    return `/thumbnail/${imageId}?size=32x32`;
-  };
+  const getThumbnailUrl = (imageId: string) => chosenBackend()?.thumbnailUrl(imageId) ?? undefined;
 
   return (
     <div

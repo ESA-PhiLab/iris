@@ -10,12 +10,11 @@
  */
 
 import { create } from 'zustand';
-import type { ClassConfig, ConfusionMatrix, ProjectConfig, UserInfo } from '../types/iris';
+import type { AIModelConfig, ClassConfig, ConfusionMatrix, ProjectConfig, UserInfo } from '../types/iris';
 import { Rect, brushMaskRect, fillRect, strokePositions, unionRect } from '../segmentation/brush';
 import { MaskType, maskPixels } from '../segmentation/maskColours';
 import { MIN_CLASS_PIXELS, splitTrainingPixels, testPredictions } from '../segmentation/training';
-import { fetchMask, saveMask } from '../services/masks';
-import { fetchAiModel } from '../services/userConfig';
+import { backend } from '../services/backend';
 import { rasterEngine } from '../raster/engine';
 import type { AiModelSettings } from '../ai/segment';
 import { useUiStore } from './uiStore';
@@ -485,7 +484,7 @@ export const useSegmentationStore = create<SegmentationState>((set, get) => {
       ui.setBusy('Loading mask...');
       set({ isLoading: true });
       try {
-        const saved = await fetchMask(imageId, maskDimensions.width * maskDimensions.height);
+        const saved = await backend().loadMask(imageId, maskDimensions.width * maskDimensions.height);
         get().initMask(saved?.mask, saved?.userMask);
       } finally {
         set({ isLoading: false });
@@ -500,7 +499,7 @@ export const useSegmentationStore = create<SegmentationState>((set, get) => {
       set({ isLoading: true });
       ui.notify('Saving mask...');
       try {
-        await saveMask(currentImageId, { mask: maskData, userMask: userMaskData });
+        await backend().saveMask(currentImageId, { mask: maskData, userMask: userMaskData });
         set({ maskChanged: false, lastSaveTime: new Date() });
         ui.notify('Mask saved', 1000);
       } catch (error) {
@@ -522,7 +521,13 @@ export const useSegmentationStore = create<SegmentationState>((set, get) => {
       set({ isLoading: true });
       ui.setBusy('Train AI...');
       try {
-        const model = await fetchAiModel(config?.segmentation?.ai_model ?? {});
+        // The user's own AI settings, if any
+        const bands = useViewManagerStore.getState().georef?.bands ?? [];
+        const preferences = await backend().loadPreferences(bands).catch(() => null);
+        const model: Partial<AIModelConfig> = {
+          ...config?.segmentation?.ai_model,
+          ...preferences?.config.segmentation.ai_model,
+        };
         const split = splitTrainingPixels(maskData, userMaskData, classes.length, {
           trainRatio: model.train_ratio ?? 0.8,
           maxTrainPixels: model.max_train_pixels ?? 20000,

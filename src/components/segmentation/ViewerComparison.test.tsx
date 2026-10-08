@@ -58,7 +58,7 @@ describe('ViewerComparison', () => {
     await act(async () => {
       render(<ViewerComparison />);
     });
-    expect(screen.getByText('Loading configuration...')).toBeInTheDocument();
+    expect(screen.getByText('Loading the project...')).toBeInTheDocument();
   });
 
   it.skip('renders initialization message when config available but not initialized', async () => {
@@ -98,7 +98,7 @@ describe('ViewerComparison', () => {
     await act(async () => {
       render(<ViewerComparison />);
     });
-    expect(screen.getByText('Initializing React ViewManager...')).toBeInTheDocument();
+    expect(screen.getByText('Loading the image...')).toBeInTheDocument();
   });
 
   it('renders React ViewManager when initialized', async () => {
@@ -131,7 +131,7 @@ describe('ViewerComparison', () => {
       render(<ViewerComparison />);
     });
     
-    const container = screen.getByText('Loading configuration...').parentElement;
+    const container = screen.getByText('Loading the project...').parentElement;
     // Component now uses responsive 100% height instead of fixed 800px
     expect(container).toHaveStyle({
       width: '100%',

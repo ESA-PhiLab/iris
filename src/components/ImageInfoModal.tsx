@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useSegmentationStore } from '../stores/segmentationStore';
+import { backend, chosenBackend } from '../services/backend';
 import { useTheme } from '../contexts/ThemeContext';
 
 interface ImageInfoModalProps {
@@ -24,8 +25,6 @@ const ImageInfoModal: React.FC<ImageInfoModalProps> = ({ isOpen, onClose }) => {
   const { theme } = useTheme();
   
   const currentImageId = useSegmentationStore((state) => state.currentImageId);
-  // Metadata and thumbnails are served next to the pages
-  const mainUrl = '/';
 
   useEffect(() => {
     if (isOpen) {
@@ -41,12 +40,9 @@ const ImageInfoModal: React.FC<ImageInfoModalProps> = ({ isOpen, onClose }) => {
         setError(null);
 
         try {
-          const response = await fetch(`${mainUrl}metadata/${imageId}?safe_html=True`);
-          if (response.status >= 400) {
-            setError(await response.text());
-          } else {
-            setMetadata(await response.json());
-          }
+          const loaded = await backend().loadMetadata(imageId);
+          if (loaded) setMetadata(loaded as ImageMetadata);
+          else setError('No metadata found!');
         } catch (err) {
           setError(err instanceof Error ? err.message : 'Failed to load metadata');
         } finally {
@@ -75,6 +71,7 @@ const ImageInfoModal: React.FC<ImageInfoModalProps> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   const imageId = currentImageId || 'Unknown';
+  const thumbnail = currentImageId ? chosenBackend()?.thumbnailUrl(currentImageId) ?? null : null;
 
   return (
     <div
@@ -165,13 +162,13 @@ const ImageInfoModal: React.FC<ImageInfoModalProps> = ({ isOpen, onClose }) => {
         {/* Body */}
         <div style={{ padding: '20px', overflowY: 'auto', flex: 1 }}>
           {/* Thumbnail */}
-          <div style={{
+          {thumbnail && <div style={{
             display: 'flex',
             justifyContent: 'center',
             marginBottom: '20px',
           }}>
             <img
-              src={`${mainUrl}thumbnail/${imageId}?size=256x256`}
+              src={thumbnail}
               alt={`Thumbnail of ${imageId}`}
               style={{
                 maxWidth: '256px',
@@ -181,7 +178,7 @@ const ImageInfoModal: React.FC<ImageInfoModalProps> = ({ isOpen, onClose }) => {
                 backgroundColor: theme.bgTertiary,
               }}
             />
-          </div>
+          </div>}
 
           {/* Loading */}
           {loading && (

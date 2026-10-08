@@ -10,7 +10,7 @@ import { zipSync } from 'fflate';
 import { rasterEngine } from '../raster/engine';
 import type { ViewSpec } from '../raster/render';
 import { writeCog } from '../raster/writeCog';
-import { imageFileSources } from '../services/imageFiles';
+import { serverBackend } from '../services/serverBackend';
 import type { Georef } from '../utils/georef';
 
 type Area = [number, number, number, number];
@@ -104,7 +104,7 @@ export const exportMergedImages = async (
     onProgress(i, imageIds.length);
     const mask = await fetchMergedMask(imageId);
     if (!mask) continue;
-    const georef = await rasterEngine().open(imageId, imageFileSources(config, imageId));
+    const georef = await rasterEngine().open(imageId, serverBackend().imageFiles(config, imageId));
     const maskArea: Area = config.segmentation?.mask_area ?? [0, 0, georef.width, georef.height];
     files[`${imageId}_merged.tif`] = await annotatedGeoTiff({
       imageId, georef, maskArea, mask, description: 'Merged Segmentation Mask', view,

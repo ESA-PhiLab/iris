@@ -54,7 +54,7 @@ const ViewerComparison: React.FC<ViewerComparisonProps> = () => {
             fontSize: '14px',
           }}
         >
-          {config ? 'Initializing React ViewManager...' : 'Loading configuration...'}
+          {config ? 'Loading the image...' : 'Loading the project...'}
         </div>
       )}
     </div>

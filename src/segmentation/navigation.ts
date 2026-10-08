@@ -8,11 +8,11 @@
 
 import { useSegmentationStore } from '../stores/segmentationStore';
 import { useUiStore } from '../stores/uiStore';
-import { segmentationUrl } from '../utils/urls';
+import { backend } from '../services/backend';
 
 /** Open another image, without saving or asking */
 export const openImage = (imageId: string) => {
-  window.location.href = segmentationUrl(imageId);
+  window.location.href = backend().pageUrl(imageId);
 };
 
 /** Save the mask and open another image, asking about the mask first if ask is set */

@@ -24,6 +24,8 @@ export interface Georef {
   geographic?: boolean;
   /** Pixel to CRS, as rasterio: x = a*col + b*row + c, y = d*col + e*row + f */
   transform?: [number, number, number, number, number, number];
+  /** Bands of the files of the image, e.g. $Sentinel2.B4 */
+  bands?: string[];
 }
 
 type Point = [number, number];

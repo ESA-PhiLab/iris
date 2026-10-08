@@ -37,7 +37,9 @@ export const createRasterCore = () => {
       while (images.size > KEPT_IMAGES) {
         images.delete(images.keys().next().value as string);
       }
-      return (await pixels).georef;
+      const { georef, files } = await pixels;
+      const bands = Object.entries(files).flatMap(([file, values]) => values.map((_, i) => `$${file}.B${i + 1}`));
+      return { ...georef, bands };
     },
 
     async render(imageId: string, view: ViewSpec): Promise<RenderedImage> {

@@ -52,6 +52,10 @@ export default defineConfig(({ command }) => ({
       }
     }
   },
+  // MapLibre loads its worker from next to its own module: serve it as it is
+  optimizeDeps: {
+    exclude: ['maplibre-gl']
+  },
   server: {
     port: 3000
   }

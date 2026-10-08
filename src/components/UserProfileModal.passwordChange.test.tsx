@@ -4,6 +4,10 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { UserProfileModal } from './UserProfileModal';
 import { ThemeProvider } from '../contexts/ThemeContext';
 import type { UserProfile } from '../types/iris';
+import { setBackend } from '../services/backend';
+import { serverBackend } from '../services/serverBackend';
+
+setBackend(serverBackend());
 
 /** Helper to render with ThemeProvider */
 function renderWithTheme(ui: React.ReactElement) {
