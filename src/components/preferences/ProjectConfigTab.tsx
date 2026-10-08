@@ -4,7 +4,6 @@ import ClassesSection from './config/ClassesSection';
 import ViewsSection from './config/ViewsSection';
 import ViewGroupsSection from './config/ViewGroupsSection';
 import SegmentationSection from './config/SegmentationSection';
-import ChatSection, { type ChatSectionRef } from './config/ChatSection';
 import { getProjectConfig, updateProjectConfig, validateProjectConfig } from '../../services/config';
 import type { ProjectConfig } from '../../services/config';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -34,7 +33,6 @@ const ProjectConfigTab: React.FC<ProjectConfigTabProps> = ({ onStateChange }) =>
   const viewsRef = useRef<SectionRef>(null);
   const viewGroupsRef = useRef<SectionRef>(null);
   const segmentationRef = useRef<SectionRef>(null);
-  const chatRef = useRef<ChatSectionRef>(null);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -60,10 +58,9 @@ const ProjectConfigTab: React.FC<ProjectConfigTabProps> = ({ onStateChange }) =>
           const viewsData = viewsRef.current?.getData();
           const viewGroupsData = viewGroupsRef.current?.getData();
           const segmentationData = segmentationRef.current?.getData();
-          const chatData = chatRef.current?.getData();
           const currentConfig: ProjectConfig = {
             ...generalData, classes: classesData, views: viewsData,
-            view_groups: viewGroupsData, segmentation: segmentationData, chat: chatData,
+            view_groups: viewGroupsData, segmentation: segmentationData,
           };
           setOriginalConfigJson(JSON.stringify(currentConfig));
           setHasUnsavedChanges(false);
@@ -110,10 +107,6 @@ const ProjectConfigTab: React.FC<ProjectConfigTabProps> = ({ onStateChange }) =>
     if (viewsRef.current?.setData) viewsRef.current.setData(config.views);
     if (viewGroupsRef.current?.setData) viewGroupsRef.current.setData(config.view_groups);
     if (segmentationRef.current?.setData) segmentationRef.current.setData(config.segmentation);
-    if (chatRef.current?.setData) {
-      if ((window as any).IRIS_DEBUG) console.log('[ProjectConfigTab] Populating ChatSection with:', config.chat);
-      chatRef.current.setData(config.chat);
-    }
   };
 
   const getAvailableViews = (): string[] => {
@@ -129,10 +122,9 @@ const ProjectConfigTab: React.FC<ProjectConfigTabProps> = ({ onStateChange }) =>
       const viewsData = viewsRef.current?.getData();
       const viewGroupsData = viewGroupsRef.current?.getData();
       const segmentationData = segmentationRef.current?.getData();
-      const chatData = chatRef.current?.getData();
       const currentConfig: ProjectConfig = {
         ...generalData, classes: classesData, views: viewsData,
-        view_groups: viewGroupsData, segmentation: segmentationData, chat: chatData,
+        view_groups: viewGroupsData, segmentation: segmentationData,
       };
       const changed = JSON.stringify(currentConfig) !== originalConfigJson;
       setHasUnsavedChanges(changed);
@@ -152,10 +144,9 @@ const ProjectConfigTab: React.FC<ProjectConfigTabProps> = ({ onStateChange }) =>
       const viewsData = viewsRef.current?.getData();
       const viewGroupsData = viewGroupsRef.current?.getData();
       const segmentationData = segmentationRef.current?.getData();
-      const chatData = chatRef.current?.getData();
       const config: ProjectConfig = {
         ...generalData, classes: classesData, views: viewsData,
-        view_groups: viewGroupsData, segmentation: segmentationData, chat: chatData,
+        view_groups: viewGroupsData, segmentation: segmentationData,
       };
       const validationResult = await validateProjectConfig(config);
       if (!validationResult.valid) {
@@ -210,7 +201,6 @@ const ProjectConfigTab: React.FC<ProjectConfigTabProps> = ({ onStateChange }) =>
       <ViewsSection ref={viewsRef} />
       <ViewGroupsSection ref={viewGroupsRef} getAvailableViews={getAvailableViews} />
       <SegmentationSection ref={segmentationRef} />
-      <ChatSection ref={chatRef} />
 
       <div style={{
         padding: '16px', borderTop: `1px solid ${theme.separatorColor}`, marginTop: '16px',

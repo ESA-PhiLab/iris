@@ -109,7 +109,7 @@ const ViewerComparison: React.FC<ViewerComparisonProps> = () => {
     height: '100%', // Use full available height
     minHeight: '0', // Allow shrinking
     maxHeight: '100%', // Don't exceed parent
-    backgroundColor: '#fff',
+    backgroundColor: 'var(--color-bg-canvas)',
     overflow: 'hidden', // Prevent overflow
     padding: '10px',
     boxSizing: 'border-box', // Include padding in dimensions

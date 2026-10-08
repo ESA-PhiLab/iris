@@ -3,15 +3,15 @@ import { createRoot } from 'react-dom/client';
 import { ThemeProvider } from './contexts/ThemeContext';
 import TopBar from './components/segmentation/TopBar';
 import LeftToolbar from './components/segmentation/LeftToolbar';
-import RightPanel from './components/segmentation/RightPanel';
+import RightPanel, { PANEL_WIDTH } from './components/segmentation/RightPanel';
 import BottomBar from './components/segmentation/BottomBar';
 import SegmentationModals from './components/segmentation/SegmentationModals';
 import ViewerComparison from './components/segmentation/ViewerComparison';
-import ImageChatPanel from './components/segmentation/ImageChatPanel';
 import { useSegmentationSetup } from './components/segmentation/hooks/useSegmentationSetup';
 import { useSegmentationStore } from './stores/segmentationStore';
 import { useViewManagerStore } from './stores/viewManagerStore';
 import { useConfigLoader } from './hooks/useConfigLoader';
+import { useShortcut } from './hooks/useShortcut';
 import './utils/legacyBridge'; // Initialize legacy bridge functions
 
 // Declare global functions that exist in the legacy JavaScript
@@ -44,14 +44,7 @@ const SegmentationApp: React.FC = () => {
   const [isConfusionMatrixOpen, setIsConfusionMatrixOpen] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isChatOpen, setIsChatOpen] = useState(false);
   const [isRightPanelCollapsed, setIsRightPanelCollapsed] = useState(false);
-
-  // Chat configuration from project config
-  const config = useSegmentationStore((state) => state.config);
-  const chatEnabled = config?.chat?.enabled || false;
-  const githubRepo = config?.chat?.github_repo || '';
-  const utterancesTheme = config?.chat?.utterances_theme || 'github-light';
 
   // Get config loader hook
   const { loadConfig } = useConfigLoader();
@@ -299,6 +292,15 @@ const SegmentationApp: React.FC = () => {
     window.location.reload();
   }, []);
 
+  // Shortcuts of the dialogs and the side panel (see utils/shortcuts.ts)
+  useShortcut('classDialog', () => setIsClassSelectionOpen(true));
+  useShortcut('imageInfo', () => setIsImageInfoOpen((open) => !open));
+  useShortcut('stats', () => setIsConfusionMatrixOpen((open) => !open));
+  useShortcut('profile', () => setIsProfileOpen((open) => !open));
+  useShortcut('settings', () => setIsPreferencesOpen((open) => !open));
+  useShortcut('help', () => setIsHelpOpen((open) => !open));
+  useShortcut('rightPanel', () => setIsRightPanelCollapsed((collapsed) => !collapsed));
+
   // Setup segmentation with custom hook
   useSegmentationSetup({
     authChecked: authChecked && isAuthenticated,
@@ -335,11 +337,11 @@ const SegmentationApp: React.FC = () => {
         style={{
           position: 'fixed',
           left: '60px',
-          right: isRightPanelCollapsed ? '0' : '280px',
+          right: isRightPanelCollapsed ? '0' : `${PANEL_WIDTH}px`,
           top: '50px',
           bottom: '60px',
           overflow: 'auto',
-          backgroundColor: '#f5f5f5',
+          backgroundColor: 'var(--color-bg-canvas)',
           transition: 'right 0.3s ease',
         }}
       >
@@ -358,45 +360,6 @@ const SegmentationApp: React.FC = () => {
         onOpenImageInfo={handleOpenImageInfo}
         onOpenConfusionMatrix={handleOpenConfusionMatrix}
       />
-
-      {/* Chat toggle button - only show if chat is enabled */}
-      {chatEnabled && githubRepo && (
-        <button
-          onClick={() => setIsChatOpen(!isChatOpen)}
-          style={{
-            position: 'fixed',
-            right: isChatOpen ? '420px' : '20px',
-            bottom: '80px',
-            width: '50px',
-            height: '50px',
-            borderRadius: '50%',
-            backgroundColor: '#007cba',
-            color: 'white',
-            border: 'none',
-            fontSize: '24px',
-            cursor: 'pointer',
-            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
-            zIndex: 999,
-            transition: 'right 0.3s ease',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-          title={isChatOpen ? 'Close chat' : 'Open chat'}
-        >
-          💬
-        </button>
-      )}
-
-      {/* Chat side panel */}
-      {chatEnabled && githubRepo && (
-        <ImageChatPanel 
-          githubRepo={githubRepo}
-          theme={utterancesTheme}
-          isOpen={isChatOpen}
-          onClose={() => setIsChatOpen(false)}
-        />
-      )}
 
       <SegmentationModals
         isPreferencesOpen={isPreferencesOpen}

@@ -4,6 +4,8 @@ import PaintbrushSelector from './toolbar/PaintbrushSelector';
 import { useSegmentationStore } from '../../stores/segmentationStore';
 import { useTheme } from '../../contexts/ThemeContext';
 import { withShortcut } from '../../utils/shortcuts';
+import { useShortcut } from '../../hooks/useShortcut';
+import Kbd from '../Kbd';
 
 interface LeftToolbarProps {
   onResetMask: () => void;
@@ -55,6 +57,8 @@ const LeftToolbar: React.FC<LeftToolbarProps> = ({ onResetMask }) => {
     if (w.redo) w.redo();
   };
   
+  useShortcut('leftToolbar', () => setIsExpanded((expanded: boolean) => !expanded));
+
   const toolbarWidth = isExpanded ? 180 : 60;
   
   return (
@@ -96,10 +100,11 @@ const LeftToolbar: React.FC<LeftToolbarProps> = ({ onResetMask }) => {
           justifyContent: 'center',
           gap: '8px',
         }}
-        title={isExpanded ? 'Collapse toolbar' : 'Expand toolbar'}
+        title={withShortcut(isExpanded ? 'Collapse toolbar' : 'Expand toolbar', 'leftToolbar')}
       >
         <span>{isExpanded ? '◀' : '▶'}</span>
         {isExpanded && <span style={{ fontSize: '12px' }}>Collapse</span>}
+        {isExpanded && <Kbd name="leftToolbar" />}
       </button>
 
       {/* Drawing Tools */}
@@ -113,6 +118,7 @@ const LeftToolbar: React.FC<LeftToolbarProps> = ({ onResetMask }) => {
             disabled={isLoading}
             title={withShortcut('Move/Pan', 'move')}
             label={isExpanded ? 'Move' : undefined}
+            shortcut="move"
           />
         </div>
         
@@ -125,6 +131,7 @@ const LeftToolbar: React.FC<LeftToolbarProps> = ({ onResetMask }) => {
           title={`${withShortcut('Draw pixels', 'draw')}, brush size: Shift+Scroll`}
           dropdownType="draw"
           label={isExpanded ? 'Draw' : undefined}
+          shortcut="draw"
           style={isExpanded ? { maxWidth: '100%' } : { width: '50px' }}
         />
         
@@ -137,6 +144,7 @@ const LeftToolbar: React.FC<LeftToolbarProps> = ({ onResetMask }) => {
           title={`${withShortcut('Erase pixels', 'eraser')}, brush size: Shift+Scroll`}
           dropdownType="eraser"
           label={isExpanded ? 'Erase' : undefined}
+          shortcut="eraser"
           style={isExpanded ? { maxWidth: '100%' } : { width: '50px' }}
         />
       </div>
@@ -153,6 +161,7 @@ const LeftToolbar: React.FC<LeftToolbarProps> = ({ onResetMask }) => {
             onClick={handleUndo}
             title={withShortcut('Undo', 'undo')}
             label={isExpanded ? 'Undo' : undefined}
+            shortcut="undo"
           />
         </div>
         
@@ -163,6 +172,7 @@ const LeftToolbar: React.FC<LeftToolbarProps> = ({ onResetMask }) => {
             onClick={handleRedo}
             title={withShortcut('Redo', 'redo')}
             label={isExpanded ? 'Redo' : undefined}
+            shortcut="redo"
           />
         </div>
       </div>
@@ -180,6 +190,7 @@ const LeftToolbar: React.FC<LeftToolbarProps> = ({ onResetMask }) => {
             disabled={isLoading}
             title={isLoading ? "Predicting..." : withShortcut("Predict mask using AI", "predict")}
             label={isExpanded ? 'AI Predict' : undefined}
+            shortcut="predict"
           />
         </div>
         
@@ -191,6 +202,7 @@ const LeftToolbar: React.FC<LeftToolbarProps> = ({ onResetMask }) => {
             disabled={isLoading}
             title={withShortcut('Reset mask', 'resetMask')}
             label={isExpanded ? 'Reset Mask' : undefined}
+            shortcut="resetMask"
           />
         </div>
         
@@ -202,6 +214,7 @@ const LeftToolbar: React.FC<LeftToolbarProps> = ({ onResetMask }) => {
             disabled={isLoading}
             title={withShortcut('Reset views', 'resetViews')}
             label={isExpanded ? 'Reset Views' : undefined}
+            shortcut="resetViews"
           />
         </div>
       </div>

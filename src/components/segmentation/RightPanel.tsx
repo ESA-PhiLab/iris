@@ -2,55 +2,11 @@ import React, { useEffect } from 'react';
 import { useSegmentationStore } from '../../stores/segmentationStore';
 import { useViewManagerStore } from '../../stores/viewManagerStore';
 import { useTheme } from '../../contexts/ThemeContext';
-import { withShortcut } from '../../utils/shortcuts';
+import { ShortcutName, withShortcut } from '../../utils/shortcuts';
+import { useShortcut } from '../../hooks/useShortcut';
+import Kbd from '../Kbd';
 
-/** Switch to show or hide a layer of the map views */
-const LayerToggle: React.FC<{
-  label: string;
-  title: string;
-  on: boolean;
-  onToggle: () => void;
-}> = ({ label, title, on, onToggle }) => {
-  const { theme } = useTheme();
-  return (
-    <div style={{ 
-      display: 'flex', 
-      alignItems: 'center', 
-      justifyContent: 'space-between',
-      marginBottom: '4px',
-      padding: '6px 0',
-    }}>
-      <span style={{ fontSize: '13px', fontWeight: '500', color: theme.gray900 }}>{label}</span>
-      <button
-        onClick={onToggle}
-        style={{
-          width: '44px',
-          height: '24px',
-          backgroundColor: on ? theme.toggleOn : theme.toggleOff,
-          border: 'none',
-          borderRadius: '12px',
-          cursor: 'pointer',
-          position: 'relative',
-          transition: 'background-color 0.2s ease',
-        }}
-        title={title}
-      >
-        <div style={{
-          position: 'absolute',
-          top: '2px',
-          left: on ? '22px' : '2px',
-          width: '20px',
-          height: '20px',
-          backgroundColor: theme.toggleThumb,
-          borderRadius: '50%',
-          transition: 'left 0.2s ease',
-          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.2)',
-        }} />
-      </button>
-    </div>
-  );
-};
-
+export const PANEL_WIDTH = 264;
 const FOLDED_SECTIONS_KEY = 'iris-right-panel-folded';
 
 /** Sections of the panel the user folded, remembered across reloads */
@@ -62,12 +18,13 @@ const readFoldedSections = (): Record<string, boolean> => {
   }
 };
 
-/** Section of the panel whose title folds and unfolds it */
-const CollapsibleSection: React.FC<{
+/** Section of the panel whose title (or shortcut) folds and unfolds it */
+const Section: React.FC<{
   title: string;
-  style?: React.CSSProperties;
+  shortcut?: ShortcutName;
+  last?: boolean;
   children: React.ReactNode;
-}> = ({ title, style, children }) => {
+}> = ({ title, shortcut, last = false, children }) => {
   const { theme } = useTheme();
   const [folded, setFolded] = React.useState(() => Boolean(readFoldedSections()[title]));
 
@@ -80,44 +37,188 @@ const CollapsibleSection: React.FC<{
       );
     } catch { /* ignore */ }
   };
+  useShortcut(shortcut, toggle);
 
+  const action = `${folded ? 'Show' : 'Hide'} ${title.toLowerCase()}`;
   return (
-    <div style={{
-      paddingBottom: folded ? '12px' : '20px',
-      marginBottom: folded ? '12px' : '20px',
-      borderBottom: `1px solid ${theme.panelBorder}`,
-      ...style
+    <section style={{
+      padding: '14px 0',
+      borderBottom: last ? 'none' : `1px solid ${theme.panelBorder}`,
     }}>
       <button
         onClick={toggle}
         aria-expanded={!folded}
-        title={folded ? `Show ${title.toLowerCase()}` : `Hide ${title.toLowerCase()}`}
+        title={shortcut ? withShortcut(action, shortcut) : action}
         style={{
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
+          gap: '8px',
           width: '100%',
-          margin: folded ? 0 : '0 0 12px 0',
           padding: 0,
           background: 'none',
           border: 'none',
           cursor: 'pointer',
-          fontSize: '11px',
-          fontWeight: '600',
           color: theme.gray600,
-          letterSpacing: '0.5px',
-          textTransform: 'uppercase',
         }}
       >
-        <span>{title}</span>
         <span style={{
           display: 'inline-block',
+          width: '10px',
+          fontSize: '10px',
           transform: folded ? 'rotate(-90deg)' : 'none',
           transition: 'transform 0.15s ease',
         }}>▾</span>
+        <span style={{
+          flex: 1,
+          textAlign: 'left',
+          fontSize: '11px',
+          fontWeight: 600,
+          letterSpacing: '0.06em',
+          textTransform: 'uppercase',
+        }}>{title}</span>
+        {shortcut && <Kbd name={shortcut} />}
       </button>
-      {!folded && children}
+      {!folded && <div style={{ marginTop: '12px' }}>{children}</div>}
+    </section>
+  );
+};
+
+/** Label on the left, shortcut and control on the right */
+const Row: React.FC<{
+  label: string;
+  title?: string;
+  children: React.ReactNode;
+}> = ({ label, title, children }) => {
+  const { theme } = useTheme();
+  return (
+    <div
+      title={title}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        minHeight: '30px',
+        color: theme.gray600,
+      }}
+    >
+      <span style={{ flex: 1, fontSize: '13px', fontWeight: 500, color: theme.gray900 }}>{label}</span>
+      {children}
     </div>
+  );
+};
+
+/** On/off switch */
+const Switch: React.FC<{ on: boolean; onToggle: () => void; title: string }> = ({ on, onToggle, title }) => {
+  const { theme } = useTheme();
+  return (
+    <button
+      onClick={onToggle}
+      role="switch"
+      aria-checked={on}
+      title={title}
+      style={{
+        position: 'relative',
+        flexShrink: 0,
+        width: '34px',
+        height: '20px',
+        padding: 0,
+        backgroundColor: on ? theme.toggleOn : theme.toggleOff,
+        border: 'none',
+        borderRadius: '10px',
+        cursor: 'pointer',
+        transition: 'background-color 0.2s ease',
+      }}
+    >
+      <span style={{
+        position: 'absolute',
+        top: '2px',
+        left: on ? '16px' : '2px',
+        width: '16px',
+        height: '16px',
+        backgroundColor: theme.toggleThumb,
+        borderRadius: '50%',
+        boxShadow: '0 1px 2px rgba(0, 0, 0, 0.25)',
+        transition: 'left 0.2s ease',
+      }} />
+    </button>
+  );
+};
+
+/** Slider of an adjustment in percent */
+const Slider: React.FC<{
+  label: string;
+  shortcut: ShortcutName;
+  value: number;
+  step: number;
+  onChange: (value: number) => void;
+}> = ({ label, shortcut, value, step, onChange }) => {
+  const { theme } = useTheme();
+  return (
+    <div style={{ marginBottom: '10px' }}>
+      <Row label={label} title={withShortcut(label, shortcut)}>
+        <Kbd name={shortcut} />
+        <span style={{
+          minWidth: '38px',
+          textAlign: 'right',
+          fontSize: '12px',
+          fontVariantNumeric: 'tabular-nums',
+          color: theme.gray600,
+        }}>{value}%</span>
+      </Row>
+      <input
+        type="range"
+        min="0"
+        max="800"
+        step={step}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        aria-label={label}
+        style={{ width: '100%', margin: '2px 0 0', accentColor: theme.toggleOn, cursor: 'pointer' }}
+      />
+    </div>
+  );
+};
+
+/** Button that stays highlighted while its option is on */
+const PanelButton: React.FC<{
+  label: string;
+  shortcut: ShortcutName;
+  title: string;
+  active?: boolean;
+  onClick: () => void;
+}> = ({ label, shortcut, title, active = false, onClick }) => {
+  const { theme } = useTheme();
+  const [hovered, setHovered] = React.useState(false);
+  return (
+    <button
+      onClick={onClick}
+      aria-pressed={active}
+      title={withShortcut(title, shortcut)}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        flex: 1,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '8px',
+        height: '32px',
+        padding: '0 10px',
+        backgroundColor: active
+          ? theme.buttonPrimaryBg
+          : hovered ? theme.buttonSecondaryHover : theme.buttonSecondaryBg,
+        color: active ? theme.buttonPrimaryText : theme.buttonSecondaryText,
+        border: `1px solid ${active ? theme.buttonPrimaryBg : theme.buttonSecondaryBorder}`,
+        borderRadius: '6px',
+        cursor: 'pointer',
+        fontSize: '12px',
+        fontWeight: 500,
+        transition: 'background-color 0.15s ease',
+      }}
+    >
+      {label}
+      <Kbd name={shortcut} />
+    </button>
   );
 };
 
@@ -128,8 +229,8 @@ interface RightPanelProps {
 }
 
 const RightPanel: React.FC<RightPanelProps> = ({ onSelectClass, isCollapsed, onToggleCollapse }) => {
-  const { theme, actualThemeName } = useTheme();
-  
+  const { theme } = useTheme();
+
   const {
     showMask,
     toggleMask,
@@ -148,16 +249,13 @@ const RightPanel: React.FC<RightPanelProps> = ({ onSelectClass, isCollapsed, onT
     classes,
   } = useSegmentationStore();
   const { showImage, showSatellite, toggleImage, toggleSatellite } = useViewManagerStore();
-  
-  // Get current class name
-  const currentClassName = currentClass >= 0 && currentClass < classes.length 
-    ? classes[currentClass].name 
-    : 'No class';
-  
-  // Icon filter for dark theme - invert black icons to white
-  const iconFilter = actualThemeName === 'dark'
-    ? 'invert(1) brightness(0.9)' 
-    : 'none';
+
+  useShortcut('toggleImage', toggleImage);
+  useShortcut('toggleSatellite', toggleSatellite);
+
+  const currentClassConfig = currentClass >= 0 && currentClass < classes.length
+    ? classes[currentClass]
+    : null;
 
   // Watch for showMask changes and trigger canvas update
   // Note: maskType changes are handled in the store's setMaskType function
@@ -165,7 +263,6 @@ const RightPanel: React.FC<RightPanelProps> = ({ onSelectClass, isCollapsed, onT
     const w = window as any;
     // Only call if function exists and vars is initialized
     if (w.vars && w.show_mask) {
-      if (w.IRIS_DEBUG) console.log('[RightPanel] showMask changed to:', showMask);
       try {
         w.show_mask(showMask);
       } catch (error) {
@@ -174,7 +271,7 @@ const RightPanel: React.FC<RightPanelProps> = ({ onSelectClass, isCollapsed, onT
     }
   }, [showMask]);
 
-  // Watch for filter changes and apply to canvas
+  // Watch for filter changes and apply them
   useEffect(() => {
     const w = window as any;
     if (w.renderFromStore) {
@@ -186,476 +283,205 @@ const RightPanel: React.FC<RightPanelProps> = ({ onSelectClass, isCollapsed, onT
     }
   }, [brightness, saturation, contrast, invert]);
 
-  // Segmented control for mask types
-  const SegmentedControl: React.FC<{
-    options: Array<{ value: string; icon: string; title: string; label: string }>;
-    value: string;
-    onChange: (value: string) => void;
-  }> = ({ options, value, onChange }) => {
-    const [hoveredOption, setHoveredOption] = React.useState<string | null>(null);
-    
-    return (
-      <div style={{ position: 'relative' }}>
-        <div style={{
-          display: 'flex',
-          backgroundColor: theme.segmentedBg,
-          borderRadius: '6px',
-          padding: '2px',
-          gap: '2px',
-        }}>
-          {options.map((option) => (
-            <button
-              key={option.value}
-              onClick={() => onChange(option.value)}
-              onMouseEnter={() => setHoveredOption(option.value)}
-              onMouseLeave={() => setHoveredOption(null)}
-              title={option.title}
-              style={{
-                flex: 1,
-                padding: '8px',
-                backgroundColor: value === option.value ? theme.segmentedActive : 'transparent',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-                boxShadow: value === option.value ? '0 1px 3px rgba(0, 0, 0, 0.1)' : 'none',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                position: 'relative',
-              }}
-            >
-              <img
-                src={option.icon}
-                style={{
-                  width: '18px',
-                  height: '18px',
-                  opacity: value === option.value ? 1 : 0.6,
-                  filter: iconFilter,
-                }}
-                alt={option.title}
-              />
-              
-              {/* Modern Tooltip */}
-              {hoveredOption === option.value && (
-                <div style={{
-                  position: 'absolute',
-                  bottom: '100%',
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  marginBottom: '8px',
-                  padding: '6px 10px',
-                  backgroundColor: theme.tooltipBg,
-                  color: theme.tooltipText,
-                  fontSize: '11px',
-                  fontWeight: '500',
-                  borderRadius: '4px',
-                  whiteSpace: 'nowrap',
-                  boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-                  zIndex: 1000,
-                  pointerEvents: 'none',
-                  animation: 'fadeIn 0.15s ease',
-                }}>
-                  {option.title}
-                  {/* Tooltip arrow */}
-                  <div style={{
-                    position: 'absolute',
-                    top: '100%',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    width: 0,
-                    height: 0,
-                    borderLeft: '4px solid transparent',
-                    borderRight: '4px solid transparent',
-                    borderTop: `4px solid ${theme.tooltipBg}`,
-                  }} />
-                </div>
-              )}
-            </button>
-          ))}
-        </div>
-        
-        {/* Labels below buttons */}
-        <div style={{
-          display: 'flex',
-          marginTop: '6px',
-          gap: '2px',
-        }}>
-          {options.map((option) => (
-            <div
-              key={option.value}
-              style={{
-                flex: 1,
-                textAlign: 'center',
-                fontSize: '10px',
-                color: value === option.value ? theme.gray900 : theme.gray500,
-                fontWeight: value === option.value ? '600' : '500',
-                transition: 'color 0.15s ease',
-              }}
-            >
-              {option.label}
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  };
+  const maskTypes: Array<{ value: 'final' | 'user' | 'errors'; label: string; title: string; shortcut: ShortcutName }> = [
+    { value: 'final', label: 'Final', title: 'Final mask', shortcut: 'maskFinal' },
+    { value: 'user', label: 'User', title: 'User mask', shortcut: 'maskUser' },
+    { value: 'errors', label: 'Errors', title: 'Error mask', shortcut: 'maskErrors' },
+  ];
 
-  return (
-    <>
-      {/* Panel Content */}
-      <div
+  if (isCollapsed) {
+    return (
+      <button
+        onClick={onToggleCollapse}
+        title={withShortcut('Show panel', 'rightPanel')}
         style={{
           position: 'fixed',
-          right: isCollapsed ? '-256px' : '0',
-          top: '50px',
-          bottom: '60px',
-          width: '256px',
+          right: 0,
+          top: '62px',
+          zIndex: 901,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '6px',
+          padding: '10px 6px',
           backgroundColor: theme.panelBg,
-          padding: '16px',
-          paddingTop: '52px',
-          zIndex: 900,
-          boxShadow: '-2px 0 8px rgba(0, 0, 0, 0.06)',
-          overflowY: 'auto',
-          transition: 'right 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          color: theme.gray600,
+          border: `1px solid ${theme.panelBorder}`,
+          borderRight: 'none',
+          borderRadius: '8px 0 0 8px',
+          boxShadow: '-2px 0 8px rgba(0, 0, 0, 0.12)',
+          cursor: 'pointer',
         }}
-        onWheel={(e) => e.stopPropagation()}
-        onMouseDown={(e) => e.stopPropagation()}
       >
-        {/* Collapse/Expand Button - Top Right Corner */}
+        <span style={{ fontSize: '12px' }}>◀</span>
+        <Kbd name="rightPanel" />
+      </button>
+    );
+  }
+
+  return (
+    <aside
+      style={{
+        position: 'fixed',
+        right: 0,
+        top: '50px',
+        bottom: '60px',
+        width: `${PANEL_WIDTH}px`,
+        display: 'flex',
+        flexDirection: 'column',
+        backgroundColor: theme.panelBg,
+        borderLeft: `1px solid ${theme.panelBorder}`,
+        zIndex: 900,
+        boxSizing: 'border-box',
+      }}
+      onWheel={(e) => e.stopPropagation()}
+      onMouseDown={(e) => e.stopPropagation()}
+    >
+      {/* Header */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        height: '44px',
+        flexShrink: 0,
+        padding: '0 12px 0 16px',
+        borderBottom: `1px solid ${theme.panelBorder}`,
+      }}>
+        <span style={{ fontSize: '13px', fontWeight: 600, color: theme.gray900 }}>Options</span>
         <button
           onClick={onToggleCollapse}
-          onWheel={(e) => e.stopPropagation()}
-          onMouseDown={(e) => e.stopPropagation()}
+          title={withShortcut('Hide panel', 'rightPanel')}
           style={{
-            position: 'absolute',
-            right: '16px',
-            top: '16px',
-            width: '36px',
-            height: '36px',
-            backgroundColor: theme.buttonSecondaryBg,
-            border: `1px solid ${theme.buttonSecondaryBorder}`,
-            borderRadius: '8px',
-            color: theme.buttonSecondaryText,
-            cursor: 'pointer',
-            zIndex: 901,
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '14px',
-            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.08)',
+            gap: '6px',
+            height: '26px',
+            padding: '0 8px',
+            background: 'none',
+            border: `1px solid ${theme.panelBorder}`,
+            borderRadius: '6px',
+            color: theme.gray600,
+            cursor: 'pointer',
+            fontSize: '12px',
           }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = theme.buttonSecondaryHover;
-            e.currentTarget.style.transform = 'scale(1.05)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = theme.buttonSecondaryBg;
-            e.currentTarget.style.transform = 'scale(1)';
-          }}
-          title={isCollapsed ? 'Show panel' : 'Hide panel'}
         >
-          {isCollapsed ? '◀' : '▶'}
+          Hide
+          <Kbd name="rightPanel" />
         </button>
+      </div>
 
-        {/* Collapsed state indicator */}
-        {isCollapsed && (
+      <div style={{ flex: 1, overflowY: 'auto', padding: '0 16px' }}>
+        {/* Class */}
+        <Section title="Class">
           <button
-            onClick={onToggleCollapse}
-            onWheel={(e) => e.stopPropagation()}
-            onMouseDown={(e) => e.stopPropagation()}
+            onClick={onSelectClass}
+            title={withShortcut('Select class, or press 1..9', 'classDialog')}
             style={{
-              position: 'fixed',
-              right: '0',
-              top: '50px',
-              width: '36px',
-              height: '56px',
-              backgroundColor: theme.buttonSecondaryBg,
-              border: `1px solid ${theme.buttonSecondaryBorder}`,
-              borderRight: 'none',
-              borderRadius: '8px 0 0 8px',
-              color: theme.buttonSecondaryText,
-              cursor: 'pointer',
-              zIndex: 901,
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '16px',
-              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-              boxShadow: '-2px 0 8px rgba(0, 0, 0, 0.06)',
-              writingMode: 'vertical-rl',
-              textOrientation: 'mixed',
-              padding: '8px 0',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = theme.buttonSecondaryHover;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = theme.buttonSecondaryBg;
-            }}
-            title="Show panel"
-          >
-            ◀
-          </button>
-        )}
-
-      {/* Class Selection */}
-      <CollapsibleSection title="Class">
-        <button
-          onClick={onSelectClass}
-          title={withShortcut('Select class', 'selectClass')}
-          style={{
-            width: '100%',
-            padding: '10px 12px',
-            backgroundColor: theme.buttonSecondaryBg,
-            border: `1px solid ${theme.buttonSecondaryBorder}`,
-            borderRadius: '6px',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            fontSize: '13px',
-            color: theme.buttonSecondaryText,
-            transition: 'all 0.15s ease',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = theme.buttonSecondaryHover;
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = theme.buttonSecondaryBg;
-          }}
-        >
-          <img
-            src="/segmentation/static/icons/class.png"
-            style={{ 
-              width: '18px', 
-              height: '18px', 
-              opacity: 0.7,
-              filter: iconFilter,
-            }}
-            alt="Class"
-          />
-          <span style={{ flex: 1, textAlign: 'left', fontWeight: '500' }}>{currentClassName}</span>
-        </button>
-      </CollapsibleSection>
-
-      {/* Mask Layers */}
-      <CollapsibleSection title="Layers">
-        
-        {/* Show/Hide Toggles */}
-        <LayerToggle label="Show Mask" title={withShortcut('Toggle mask visibility', 'toggleMask')} on={showMask} onToggle={toggleMask} />
-        <LayerToggle label="Image" title="Toggle image visibility" on={showImage} onToggle={toggleImage} />
-        <LayerToggle label="Satellite" title="Toggle satellite imagery" on={showSatellite} onToggle={toggleSatellite} />
-        
-        {/* Mask Type Selector */}
-        <div style={{ marginBottom: '8px' }}>
-          <div style={{ fontSize: '12px', color: theme.gray600, marginBottom: '8px' }}>Type</div>
-          <SegmentedControl
-            options={[
-              { value: 'final', icon: '/segmentation/static/icons/mask_final.png', title: withShortcut('Final mask', 'maskFinal'), label: 'Final' },
-              { value: 'user', icon: '/segmentation/static/icons/mask_user.png', title: withShortcut('User mask', 'maskUser'), label: 'User' },
-              { value: 'errors', icon: '/segmentation/static/icons/mask_errors.png', title: withShortcut('Error mask', 'maskErrors'), label: 'Errors' },
-            ]}
-            value={maskType}
-            onChange={(type) => setMaskType(type as 'final' | 'user' | 'errors')}
-          />
-        </div>
-      </CollapsibleSection>
-
-      {/* Filters */}
-      <CollapsibleSection title="Adjustments" style={{ borderBottom: 'none' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {/* Brightness Slider */}
-          <div title={withShortcut('Brightness', 'brightness')}>
-            <div style={{ 
-              display: 'flex', 
-              justifyContent: 'space-between', 
-              alignItems: 'center',
-              marginBottom: '6px' 
-            }}>
-              <label style={{ 
-                fontSize: '12px', 
-                color: theme.gray600,
-                fontWeight: '500',
-              }}>
-                Brightness
-              </label>
-              <span style={{
-                fontSize: '11px',
-                color: theme.gray500,
-                fontWeight: '600',
-              }}>
-                {brightness}%
-              </span>
-            </div>
-            <input
-              type="range"
-              min="0"
-              max="800"
-              step="10"
-              value={brightness}
-              onChange={(e) => setBrightness(Number(e.target.value))}
-              style={{ 
-                width: '100%',
-                height: '4px',
-                borderRadius: '2px',
-                outline: 'none',
-                background: `linear-gradient(to right, ${theme.sliderTrackFilled} 0%, ${theme.sliderTrackFilled} ${(brightness / 800) * 100}%, ${theme.sliderTrack} ${(brightness / 800) * 100}%, ${theme.sliderTrack} 100%)`,
-                WebkitAppearance: 'none',
-                appearance: 'none',
-                cursor: 'pointer',
-              }}
-              onInput={(e) => {
-                const target = e.target as HTMLInputElement;
-                const value = Number(target.value);
-                const percentage = (value / 800) * 100;
-                target.style.background = `linear-gradient(to right, ${theme.sliderTrackFilled} 0%, ${theme.sliderTrackFilled} ${percentage}%, ${theme.sliderTrack} ${percentage}%, ${theme.sliderTrack} 100%)`;
-              }}
-            />
-          </div>
-
-          {/* Saturation Slider */}
-          <div title={withShortcut('Saturation', 'saturation')}>
-            <div style={{ 
-              display: 'flex', 
-              justifyContent: 'space-between', 
-              alignItems: 'center',
-              marginBottom: '6px' 
-            }}>
-              <label style={{ 
-                fontSize: '12px', 
-                color: theme.gray600,
-                fontWeight: '500',
-              }}>
-                Saturation
-              </label>
-              <span style={{
-                fontSize: '11px',
-                color: theme.gray500,
-                fontWeight: '600',
-              }}>
-                {saturation}%
-              </span>
-            </div>
-            <input
-              type="range"
-              min="0"
-              max="800"
-              step="20"
-              value={saturation}
-              onChange={(e) => setSaturation(Number(e.target.value))}
-              style={{ 
-                width: '100%',
-                height: '4px',
-                borderRadius: '2px',
-                outline: 'none',
-                background: `linear-gradient(to right, ${theme.sliderTrackFilled} 0%, ${theme.sliderTrackFilled} ${(saturation / 800) * 100}%, ${theme.sliderTrack} ${(saturation / 800) * 100}%, ${theme.sliderTrack} 100%)`,
-                WebkitAppearance: 'none',
-                appearance: 'none',
-                cursor: 'pointer',
-              }}
-              onInput={(e) => {
-                const target = e.target as HTMLInputElement;
-                const value = Number(target.value);
-                const percentage = (value / 800) * 100;
-                target.style.background = `linear-gradient(to right, ${theme.sliderTrackFilled} 0%, ${theme.sliderTrackFilled} ${percentage}%, ${theme.sliderTrack} ${percentage}%, ${theme.sliderTrack} 100%)`;
-              }}
-            />
-          </div>
-
-          {/* Toggle Buttons Row */}
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button
-              onClick={() => setContrast(!contrast)}
-              style={{
-                flex: 1,
-                padding: '8px',
-                backgroundColor: contrast ? theme.buttonPrimaryBg : theme.buttonSecondaryBg,
-                color: contrast ? theme.buttonPrimaryText : theme.buttonSecondaryText,
-                border: contrast ? 'none' : `1px solid ${theme.buttonSecondaryBorder}`,
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '12px',
-                fontWeight: '500',
-                transition: 'all 0.15s ease',
-              }}
-              onMouseEnter={(e) => {
-                if (!contrast) {
-                  e.currentTarget.style.backgroundColor = theme.buttonSecondaryHover;
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!contrast) {
-                  e.currentTarget.style.backgroundColor = theme.buttonSecondaryBg;
-                }
-              }}
-              title={withShortcut('Toggle contrast', 'contrast')}
-            >
-              Contrast
-            </button>
-
-            <button
-              onClick={() => setInvert(!invert)}
-              style={{
-                flex: 1,
-                padding: '8px',
-                backgroundColor: invert ? theme.buttonPrimaryBg : theme.buttonSecondaryBg,
-                color: invert ? theme.buttonPrimaryText : theme.buttonSecondaryText,
-                border: invert ? 'none' : `1px solid ${theme.buttonSecondaryBorder}`,
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '12px',
-                fontWeight: '500',
-                transition: 'all 0.15s ease',
-              }}
-              onMouseEnter={(e) => {
-                if (!invert) {
-                  e.currentTarget.style.backgroundColor = theme.buttonSecondaryHover;
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!invert) {
-                  e.currentTarget.style.backgroundColor = theme.buttonSecondaryBg;
-                }
-              }}
-              title={withShortcut('Toggle invert', 'invert')}
-            >
-              Invert
-            </button>
-          </div>
-
-          {/* Reset Button */}
-          <button
-            onClick={resetFilters}
-            title={withShortcut('Reset filters', 'resetFilters')}
-            style={{
+              gap: '10px',
               width: '100%',
-              padding: '8px',
-              backgroundColor: 'transparent',
-              color: theme.gray600,
+              height: '36px',
+              padding: '0 10px',
+              backgroundColor: theme.buttonSecondaryBg,
+              color: theme.buttonSecondaryText,
               border: `1px solid ${theme.buttonSecondaryBorder}`,
               borderRadius: '6px',
               cursor: 'pointer',
-              fontSize: '12px',
-              fontWeight: '500',
-              transition: 'all 0.15s ease',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = theme.buttonSecondaryHover;
-              e.currentTarget.style.color = theme.gray900;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'transparent';
-              e.currentTarget.style.color = theme.gray600;
+              fontSize: '13px',
             }}
           >
-            Reset
+            <span style={{
+              width: '14px',
+              height: '14px',
+              flexShrink: 0,
+              borderRadius: '3px',
+              border: `1px solid ${theme.panelBorder}`,
+              backgroundColor: currentClassConfig
+                ? `rgba(${currentClassConfig.colour.slice(0, 3).join(',')}, ${Math.max(currentClassConfig.colour[3] / 255, 0.15)})`
+                : 'transparent',
+            }} />
+            <span style={{ flex: 1, textAlign: 'left', fontWeight: 500 }}>
+              {currentClassConfig ? currentClassConfig.name : 'No class'}
+            </span>
+            <Kbd name="selectClass" />
+            <Kbd name="classDialog" />
           </button>
-        </div>
-      </CollapsibleSection>
-    </div>
-    </>
+        </Section>
+
+        {/* Layers */}
+        <Section title="Layers" shortcut="foldLayers">
+          <Row label="Mask" title={withShortcut('Show or hide the mask', 'toggleMask')}>
+            <Kbd name="toggleMask" />
+            <Switch on={showMask} onToggle={toggleMask} title={withShortcut('Toggle mask visibility', 'toggleMask')} />
+          </Row>
+          <Row label="Image" title={withShortcut('Show or hide the image', 'toggleImage')}>
+            <Kbd name="toggleImage" />
+            <Switch on={showImage} onToggle={toggleImage} title={withShortcut('Toggle image visibility', 'toggleImage')} />
+          </Row>
+          <Row label="Satellite" title={withShortcut('Show or hide the satellite imagery', 'toggleSatellite')}>
+            <Kbd name="toggleSatellite" />
+            <Switch on={showSatellite} onToggle={toggleSatellite} title={withShortcut('Toggle satellite imagery', 'toggleSatellite')} />
+          </Row>
+
+          <div style={{ marginTop: '10px', fontSize: '11px', color: theme.gray600 }}>Mask type</div>
+          <div style={{
+            display: 'flex',
+            gap: '2px',
+            marginTop: '6px',
+            padding: '2px',
+            backgroundColor: theme.segmentedBg,
+            borderRadius: '6px',
+          }}>
+            {maskTypes.map((option) => {
+              const selected = maskType === option.value;
+              return (
+                <button
+                  key={option.value}
+                  onClick={() => setMaskType(option.value)}
+                  aria-pressed={selected}
+                  title={withShortcut(option.title, option.shortcut)}
+                  style={{
+                    flex: 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '5px',
+                    height: '30px',
+                    padding: '0 4px',
+                    backgroundColor: selected ? theme.segmentedActive : 'transparent',
+                    color: selected ? theme.gray900 : theme.gray600,
+                    border: 'none',
+                    borderRadius: '4px',
+                    boxShadow: selected ? '0 1px 2px rgba(0, 0, 0, 0.15)' : 'none',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    fontWeight: selected ? 600 : 500,
+                  }}
+                >
+                  {option.label}
+                  <Kbd name={option.shortcut} />
+                </button>
+              );
+            })}
+          </div>
+        </Section>
+
+        {/* Adjustments */}
+        <Section title="Adjustments" shortcut="foldAdjustments" last>
+          <Slider label="Brightness" shortcut="brightness" value={brightness} step={10} onChange={setBrightness} />
+          <Slider label="Saturation" shortcut="saturation" value={saturation} step={20} onChange={setSaturation} />
+
+          <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+            <PanelButton label="Contrast" shortcut="contrast" title="Toggle contrast" active={contrast} onClick={() => setContrast(!contrast)} />
+            <PanelButton label="Invert" shortcut="invert" title="Toggle invert" active={invert} onClick={() => setInvert(!invert)} />
+          </div>
+          <div style={{ display: 'flex', marginTop: '8px' }}>
+            <PanelButton label="Reset adjustments" shortcut="resetFilters" title="Reset the adjustments" onClick={resetFilters} />
+          </div>
+        </Section>
+      </div>
+    </aside>
   );
 };
 

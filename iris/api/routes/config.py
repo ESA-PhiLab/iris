@@ -111,7 +111,6 @@ def get_project_config():
             'views': deepcopy(project.config.get('views', {})),
             'view_groups': deepcopy(project.config.get('view_groups', {})),
             'segmentation': deepcopy(project.config.get('segmentation', {})),
-            'chat': deepcopy(project.config.get('chat', None)),
         }
 
         # Clean up views - remove internal fields added during project initialization

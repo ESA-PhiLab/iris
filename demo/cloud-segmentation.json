@@ -146,10 +146,5 @@
       "use_meshgrid": false,
       "meshgrid_cells": "3x3"
     }
-  },
-  "chat": {
-    "enabled": true,
-    "github_repo": "gt-sse-center/iris",
-    "utterances_theme": "github-light"
   }
 }

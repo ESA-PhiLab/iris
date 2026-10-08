@@ -2,6 +2,8 @@ import React from 'react';
 import { useSegmentationStore } from '../../stores/segmentationStore';
 import { useTheme } from '../../contexts/ThemeContext';
 import { withShortcut } from '../../utils/shortcuts';
+import { useShortcut } from '../../hooks/useShortcut';
+import Kbd from '../Kbd';
 import { ImageNavigationDropdown } from './toolbar/ImageNavigationDropdown';
 import { 
   SaveIcon, 
@@ -175,6 +177,10 @@ const TopBar: React.FC<TopBarProps> = ({ onOpenPreferences, onOpenHelp, onOpenPr
     }
   };
 
+  useShortcut('exportGeoTIFF', () => {
+    if (!isLoading) handleExportGeoTIFF();
+  });
+
   return (
     <div
       data-testid="top-bar"
@@ -196,7 +202,20 @@ const TopBar: React.FC<TopBarProps> = ({ onOpenPreferences, onOpenHelp, onOpenPr
     >
       {/* Left: Project Name */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-        <h1 style={{ margin: 0, fontSize: '18px', fontWeight: 'bold' }}>{projectName}</h1>
+        <h1
+          title={projectName}
+          style={{
+            margin: 0,
+            maxWidth: '180px',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            fontSize: '16px',
+            fontWeight: 'bold',
+          }}
+        >
+          {projectName}
+        </h1>
       </div>
 
       {/* Center: Image Navigation */}
@@ -230,6 +249,7 @@ const TopBar: React.FC<TopBarProps> = ({ onOpenPreferences, onOpenHelp, onOpenPr
         >
           <ChevronLeftIcon size={16} color={theme.toolbarText} />
           Prev
+          <Kbd>⌫</Kbd>
         </button>
         
         <div style={{ color: theme.toolbarText }}>
@@ -263,6 +283,7 @@ const TopBar: React.FC<TopBarProps> = ({ onOpenPreferences, onOpenHelp, onOpenPr
           }}
           title={hasNext ? withShortcut("Save and open the next image", "nextImage") : "No more images"}
         >
+          <Kbd>↵</Kbd>
           Next
           <ChevronRightIcon size={16} color={theme.toolbarText} />
         </button>
@@ -299,6 +320,7 @@ const TopBar: React.FC<TopBarProps> = ({ onOpenPreferences, onOpenHelp, onOpenPr
         >
           <SaveIcon size={16} color={theme.toolbarText} />
           Save
+          <Kbd name="save" />
         </button>
         
         <button
@@ -325,10 +347,11 @@ const TopBar: React.FC<TopBarProps> = ({ onOpenPreferences, onOpenHelp, onOpenPr
           onMouseLeave={(e) => {
             e.currentTarget.style.backgroundColor = 'transparent';
           }}
-          title="Export GeoTIFF"
+          title={withShortcut('Export GeoTIFF', 'exportGeoTIFF')}
         >
           <DownloadIcon size={16} color={theme.toolbarText} />
           Export
+          <Kbd name="exportGeoTIFF" />
         </button>
       </div>
 
@@ -351,7 +374,7 @@ const TopBar: React.FC<TopBarProps> = ({ onOpenPreferences, onOpenHelp, onOpenPr
           }}
           onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = theme.toolbarHover)}
           onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-          title="User Profile"
+          title={withShortcut('User Profile', 'profile')}
         >
           <UserIcon size={20} color={theme.toolbarText} />
         </button>
@@ -373,7 +396,7 @@ const TopBar: React.FC<TopBarProps> = ({ onOpenPreferences, onOpenHelp, onOpenPr
           }}
           onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = theme.toolbarHover)}
           onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-          title="Settings"
+          title={withShortcut('Settings', 'settings')}
         >
           <SettingsIcon size={20} color={theme.toolbarText} />
         </button>
@@ -394,7 +417,7 @@ const TopBar: React.FC<TopBarProps> = ({ onOpenPreferences, onOpenHelp, onOpenPr
           }}
           onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = theme.toolbarHover)}
           onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-          title="Help"
+          title={withShortcut('Help', 'help')}
         >
           <HelpIcon size={20} color={theme.toolbarText} />
         </button>

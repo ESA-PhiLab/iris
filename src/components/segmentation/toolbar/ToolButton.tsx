@@ -1,5 +1,7 @@
 import React from 'react';
 import { useTheme } from '../../../contexts/ThemeContext';
+import Kbd from '../../Kbd';
+import { ShortcutName } from '../../../utils/shortcuts';
 
 interface ToolButtonProps {
   id?: string;
@@ -13,6 +15,8 @@ interface ToolButtonProps {
   checked?: boolean;
   disabled?: boolean;
   label?: string;
+  /** Shortcut shown next to the label */
+  shortcut?: ShortcutName;
 }
 
 const ToolButton: React.FC<ToolButtonProps> = ({
@@ -26,7 +30,8 @@ const ToolButton: React.FC<ToolButtonProps> = ({
   children,
   checked = false,
   disabled = false,
-  label
+  label,
+  shortcut,
 }) => {
   const { theme, actualThemeName } = useTheme();
   
@@ -97,6 +102,9 @@ const ToolButton: React.FC<ToolButtonProps> = ({
         }}>
           {label}
         </span>
+      )}
+      {label && shortcut && (
+        <span style={{ color: theme.toolbarText, display: 'inline-flex' }}><Kbd name={shortcut} /></span>
       )}
       {children}
     </li>

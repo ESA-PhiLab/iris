@@ -129,11 +129,6 @@ export interface ProjectConfig {
       metrics: string[];
     };
   };
-  chat?: {
-    enabled: boolean;
-    github_repo: string;
-    utterances_theme?: string;
-  };
 }
 
 export interface ViewConfig {

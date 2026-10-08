@@ -1,5 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import ToolButton from './ToolButton';
+import { ShortcutName } from '../../../utils/shortcuts';
 import { useSegmentationStore } from '../../../stores/segmentationStore';
 
 interface PaintbrushSelectorProps {
@@ -11,6 +12,7 @@ interface PaintbrushSelectorProps {
   title?: string;
   dropdownType: 'draw' | 'eraser';
   label?: string;
+  shortcut?: ShortcutName;
   style?: React.CSSProperties;
 }
 
@@ -23,6 +25,7 @@ const PaintbrushSelector: React.FC<PaintbrushSelectorProps> = ({
   title,
   dropdownType,
   label,
+  shortcut,
   style,
 }) => {
   const { 
@@ -107,6 +110,7 @@ const PaintbrushSelector: React.FC<PaintbrushSelectorProps> = ({
         title={title}
         className={showDropdown ? 'dropdown-open' : ''}
         label={label}
+        shortcut={shortcut}
         style={style}
       />
       
