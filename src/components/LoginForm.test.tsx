@@ -20,6 +20,30 @@ describe('LoginForm', () => {
     expect(screen.getByRole('button', { name: 'Login' })).toBeInTheDocument();
   });
 
+  it('enters as guest without an account', async () => {
+    const onSuccess = vi.fn();
+    (global.fetch as any).mockResolvedValue({ ok: true, text: async () => 'Entered as guest!' });
+    renderWithTheme(<LoginForm onSuccess={onSuccess} />);
+
+    fireEvent.click(screen.getByText('Continue without account'));
+
+    await waitFor(() => expect(onSuccess).toHaveBeenCalled());
+    expect(global.fetch).toHaveBeenCalledWith('/user/guest', { method: 'POST' });
+  });
+
+  it('shows why guests cannot enter', async () => {
+    (global.fetch as any).mockResolvedValue({
+      ok: false, text: async () => 'This project does not allow guests!',
+    });
+    renderWithTheme(<LoginForm />);
+
+    fireEvent.click(screen.getByText('Continue without account'));
+
+    await waitFor(() => {
+      expect(screen.getByText('This project does not allow guests!')).toBeInTheDocument();
+    });
+  });
+
   it('switches to register mode', () => {
     renderWithTheme(<LoginForm />);
     

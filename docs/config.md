@@ -32,6 +32,13 @@ Set the host IP address for IRIS. The default value 127.0.0.1 means IRIS will on
 "host": 0.0.0.0
 ```
 
+## allow_guest
+Whether people can enter without an account, as the user `guest` shared by all of them. Defaults to `true`. Set it to `false` when every annotation must belong to a registered user, e.g. when IRIS is exposed publicly.
+<i>Example:</i>
+```
+"allow_guest": false
+```
+
 ## images
 A dictionary which defines the inputs. 
 

@@ -1,4 +1,5 @@
 import json
+import secrets
 from functools import wraps
 
 import flask
@@ -8,6 +9,9 @@ from iris.models import User
 from iris.project import project
 
 user_app = flask.Blueprint("user", __name__, template_folder="templates", static_folder="static")
+
+# Account shared by everybody who enters without logging in
+GUEST_NAME = "guest"
 
 
 def register_user_api(app):
@@ -120,6 +124,8 @@ def register():
         return flask.make_response("Username is a required field!", 400)
     if User.query.filter(User.name == data["username"]).first() is not None:
         return flask.make_response("Username already exists!", 400)
+    if data["username"].lower() == GUEST_NAME:
+        return flask.make_response("This username is reserved!", 400)
 
     if not data["password"]:
         return flask.make_response("Password is a required field!", 400)
@@ -175,6 +181,28 @@ def login():
     set_current_user(user)
 
     return flask.make_response("Successful login!")
+
+
+@user_app.route("/guest", methods=["POST"])
+def guest():
+    """Enter without an account, as the guest user shared by all visitors"""
+    if not project.config.get("allow_guest", True):
+        return flask.make_response("This project does not allow guests!", 403)
+
+    user = User.query.filter(User.name == GUEST_NAME).first()
+    if user is None:
+        user = User(name=GUEST_NAME, admin=False)
+        # Nobody can log in as the guest with a password
+        user.set_password(secrets.token_urlsafe(32))
+        db.session.add(user)
+        db.session.commit()
+    elif user.admin:
+        # Never hand out admin rights without a password
+        return flask.make_response("The guest account has admin rights!", 403)
+
+    set_current_user(user)
+
+    return flask.make_response("Entered as guest!")
 
 
 @user_app.route("/logout")

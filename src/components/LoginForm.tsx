@@ -73,6 +73,24 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, initialMode = '
     }
   };
 
+  const enterAsGuest = async () => {
+    setError(null);
+    setSuccess(null);
+    setLoading(true);
+    try {
+      const response = await fetch('/user/guest', { method: 'POST' });
+      if (!response.ok) {
+        setError((await response.text()) || 'Could not enter as guest');
+        setLoading(false);
+        return;
+      }
+      if (onSuccess) { onSuccess(); } else { window.location.reload(); }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not enter as guest');
+      setLoading(false);
+    }
+  };
+
   const switchMode = (newMode: FormMode) => {
     setMode(newMode);
     setError(null);
@@ -279,6 +297,26 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, initialMode = '
 
               {mode === 'login' && (
                 <>
+                  <button
+                    type="button"
+                    onClick={enterAsGuest}
+                    disabled={loading}
+                    title="Enter as the guest user shared by everybody without an account"
+                    style={{
+                      padding: '10px 16px',
+                      borderRadius: '8px',
+                      border: `1px solid ${theme.buttonSecondaryBorder}`,
+                      backgroundColor: theme.buttonSecondaryBg,
+                      color: theme.buttonSecondaryText,
+                      fontSize: '13px',
+                      fontWeight: 500,
+                      cursor: 'pointer',
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = theme.buttonSecondaryHover)}
+                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = theme.buttonSecondaryBg)}
+                  >
+                    Continue without account
+                  </button>
                   <button
                     type="button"
                     onClick={() => switchMode('register')}
