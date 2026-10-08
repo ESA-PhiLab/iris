@@ -12,6 +12,8 @@ export interface Shortcut {
   key: string;
   /** KeyboardEvent.code, for the shortcuts handled by useShortcut() */
   code?: string;
+  /** Other characters that trigger it, e.g. = for + without Shift */
+  alternatives?: string[];
   description: string;
 }
 
@@ -27,6 +29,8 @@ export const SHORTCUTS = {
   move: { key: 'W', description: 'Move tool' },
   draw: { key: 'D', description: 'Draw tool' },
   eraser: { key: 'E', description: 'Eraser' },
+  brushBigger: { key: '+', code: 'Equal', alternatives: ['='], description: 'Bigger brush or eraser, whichever is selected' },
+  brushSmaller: { key: '-', code: 'Minus', description: 'Smaller brush or eraser, whichever is selected' },
   brushSize: { key: 'Shift+Scroll', description: 'Change brush size' },
   predict: { key: 'A', description: 'Train AI assistant' },
   resetMask: { key: 'N', description: 'Reset mask' },

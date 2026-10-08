@@ -1,8 +1,9 @@
 import React from 'react';
 import ToolButton from './toolbar/ToolButton';
-import PaintbrushSelector from './toolbar/PaintbrushSelector';
+import BrushTool, { biggerBrushSize, smallerBrushSize } from './toolbar/BrushTool';
 import Sidebar, { SidebarGroup } from './Sidebar';
 import { useSegmentationStore } from '../../stores/segmentationStore';
+import { useShortcut } from '../../hooks/useShortcut';
 
 interface LeftToolbarProps {
   expanded: boolean;
@@ -39,6 +40,14 @@ const LeftToolbar: React.FC<LeftToolbarProps> = ({ expanded, onToggle, onResetMa
     if (w.redo) w.redo();
   };
 
+  // + and - resize the brush in use
+  const resizeBrush = (step: (size: number) => number) => {
+    const { currentTool: tool, brushSizes, setBrushSize } = useSegmentationStore.getState();
+    if (tool !== 'move') setBrushSize(tool, step(brushSizes[tool]));
+  };
+  useShortcut('brushBigger', () => resizeBrush(biggerBrushSize));
+  useShortcut('brushSmaller', () => resizeBrush(smallerBrushSize));
+
   // Labels only fit in the expanded column
   const label = (text: string) => (expanded ? text : undefined);
 
@@ -56,25 +65,21 @@ const LeftToolbar: React.FC<LeftToolbarProps> = ({ expanded, onToggle, onResetMa
           label={label('Move')}
           shortcut="move"
         />
-        <PaintbrushSelector
+        <BrushTool
+          tool="draw"
           id="tb_tool_draw"
           icon="/segmentation/static/icons/pencil.png"
-          checked={currentTool === 'draw'}
-          onClick={() => setCurrentTool('draw')}
           disabled={isLoading}
-          title="Draw pixels, brush size with Shift+Scroll"
-          dropdownType="draw"
+          title="Draw pixels"
           label={label('Draw')}
           shortcut="draw"
         />
-        <PaintbrushSelector
+        <BrushTool
+          tool="eraser"
           id="tb_tool_eraser"
           icon="/segmentation/static/icons/eraser.png"
-          checked={currentTool === 'eraser'}
-          onClick={() => setCurrentTool('eraser')}
           disabled={isLoading}
-          title="Erase pixels, brush size with Shift+Scroll"
-          dropdownType="eraser"
+          title="Erase pixels"
           label={label('Erase')}
           shortcut="eraser"
         />

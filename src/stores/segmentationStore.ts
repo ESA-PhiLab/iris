@@ -214,6 +214,8 @@ interface SegmentationState {
   // PHASE 1: Core Drawing State (replaces vars.tool, vars.current_class, vars.mask_type, vars.classes)
   currentTool: 'move' | 'draw' | 'eraser';
   toolSize: number;
+  /** Brush size of the draw and the eraser tool, each kept on its own */
+  brushSizes: { draw: number; eraser: number };
   toolShape: 'square' | 'round';
   toolResizingMode: boolean;
   showDrawToolDropdown: boolean;
@@ -226,6 +228,7 @@ interface SegmentationState {
   // PHASE 1: Core Drawing Actions
   setCurrentTool: (tool: 'move' | 'draw' | 'eraser') => void;
   setToolSize: (size: number) => void;
+  setBrushSize: (tool: 'draw' | 'eraser', size: number) => void;
   setToolShape: (shape: 'square' | 'round') => void;
   setToolResizingMode: (resizing: boolean) => void;
   setShowDrawToolDropdown: (show: boolean) => void;
@@ -1268,6 +1271,7 @@ export const useSegmentationStore = create<SegmentationState>((set, get) => ({
   // PHASE 1: Core Drawing State (replaces vars.tool, vars.current_class, vars.mask_type, vars.classes)
   currentTool: 'draw', // Default tool
   toolSize: 5, // Default tool size
+  brushSizes: { draw: 5, eraser: 5 },
   toolShape: 'square', // Default tool shape
   toolResizingMode: false, // Default to zoom mode (not resize mode)
   showDrawToolDropdown: false, // Default to dropdown closed
@@ -1517,6 +1521,10 @@ export const useSegmentationStore = create<SegmentationState>((set, get) => ({
     }
     
     set({ currentTool: tool });
+    // Each brush keeps its own size
+    if (tool !== 'move') {
+      set({ toolSize: get().brushSizes[tool] });
+    }
     
     // Update legacy DOM elements
     const w = window as any;
@@ -1543,6 +1551,11 @@ export const useSegmentationStore = create<SegmentationState>((set, get) => ({
   setToolSize: (size: number) => {
     const clampedSize = Math.max(1, Math.min(size, 100)); // Reasonable bounds: 1-100 pixels
     set({ toolSize: clampedSize });
+    // The size belongs to the brush in use
+    const tool = get().currentTool;
+    if (tool !== 'move') {
+      set((state) => ({ brushSizes: { ...state.brushSizes, [tool]: clampedSize } }));
+    }
     
     // Trigger legacy preview render via store ViewManager
     const w = window as any;
@@ -1553,6 +1566,14 @@ export const useSegmentationStore = create<SegmentationState>((set, get) => ({
     
     // Trigger React preview layer re-render
     window.dispatchEvent(new CustomEvent('react-preview-render'));
+  },
+
+  setBrushSize: (tool: 'draw' | 'eraser', size: number) => {
+    const clampedSize = Math.max(1, Math.min(size, 100));
+    set((state) => ({ brushSizes: { ...state.brushSizes, [tool]: clampedSize } }));
+    if (get().currentTool === tool) {
+      get().setToolSize(clampedSize);
+    }
   },
 
   setToolResizingMode: (resizing: boolean) => {

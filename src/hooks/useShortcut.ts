@@ -25,16 +25,18 @@ export const useShortcut = (name: ShortcutName | undefined, handler: () => void)
   useEffect(() => {
     const shortcut = name ? (SHORTCUTS[name] as Shortcut) : undefined;
     if (!shortcut?.code) return;
-    const { code, key } = shortcut;
+    const { code, key, alternatives = [] } = shortcut;
+    const characters = [key, ...alternatives].map((character) => character.toLowerCase());
 
     const onKeyDown = (event: KeyboardEvent) => {
       // Windows reports AltGr as Ctrl+Alt
       const altGraph = event.getModifierState?.('AltGraph') ?? false;
       if (event.repeat || ((event.ctrlKey || event.metaKey) && !altGraph) || isTyping(event)) return;
-      // The character matches on any keyboard layout (on some, [ ] need AltGr),
-      // the physical key matches letters even when Alt changes the character
-      const sameCharacter = event.key.toLowerCase() === key.toLowerCase();
-      const sameKey = event.code === code && !event.altKey;
+      // Match the character typed, so the shortcuts follow the keyboard layout
+      // (on a Spanish keyboard + sits where ] is on an English one). Only when
+      // Alt changes the character, e.g. Option+P on a Mac, match the key itself.
+      const sameCharacter = characters.includes(event.key.toLowerCase());
+      const sameKey = event.altKey && event.code === code;
       if (!sameCharacter && !sameKey) return;
       event.preventDefault();
       handlerRef.current();
