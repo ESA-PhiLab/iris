@@ -2,8 +2,9 @@
  * Map view of one IRIS view
  *
  * Each view is a MapLibre map showing the image the server renders for the
- * view, the mask, the brush and the mask area at their place on the map. All
- * map views share one camera, so zooming or panning one moves the others.
+ * view, the mask, the brush and the mask area at their place on the map, over
+ * satellite imagery. All map views share one camera, so zooming or panning
+ * one moves the others.
  */
 
 import React, { useEffect, useRef } from 'react';
@@ -14,6 +15,9 @@ import { ViewConfig, useViewManagerStore } from '../../stores/viewManagerStore';
 import { useSegmentationStore } from '../../stores/segmentationStore';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Georef, areaCorners, cornersBounds, lngLatToPixel, pixelToLngLat } from '../../utils/georef';
+
+const ESRI_IMAGERY =
+  'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
 
 /** Maps on screen, kept on the same camera */
 const maps = new Set<MapLibreMap>();
@@ -90,7 +94,8 @@ const addCanvasSource = (
       layout,
       paint: { 'raster-resampling': 'nearest', 'raster-fade-duration': 0 },
     },
-    // Layers go from bottom to top: image, mask, brush, mask area outline.
+    // Layers go from bottom to top: satellite, image, mask, brush, mask area
+    // outline.
     // The image may finish loading after the mask was added.
     id === 'image' && map.getLayer('mask') ? 'mask' : 'brush'
   );
@@ -132,7 +137,7 @@ const ReactMapView: React.FC<ReactMapViewProps> = ({ view, imageId, viewCount })
       ...(camera
         ? { center: camera.center, zoom: camera.zoom }
         : { bounds: cornersBounds(georef.corners) }),
-      attributionControl: false,
+      attributionControl: { compact: true },
       dragRotate: false,
       pitchWithRotate: false,
       touchPitch: false,
@@ -166,6 +171,16 @@ const ReactMapView: React.FC<ReactMapViewProps> = ({ view, imageId, viewCount })
     });
 
     map.on('load', () => {
+      // Satellite imagery around and below the image
+      map.addSource('satellite', {
+        type: 'raster',
+        tiles: [ESRI_IMAGERY],
+        tileSize: 256,
+        maxzoom: 19,
+        attribution: 'Imagery © Esri',
+      });
+      map.addLayer({ id: 'satellite', type: 'raster', source: 'satellite' });
+
       map.addSource('brush', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
       map.addLayer({
         id: 'brush',
