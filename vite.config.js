@@ -20,10 +20,10 @@ const maplibreWorker = () => ({
   },
 })
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   plugins: [react(), maplibreWorker()],
-  // Assets are found next to the bundle, wherever it is served from
-  base: './',
+  // The server serves the build under /static/dist/
+  base: command === 'build' ? '/static/dist/' : '/',
   worker: {
     format: 'es',
     rollupOptions: {
@@ -41,9 +41,9 @@ export default defineConfig({
     chunkSizeWarningLimit: 1600,
     rollupOptions: {
       input: {
-        // Admin and segmentation app entry points
-        adminApp: 'src/admin-app.tsx',
-        segmentationApp: 'src/segmentation-app.tsx'
+        // The segmentation and the admin pages
+        index: 'index.html',
+        admin: 'admin.html'
       },
       output: {
         entryFileNames: '[name].js',
@@ -55,4 +55,4 @@ export default defineConfig({
   server: {
     port: 3000
   }
-})
+}))

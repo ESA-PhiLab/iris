@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { icon } from './icons/icons';
 
 const AdminNavigation: React.FC = () => {
   const navigate = useNavigate();
@@ -64,7 +65,7 @@ const AdminNavigation: React.FC = () => {
         title="Preferences"
       >
         <img 
-          src="/segmentation/static/icons/preferences.png" 
+          src={icon('preferences')} 
           alt="Preferences"
           style={{ width: '24px', height: '24px' }}
         />

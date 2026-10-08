@@ -257,13 +257,13 @@ class TestPreferencesIntegration:
 
         Expected: Page loads successfully and includes React app bundle
         """
-        response = client.get('/segmentation/')
+        response = client.get('/segmentation/', follow_redirects=True)
         assert response.status_code == 200, "Segmentation page should load"
 
         html_content = response.get_data(as_text=True)
 
         # Check that React segmentation app is loaded
-        assert 'segmentationApp.js' in html_content, \
+        assert '/static/dist/index.js' in html_content, \
             "React bundle should be included"
         assert 'react-segmentation-app' in html_content, \
             "React mount point should exist"

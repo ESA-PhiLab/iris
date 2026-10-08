@@ -1,5 +1,8 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { createRoot } from 'react-dom/client';
+import './styles/main.css';
+import './styles/dialogue.css';
+import './styles/segmentation.css';
 import { ThemeProvider } from './contexts/ThemeContext';
 import TopBar from './components/segmentation/TopBar';
 import LeftToolbar from './components/segmentation/LeftToolbar';

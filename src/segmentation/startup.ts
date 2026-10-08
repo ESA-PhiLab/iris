@@ -42,9 +42,9 @@ export const projectViewGroups = (config: any, views: { [name: string]: ViewConf
   return { default: Object.keys(views).slice(0, 3) };
 };
 
-/** Image of the page: the one in the address, else the one the server picked */
+/** Image of the page, named in the address */
 export const pageImageId = (): string | null =>
-  new URLSearchParams(window.location.search).get('image_id') || (window as any).vars?.image_id || null;
+  new URLSearchParams(window.location.search).get('image_id');
 
 export const startSegmentation = async () => {
   const editor = useSegmentationStore.getState();

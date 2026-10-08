@@ -42,7 +42,7 @@ class TestAdminPages:
         response = client.get('/admin/')
         assert response.status_code == 200
         assert b'react-admin-app' in response.data
-        assert b'adminApp.js' in response.data
+        assert b'admin.js' in response.data
 
     def test_admin_page_blocks_regular_users(self, client):
         """Test that regular users are blocked from admin pages."""

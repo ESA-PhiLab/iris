@@ -6,6 +6,7 @@ Handles all main admin routes that serve the React Single Page Application.
 import flask
 
 from iris.models import User
+from iris.segmentation.spa import DIST
 
 spa_bp = flask.Blueprint(
     'admin_spa', __name__,
@@ -42,8 +43,8 @@ def admin_spa(type=None):
 
         print(f"🚀 DEBUG: Rendering React Admin SPA for admin user: {user.name}")
 
-        # Render the React SPA
-        return flask.render_template('admin/react-app.html', user=user)
+        # The admin page built by Vite
+        return flask.send_from_directory(DIST, 'admin.html', max_age=0)
 
     except Exception as e:
         print(f"🚨 ERROR in admin_spa: {str(e)}")

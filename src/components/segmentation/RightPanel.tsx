@@ -8,6 +8,7 @@ import { controlButtonStyle } from '../controlStyles';
 import Sidebar, { SidebarGroup } from './Sidebar';
 import ToolButton from './toolbar/ToolButton';
 import { GlobeIcon, ImageIcon } from '../icons/ToolbarIcons';
+import { icon } from '../icons/icons';
 
 const FOLDED_SECTIONS_KEY = 'iris-right-panel-folded';
 
@@ -270,7 +271,6 @@ const RightPanel: React.FC<RightPanelProps> = ({ expanded, onToggle, onSelectCla
     }} />
   );
   const className = currentClassConfig ? currentClassConfig.name : 'No class';
-  const icons = '/segmentation/static/icons';
 
   return (
     <Sidebar side="right" expanded={expanded} onToggle={onToggle} name="options" shortcut="rightPanel">
@@ -371,7 +371,7 @@ const RightPanel: React.FC<RightPanelProps> = ({ expanded, onToggle, onSelectCla
             <ToolButton icon={swatch} onClick={onSelectClass} title={`Class: ${className}`} shortcut="classDialog" />
           </SidebarGroup>
           <SidebarGroup expanded={false}>
-            <ToolButton icon={`${icons}/show_mask.png`} checked={showMask} onClick={toggleMask} title="Show or hide the mask" shortcut="toggleMask" />
+            <ToolButton icon={icon('show_mask')} checked={showMask} onClick={toggleMask} title="Show or hide the mask" shortcut="toggleMask" />
             <ToolButton icon={<ImageIcon size={18} />} checked={showImage} onClick={toggleImage} title="Show or hide the image" shortcut="toggleImage" />
             <ToolButton icon={<GlobeIcon size={18} />} checked={showSatellite} onClick={toggleSatellite} title="Show or hide the satellite imagery" shortcut="toggleSatellite" />
           </SidebarGroup>
@@ -379,7 +379,7 @@ const RightPanel: React.FC<RightPanelProps> = ({ expanded, onToggle, onSelectCla
             {maskTypes.map((option) => (
               <ToolButton
                 key={option.value}
-                icon={`${icons}/mask_${option.value}.png`}
+                icon={icon(`mask_${option.value}`)}
                 checked={maskType === option.value}
                 onClick={() => setMaskType(option.value)}
                 title={option.title}
@@ -388,13 +388,13 @@ const RightPanel: React.FC<RightPanelProps> = ({ expanded, onToggle, onSelectCla
             ))}
           </SidebarGroup>
           <SidebarGroup expanded={false} last>
-            <ToolButton icon={`${icons}/brightness_up.png`} onClick={() => setBrightness(brightness + 10)} title="Brightness +10%" shortcut="brightness" />
-            <ToolButton icon={`${icons}/brightness_down.png`} onClick={() => setBrightness(brightness - 10)} title="Brightness -10%" shortcut="brightness" />
-            <ToolButton icon={`${icons}/saturation_up.png`} onClick={() => setSaturation(saturation + 20)} title="Saturation +20%" shortcut="saturation" />
-            <ToolButton icon={`${icons}/saturation_down.png`} onClick={() => setSaturation(saturation - 20)} title="Saturation -20%" shortcut="saturation" />
-            <ToolButton icon={`${icons}/contrast.png`} checked={contrast} onClick={() => setContrast(!contrast)} title="Toggle contrast" shortcut="contrast" />
-            <ToolButton icon={`${icons}/invert.png`} checked={invert} onClick={() => setInvert(!invert)} title="Toggle invert" shortcut="invert" />
-            <ToolButton icon={`${icons}/reset_filters.png`} onClick={resetFilters} title="Reset the adjustments" shortcut="resetFilters" />
+            <ToolButton icon={icon('brightness_up')} onClick={() => setBrightness(brightness + 10)} title="Brightness +10%" shortcut="brightness" />
+            <ToolButton icon={icon('brightness_down')} onClick={() => setBrightness(brightness - 10)} title="Brightness -10%" shortcut="brightness" />
+            <ToolButton icon={icon('saturation_up')} onClick={() => setSaturation(saturation + 20)} title="Saturation +20%" shortcut="saturation" />
+            <ToolButton icon={icon('saturation_down')} onClick={() => setSaturation(saturation - 20)} title="Saturation -20%" shortcut="saturation" />
+            <ToolButton icon={icon('contrast')} checked={contrast} onClick={() => setContrast(!contrast)} title="Toggle contrast" shortcut="contrast" />
+            <ToolButton icon={icon('invert')} checked={invert} onClick={() => setInvert(!invert)} title="Toggle invert" shortcut="invert" />
+            <ToolButton icon={icon('reset_filters')} onClick={resetFilters} title="Reset the adjustments" shortcut="resetFilters" />
           </SidebarGroup>
         </>
       )}

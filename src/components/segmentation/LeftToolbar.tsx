@@ -5,6 +5,7 @@ import Sidebar, { SidebarGroup } from './Sidebar';
 import { useSegmentationStore } from '../../stores/segmentationStore';
 import { useShortcut } from '../../hooks/useShortcut';
 import { trainAI } from '../../segmentation/commands';
+import { icon } from '../icons/icons';
 
 interface LeftToolbarProps {
   expanded: boolean;
@@ -37,7 +38,7 @@ const LeftToolbar: React.FC<LeftToolbarProps> = ({ expanded, onToggle, onResetMa
       <SidebarGroup expanded={expanded}>
         <ToolButton
           id="tb_tool_move"
-          icon="/segmentation/static/icons/move.png"
+          icon={icon('move')}
           checked={currentTool === 'move'}
           onClick={() => setCurrentTool('move')}
           disabled={isLoading}
@@ -48,7 +49,7 @@ const LeftToolbar: React.FC<LeftToolbarProps> = ({ expanded, onToggle, onResetMa
         <BrushTool
           tool="draw"
           id="tb_tool_draw"
-          icon="/segmentation/static/icons/pencil.png"
+          icon={icon('pencil')}
           disabled={isLoading}
           title="Draw pixels"
           label={label('Draw')}
@@ -57,7 +58,7 @@ const LeftToolbar: React.FC<LeftToolbarProps> = ({ expanded, onToggle, onResetMa
         <BrushTool
           tool="eraser"
           id="tb_tool_eraser"
-          icon="/segmentation/static/icons/eraser.png"
+          icon={icon('eraser')}
           disabled={isLoading}
           title="Erase pixels"
           label={label('Erase')}
@@ -69,7 +70,7 @@ const LeftToolbar: React.FC<LeftToolbarProps> = ({ expanded, onToggle, onResetMa
       <SidebarGroup expanded={expanded}>
         <ToolButton
           id="tb_undo"
-          icon="/segmentation/static/icons/undo.png"
+          icon={icon('undo')}
           onClick={undo}
           title="Undo"
           label={label('Undo')}
@@ -77,7 +78,7 @@ const LeftToolbar: React.FC<LeftToolbarProps> = ({ expanded, onToggle, onResetMa
         />
         <ToolButton
           id="tb_redo"
-          icon="/segmentation/static/icons/redo.png"
+          icon={icon('redo')}
           onClick={redo}
           title="Redo"
           label={label('Redo')}
@@ -89,7 +90,7 @@ const LeftToolbar: React.FC<LeftToolbarProps> = ({ expanded, onToggle, onResetMa
       <SidebarGroup expanded={expanded} last>
         <ToolButton
           id="tb_predict_mask"
-          icon="/segmentation/static/icons/ai.png"
+          icon={icon('ai')}
           onClick={trainAI}
           disabled={isLoading}
           title={isLoading ? 'Predicting...' : 'Predict mask using AI'}
@@ -98,7 +99,7 @@ const LeftToolbar: React.FC<LeftToolbarProps> = ({ expanded, onToggle, onResetMa
         />
         <ToolButton
           id="tb_reset_mask"
-          icon="/segmentation/static/icons/reset_mask.png"
+          icon={icon('reset_mask')}
           onClick={onResetMask}
           disabled={isLoading}
           title="Reset mask"
@@ -107,7 +108,7 @@ const LeftToolbar: React.FC<LeftToolbarProps> = ({ expanded, onToggle, onResetMa
         />
         <ToolButton
           id="tb_tool_reset_views"
-          icon="/segmentation/static/icons/reset_views.png"
+          icon={icon('reset_views')}
           onClick={resetViews}
           disabled={isLoading}
           title="Reset views"

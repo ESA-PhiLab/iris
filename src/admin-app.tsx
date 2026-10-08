@@ -1,5 +1,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
+import './styles/main.css';
+import './styles/dialogue.css';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import AdminNavigation from './components/AdminNavigation';
 import UsersPage from './pages/UsersPage';

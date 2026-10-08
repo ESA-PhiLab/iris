@@ -61,7 +61,7 @@ version = {attr = "iris.__version__"}
 include = ["iris*"]
 
 [tool.setuptools.package-data]
-iris = ["*.json", "*/templates/*", "*/static/*/*"]
+iris = ["*.json", "static/dist/*"]
 
 [tool.black]
 line-length = 120
