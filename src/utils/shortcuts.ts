@@ -3,7 +3,8 @@
  *
  * Every control has one. The drawing, mask and filter keys are handled by
  * key_down() in segmentation.js, the keys of the React controls by
- * useShortcut(). The controls show their key and the help lists them all.
+ * useShortcut(). The tooltip of each control shows its key and the help lists
+ * them all.
  */
 
 export interface Shortcut {
@@ -56,6 +57,11 @@ export const SHORTCUTS = {
 
 export type ShortcutName = keyof typeof SHORTCUTS;
 
-/** Tooltip of a control with its shortcut, e.g. "Draw pixels (D)" */
-export const withShortcut = (title: string, name: ShortcutName) =>
-  `${title} (${SHORTCUTS[name].key})`;
+/**
+ * Props that make a control show a tooltip when the mouse is over it (see
+ * TooltipLayer): what the control does and, when it has one, its shortcut.
+ */
+export const tooltip = (label: string, name?: ShortcutName) => ({
+  'data-tooltip': label,
+  ...(name ? { 'data-shortcut': SHORTCUTS[name].key } : {}),
+});

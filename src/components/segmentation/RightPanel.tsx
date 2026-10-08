@@ -2,9 +2,8 @@ import React, { useEffect } from 'react';
 import { useSegmentationStore } from '../../stores/segmentationStore';
 import { useViewManagerStore } from '../../stores/viewManagerStore';
 import { useTheme } from '../../contexts/ThemeContext';
-import { ShortcutName, withShortcut } from '../../utils/shortcuts';
+import { ShortcutName, tooltip } from '../../utils/shortcuts';
 import { useShortcut } from '../../hooks/useShortcut';
-import Kbd from '../Kbd';
 
 export const PANEL_WIDTH = 264;
 const FOLDED_SECTIONS_KEY = 'iris-right-panel-folded';
@@ -48,7 +47,7 @@ const Section: React.FC<{
       <button
         onClick={toggle}
         aria-expanded={!folded}
-        title={shortcut ? withShortcut(action, shortcut) : action}
+        {...tooltip(action, shortcut)}
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -76,23 +75,23 @@ const Section: React.FC<{
           letterSpacing: '0.06em',
           textTransform: 'uppercase',
         }}>{title}</span>
-        {shortcut && <Kbd name={shortcut} />}
       </button>
       {!folded && <div style={{ marginTop: '12px' }}>{children}</div>}
     </section>
   );
 };
 
-/** Label on the left, shortcut and control on the right */
+/** Label on the left, control on the right, with the tooltip of the control */
 const Row: React.FC<{
   label: string;
-  title?: string;
+  hint?: string;
+  shortcut?: ShortcutName;
   children: React.ReactNode;
-}> = ({ label, title, children }) => {
+}> = ({ label, hint, shortcut, children }) => {
   const { theme } = useTheme();
   return (
     <div
-      title={title}
+      {...(hint ? tooltip(hint, shortcut) : {})}
       style={{
         display: 'flex',
         alignItems: 'center',
@@ -108,14 +107,14 @@ const Row: React.FC<{
 };
 
 /** On/off switch */
-const Switch: React.FC<{ on: boolean; onToggle: () => void; title: string }> = ({ on, onToggle, title }) => {
+const Switch: React.FC<{ on: boolean; onToggle: () => void; label: string }> = ({ on, onToggle, label }) => {
   const { theme } = useTheme();
   return (
     <button
       onClick={onToggle}
       role="switch"
       aria-checked={on}
-      title={title}
+      aria-label={label}
       style={{
         position: 'relative',
         flexShrink: 0,
@@ -155,8 +154,7 @@ const Slider: React.FC<{
   const { theme } = useTheme();
   return (
     <div style={{ marginBottom: '10px' }}>
-      <Row label={label} title={withShortcut(label, shortcut)}>
-        <Kbd name={shortcut} />
+      <Row label={label} hint={label} shortcut={shortcut}>
         <span style={{
           minWidth: '38px',
           textAlign: 'right',
@@ -193,7 +191,7 @@ const PanelButton: React.FC<{
     <button
       onClick={onClick}
       aria-pressed={active}
-      title={withShortcut(title, shortcut)}
+      {...tooltip(title, shortcut)}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
@@ -217,7 +215,6 @@ const PanelButton: React.FC<{
       }}
     >
       {label}
-      <Kbd name={shortcut} />
     </button>
   );
 };
@@ -293,7 +290,7 @@ const RightPanel: React.FC<RightPanelProps> = ({ onSelectClass, isCollapsed, onT
     return (
       <button
         onClick={onToggleCollapse}
-        title={withShortcut('Show panel', 'rightPanel')}
+        {...tooltip('Show panel', 'rightPanel')}
         style={{
           position: 'fixed',
           right: 0,
@@ -314,7 +311,6 @@ const RightPanel: React.FC<RightPanelProps> = ({ onSelectClass, isCollapsed, onT
         }}
       >
         <span style={{ fontSize: '12px' }}>◀</span>
-        <Kbd name="rightPanel" />
       </button>
     );
   }
@@ -350,7 +346,7 @@ const RightPanel: React.FC<RightPanelProps> = ({ onSelectClass, isCollapsed, onT
         <span style={{ fontSize: '13px', fontWeight: 600, color: theme.gray900 }}>Options</span>
         <button
           onClick={onToggleCollapse}
-          title={withShortcut('Hide panel', 'rightPanel')}
+          {...tooltip('Hide panel', 'rightPanel')}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -366,7 +362,6 @@ const RightPanel: React.FC<RightPanelProps> = ({ onSelectClass, isCollapsed, onT
           }}
         >
           Hide
-          <Kbd name="rightPanel" />
         </button>
       </div>
 
@@ -375,7 +370,7 @@ const RightPanel: React.FC<RightPanelProps> = ({ onSelectClass, isCollapsed, onT
         <Section title="Class">
           <button
             onClick={onSelectClass}
-            title={withShortcut('Select class, or press 1..9', 'classDialog')}
+            {...tooltip('Select class, or press 1..9', 'classDialog')}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -404,24 +399,19 @@ const RightPanel: React.FC<RightPanelProps> = ({ onSelectClass, isCollapsed, onT
             <span style={{ flex: 1, textAlign: 'left', fontWeight: 500 }}>
               {currentClassConfig ? currentClassConfig.name : 'No class'}
             </span>
-            <Kbd name="selectClass" />
-            <Kbd name="classDialog" />
           </button>
         </Section>
 
         {/* Layers */}
         <Section title="Layers" shortcut="foldLayers">
-          <Row label="Mask" title={withShortcut('Show or hide the mask', 'toggleMask')}>
-            <Kbd name="toggleMask" />
-            <Switch on={showMask} onToggle={toggleMask} title={withShortcut('Toggle mask visibility', 'toggleMask')} />
+          <Row label="Mask" hint="Show or hide the mask" shortcut="toggleMask">
+            <Switch on={showMask} onToggle={toggleMask} label="Mask" />
           </Row>
-          <Row label="Image" title={withShortcut('Show or hide the image', 'toggleImage')}>
-            <Kbd name="toggleImage" />
-            <Switch on={showImage} onToggle={toggleImage} title={withShortcut('Toggle image visibility', 'toggleImage')} />
+          <Row label="Image" hint="Show or hide the image" shortcut="toggleImage">
+            <Switch on={showImage} onToggle={toggleImage} label="Image" />
           </Row>
-          <Row label="Satellite" title={withShortcut('Show or hide the satellite imagery', 'toggleSatellite')}>
-            <Kbd name="toggleSatellite" />
-            <Switch on={showSatellite} onToggle={toggleSatellite} title={withShortcut('Toggle satellite imagery', 'toggleSatellite')} />
+          <Row label="Satellite" hint="Show or hide the satellite imagery" shortcut="toggleSatellite">
+            <Switch on={showSatellite} onToggle={toggleSatellite} label="Satellite" />
           </Row>
 
           <div style={{ marginTop: '10px', fontSize: '11px', color: theme.gray600 }}>Mask type</div>
@@ -440,7 +430,7 @@ const RightPanel: React.FC<RightPanelProps> = ({ onSelectClass, isCollapsed, onT
                   key={option.value}
                   onClick={() => setMaskType(option.value)}
                   aria-pressed={selected}
-                  title={withShortcut(option.title, option.shortcut)}
+                  {...tooltip(option.title, option.shortcut)}
                   style={{
                     flex: 1,
                     display: 'flex',
@@ -460,7 +450,6 @@ const RightPanel: React.FC<RightPanelProps> = ({ onSelectClass, isCollapsed, onT
                   }}
                 >
                   {option.label}
-                  <Kbd name={option.shortcut} />
                 </button>
               );
             })}

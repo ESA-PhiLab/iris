@@ -85,10 +85,7 @@ describe('PaintbrushSelector', () => {
     );
 
     // Find and click a round brush option (size 10)
-    const roundBrushOptions = screen.getAllByTitle(/Round brush, \d+px/);
-    const roundBrush10 = roundBrushOptions.find(option => 
-      option.getAttribute('title') === 'Round brush, 10px'
-    );
+    const roundBrush10 = document.querySelector('[data-tooltip="Round brush, 10px"]');
     
     expect(roundBrush10).toBeInTheDocument();
     fireEvent.click(roundBrush10!);
@@ -111,7 +108,7 @@ describe('PaintbrushSelector', () => {
       />
     );
 
-    const selectedOption = screen.getByTitle('Round brush, 15px');
+    const selectedOption = document.querySelector('[data-tooltip="Round brush, 15px"]');
     expect(selectedOption).toHaveClass('selected');
   });
 

@@ -3,9 +3,8 @@ import ToolButton from './toolbar/ToolButton';
 import PaintbrushSelector from './toolbar/PaintbrushSelector';
 import { useSegmentationStore } from '../../stores/segmentationStore';
 import { useTheme } from '../../contexts/ThemeContext';
-import { withShortcut } from '../../utils/shortcuts';
+import { tooltip } from '../../utils/shortcuts';
 import { useShortcut } from '../../hooks/useShortcut';
-import Kbd from '../Kbd';
 
 interface LeftToolbarProps {
   onResetMask: () => void;
@@ -100,11 +99,10 @@ const LeftToolbar: React.FC<LeftToolbarProps> = ({ onResetMask }) => {
           justifyContent: 'center',
           gap: '8px',
         }}
-        title={withShortcut(isExpanded ? 'Collapse toolbar' : 'Expand toolbar', 'leftToolbar')}
+        {...tooltip(isExpanded ? 'Collapse toolbar' : 'Expand toolbar', 'leftToolbar')}
       >
         <span>{isExpanded ? '◀' : '▶'}</span>
         {isExpanded && <span style={{ fontSize: '12px' }}>Collapse</span>}
-        {isExpanded && <Kbd name="leftToolbar" />}
       </button>
 
       {/* Drawing Tools */}
@@ -116,7 +114,7 @@ const LeftToolbar: React.FC<LeftToolbarProps> = ({ onResetMask }) => {
             checked={currentTool === 'move'}
             onClick={() => setCurrentTool('move')}
             disabled={isLoading}
-            title={withShortcut('Move/Pan', 'move')}
+            title="Move/Pan"
             label={isExpanded ? 'Move' : undefined}
             shortcut="move"
           />
@@ -128,7 +126,7 @@ const LeftToolbar: React.FC<LeftToolbarProps> = ({ onResetMask }) => {
           checked={currentTool === 'draw'}
           onClick={() => setCurrentTool('draw')}
           disabled={isLoading}
-          title={`${withShortcut('Draw pixels', 'draw')}, brush size: Shift+Scroll`}
+          title="Draw pixels, brush size with Shift+Scroll"
           dropdownType="draw"
           label={isExpanded ? 'Draw' : undefined}
           shortcut="draw"
@@ -141,7 +139,7 @@ const LeftToolbar: React.FC<LeftToolbarProps> = ({ onResetMask }) => {
           checked={currentTool === 'eraser'}
           onClick={() => setCurrentTool('eraser')}
           disabled={isLoading}
-          title={`${withShortcut('Erase pixels', 'eraser')}, brush size: Shift+Scroll`}
+          title="Erase pixels, brush size with Shift+Scroll"
           dropdownType="eraser"
           label={isExpanded ? 'Erase' : undefined}
           shortcut="eraser"
@@ -159,7 +157,7 @@ const LeftToolbar: React.FC<LeftToolbarProps> = ({ onResetMask }) => {
             id="tb_undo"
             icon="/segmentation/static/icons/undo.png"
             onClick={handleUndo}
-            title={withShortcut('Undo', 'undo')}
+            title="Undo"
             label={isExpanded ? 'Undo' : undefined}
             shortcut="undo"
           />
@@ -170,7 +168,7 @@ const LeftToolbar: React.FC<LeftToolbarProps> = ({ onResetMask }) => {
             id="tb_redo"
             icon="/segmentation/static/icons/redo.png"
             onClick={handleRedo}
-            title={withShortcut('Redo', 'redo')}
+            title="Redo"
             label={isExpanded ? 'Redo' : undefined}
             shortcut="redo"
           />
@@ -188,7 +186,7 @@ const LeftToolbar: React.FC<LeftToolbarProps> = ({ onResetMask }) => {
             icon="/segmentation/static/icons/ai.png"
             onClick={handlePredictMask}
             disabled={isLoading}
-            title={isLoading ? "Predicting..." : withShortcut("Predict mask using AI", "predict")}
+            title={isLoading ? "Predicting..." : "Predict mask using AI"}
             label={isExpanded ? 'AI Predict' : undefined}
             shortcut="predict"
           />
@@ -200,7 +198,7 @@ const LeftToolbar: React.FC<LeftToolbarProps> = ({ onResetMask }) => {
             icon="/segmentation/static/icons/reset_mask.png"
             onClick={onResetMask}
             disabled={isLoading}
-            title={withShortcut('Reset mask', 'resetMask')}
+            title="Reset mask"
             label={isExpanded ? 'Reset Mask' : undefined}
             shortcut="resetMask"
           />
@@ -212,7 +210,7 @@ const LeftToolbar: React.FC<LeftToolbarProps> = ({ onResetMask }) => {
             icon="/segmentation/static/icons/reset_views.png"
             onClick={handleResetViews}
             disabled={isLoading}
-            title={withShortcut('Reset views', 'resetViews')}
+            title="Reset views"
             label={isExpanded ? 'Reset Views' : undefined}
             shortcut="resetViews"
           />

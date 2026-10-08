@@ -3,8 +3,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { ImageIcon, BarChartIcon, ShieldIcon } from '../icons/ToolbarIcons';
 import AIScore from './statusbar/AIScore';
 import AIRecommendation from './statusbar/AIRecommendation';
-import Kbd from '../Kbd';
-import { withShortcut } from '../../utils/shortcuts';
+import { tooltip } from '../../utils/shortcuts';
 
 interface BottomBarProps {
   onOpenImageInfo: () => void;
@@ -56,11 +55,10 @@ const BottomBar: React.FC<BottomBarProps> = ({
           }}
           onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = theme.toolbarHover)}
           onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-          title={withShortcut('Image information', 'imageInfo')}
+          {...tooltip('Image information', 'imageInfo')}
         >
           <ImageIcon size={16} color={theme.toolbarText} />
           {currentImageId}
-          <Kbd name="imageInfo" />
         </button>
         
         <button
@@ -80,11 +78,10 @@ const BottomBar: React.FC<BottomBarProps> = ({
           }}
           onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = theme.toolbarHover)}
           onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-          title={withShortcut('View confusion matrix', 'stats')}
+          {...tooltip('Confusion matrix and statistics', 'stats')}
         >
           <BarChartIcon size={16} color={theme.toolbarText} />
           Stats
-          <Kbd name="stats" />
         </button>
       </div>
 

@@ -1,7 +1,6 @@
 import React from 'react';
 import { useTheme } from '../../../contexts/ThemeContext';
-import Kbd from '../../Kbd';
-import { ShortcutName } from '../../../utils/shortcuts';
+import { ShortcutName, tooltip } from '../../../utils/shortcuts';
 
 interface ToolButtonProps {
   id?: string;
@@ -15,7 +14,7 @@ interface ToolButtonProps {
   checked?: boolean;
   disabled?: boolean;
   label?: string;
-  /** Shortcut shown next to the label */
+  /** Shortcut shown in the tooltip */
   shortcut?: ShortcutName;
 }
 
@@ -59,7 +58,7 @@ const ToolButton: React.FC<ToolButtonProps> = ({
       id={id}
       className={buttonClassName}
       onClick={handleClick}
-      title={title}
+      {...(title ? tooltip(title, shortcut) : {})}
       style={{
         opacity: disabled ? 0.5 : 1,
         cursor: disabled ? 'not-allowed' : 'pointer',
@@ -102,9 +101,6 @@ const ToolButton: React.FC<ToolButtonProps> = ({
         }}>
           {label}
         </span>
-      )}
-      {label && shortcut && (
-        <span style={{ color: theme.toolbarText, display: 'inline-flex' }}><Kbd name={shortcut} /></span>
       )}
       {children}
     </li>

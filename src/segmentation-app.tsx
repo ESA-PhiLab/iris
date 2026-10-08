@@ -7,6 +7,7 @@ import RightPanel, { PANEL_WIDTH } from './components/segmentation/RightPanel';
 import BottomBar from './components/segmentation/BottomBar';
 import SegmentationModals from './components/segmentation/SegmentationModals';
 import ViewerComparison from './components/segmentation/ViewerComparison';
+import TooltipLayer from './components/TooltipLayer';
 import { useSegmentationSetup } from './components/segmentation/hooks/useSegmentationSetup';
 import { useSegmentationStore } from './stores/segmentationStore';
 import { useViewManagerStore } from './stores/viewManagerStore';
@@ -360,6 +361,9 @@ const SegmentationApp: React.FC = () => {
         onOpenImageInfo={handleOpenImageInfo}
         onOpenConfusionMatrix={handleOpenConfusionMatrix}
       />
+
+      {/* Tooltips of all controls */}
+      <TooltipLayer />
 
       <SegmentationModals
         isPreferencesOpen={isPreferencesOpen}

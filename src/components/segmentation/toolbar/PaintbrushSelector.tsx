@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import ToolButton from './ToolButton';
-import { ShortcutName } from '../../../utils/shortcuts';
+import { ShortcutName, tooltip } from '../../../utils/shortcuts';
 import { useSegmentationStore } from '../../../stores/segmentationStore';
 
 interface PaintbrushSelectorProps {
@@ -136,7 +136,7 @@ const PaintbrushSelector: React.FC<PaintbrushSelectorProps> = ({
                   key={`square-${size}`}
                   className={`brush-option ${toolShape === 'square' && toolSize === size ? 'selected' : ''}`}
                   onClick={() => handleShapeSelect('square', size)}
-                  title={`Square brush, ${size}px`}
+                  {...tooltip(`Square brush, ${size}px`)}
                 >
                   <div 
                     className="brush-preview square"
@@ -160,7 +160,7 @@ const PaintbrushSelector: React.FC<PaintbrushSelectorProps> = ({
                   key={`round-${size}`}
                   className={`brush-option ${toolShape === 'round' && toolSize === size ? 'selected' : ''}`}
                   onClick={() => handleShapeSelect('round', size)}
-                  title={`Round brush, ${size}px`}
+                  {...tooltip(`Round brush, ${size}px`)}
                 >
                   <div 
                     className="brush-preview round"
