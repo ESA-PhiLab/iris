@@ -4,6 +4,7 @@ import BrushTool, { biggerBrushSize, smallerBrushSize } from './toolbar/BrushToo
 import Sidebar, { SidebarGroup } from './Sidebar';
 import { useSegmentationStore } from '../../stores/segmentationStore';
 import { useShortcut } from '../../hooks/useShortcut';
+import { trainAI } from '../../segmentation/commands';
 
 interface LeftToolbarProps {
   expanded: boolean;
@@ -12,33 +13,12 @@ interface LeftToolbarProps {
 }
 
 const LeftToolbar: React.FC<LeftToolbarProps> = ({ expanded, onToggle, onResetMask }) => {
-  const {
-    currentTool,
-    setCurrentTool,
-    predictMask,
-    resetViews,
-    isLoading,
-    showErrorModal
-  } = useSegmentationStore();
-
-  const handlePredictMask = async () => {
-    try {
-      await predictMask();
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      showErrorModal(errorMessage, 'AI Prediction Error');
-    }
-  };
-
-  const handleUndo = () => {
-    const w = window as any;
-    if (w.undo) w.undo();
-  };
-
-  const handleRedo = () => {
-    const w = window as any;
-    if (w.redo) w.redo();
-  };
+  const currentTool = useSegmentationStore((state) => state.currentTool);
+  const setCurrentTool = useSegmentationStore((state) => state.setCurrentTool);
+  const undo = useSegmentationStore((state) => state.undo);
+  const redo = useSegmentationStore((state) => state.redo);
+  const resetViews = useSegmentationStore((state) => state.resetViews);
+  const isLoading = useSegmentationStore((state) => state.isLoading);
 
   // + and - resize the brush in use
   const resizeBrush = (step: (size: number) => number) => {
@@ -90,7 +70,7 @@ const LeftToolbar: React.FC<LeftToolbarProps> = ({ expanded, onToggle, onResetMa
         <ToolButton
           id="tb_undo"
           icon="/segmentation/static/icons/undo.png"
-          onClick={handleUndo}
+          onClick={undo}
           title="Undo"
           label={label('Undo')}
           shortcut="undo"
@@ -98,7 +78,7 @@ const LeftToolbar: React.FC<LeftToolbarProps> = ({ expanded, onToggle, onResetMa
         <ToolButton
           id="tb_redo"
           icon="/segmentation/static/icons/redo.png"
-          onClick={handleRedo}
+          onClick={redo}
           title="Redo"
           label={label('Redo')}
           shortcut="redo"
@@ -110,7 +90,7 @@ const LeftToolbar: React.FC<LeftToolbarProps> = ({ expanded, onToggle, onResetMa
         <ToolButton
           id="tb_predict_mask"
           icon="/segmentation/static/icons/ai.png"
-          onClick={handlePredictMask}
+          onClick={trainAI}
           disabled={isLoading}
           title={isLoading ? 'Predicting...' : 'Predict mask using AI'}
           label={label('AI Predict')}

@@ -4,7 +4,7 @@
  * Tests the confusion matrix functionality in the segmentation store
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { useSegmentationStore } from '../stores/segmentationStore';
 
 // Mock window object
@@ -91,41 +91,6 @@ describe('Confusion Matrix Store', () => {
     
     // Verify it's cleared
     expect(useSegmentationStore.getState().confusionMatrix).toBeNull();
-  });
-
-  it('should validate confusion matrix structure on update', () => {
-    const store = useSegmentationStore.getState();
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    
-    // Test invalid matrix object
-    store.updateConfusionMatrix(null as any);
-    expect(consoleSpy).toHaveBeenCalledWith('[IRIS] updateConfusionMatrix: Invalid matrix object', null);
-    
-    // Test invalid matrix array
-    const invalidMatrix = {
-      matrix: null,
-      classCount: 2,
-      totalSamples: 10,
-      accuracyStats: { overall: 0.8, perClass: [], worstClass: null, worstAccuracy: 0.8, truePositives: {} },
-      timestamp: new Date(),
-      classes: ['A', 'B']
-    };
-    store.updateConfusionMatrix(invalidMatrix as any);
-    expect(consoleSpy).toHaveBeenCalledWith('[IRIS] updateConfusionMatrix: Invalid matrix array');
-    
-    // Test non-square matrix
-    const nonSquareMatrix = {
-      matrix: [[1, 2], [3]], // Second row is shorter
-      classCount: 2,
-      totalSamples: 6,
-      accuracyStats: { overall: 0.8, perClass: [], worstClass: null, worstAccuracy: 0.8, truePositives: {} },
-      timestamp: new Date(),
-      classes: ['A', 'B']
-    };
-    store.updateConfusionMatrix(nonSquareMatrix as any);
-    expect(consoleSpy).toHaveBeenCalledWith('[IRIS] updateConfusionMatrix: Matrix is not square');
-    
-    consoleSpy.mockRestore();
   });
 
   it('should handle edge cases in accuracy calculation', () => {

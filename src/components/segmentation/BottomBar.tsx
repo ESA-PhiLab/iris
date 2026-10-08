@@ -4,6 +4,7 @@ import { ImageIcon, BarChartIcon, ShieldIcon } from '../icons/ToolbarIcons';
 import AIScore from './statusbar/AIScore';
 import AIRecommendation from './statusbar/AIRecommendation';
 import { tooltip } from '../../utils/shortcuts';
+import { useSegmentationStore } from '../../stores/segmentationStore';
 
 interface BottomBarProps {
   onOpenImageInfo: () => void;
@@ -15,9 +16,8 @@ const BottomBar: React.FC<BottomBarProps> = ({
   onOpenConfusionMatrix 
 }) => {
   const { theme } = useTheme();
-  const w = window as any;
-  const isAdmin = w.vars?.is_admin || false;
-  const currentImageId = w.vars?.image_id || 'No image';
+  const isAdmin = useSegmentationStore((state) => state.user?.admin ?? false);
+  const currentImageId = useSegmentationStore((state) => state.currentImageId) || 'No image';
 
   return (
     <div

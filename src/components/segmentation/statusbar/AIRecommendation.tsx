@@ -1,10 +1,12 @@
 import React from 'react';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { BrainIcon } from '../../icons/ToolbarIcons';
+import { useSegmentationStore } from '../../../stores/segmentationStore';
 
 const AIRecommendation: React.FC = () => {
   const { theme } = useTheme();
-  
+  const recommendation = useSegmentationStore((state) => state.aiRecommendation);
+
   return (
     <div
       style={{
@@ -21,7 +23,7 @@ const AIRecommendation: React.FC = () => {
       }}
     >
       <BrainIcon size={18} color={theme.toolbarText} />
-      <div 
+      <div
         id="ai-recommendation"
         style={{
           display: 'flex',
@@ -29,7 +31,7 @@ const AIRecommendation: React.FC = () => {
           gap: '6px',
         }}
       >
-        AI is loading
+        {recommendation}
       </div>
     </div>
   );

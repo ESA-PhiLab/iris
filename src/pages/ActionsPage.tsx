@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { segmentationUrl } from '../utils/urls';
 import { useParams } from 'react-router-dom';
 import { Action, ActionsApiResponse } from '../types/iris';
 
@@ -42,9 +43,7 @@ const ActionsPage: React.FC = () => {
   }, [type, orderBy, isAscending]);
 
   const handleGotoImage = (imageId: string) => {
-    if (window.goto_image) {
-      window.goto_image('segmentation', imageId);
-    }
+    window.open(segmentationUrl(imageId));
   };
 
   if (isLoading) {

@@ -35,8 +35,7 @@ describe('ImageNavigationDropdown', () => {
     // Set up store with test data
     useSegmentationStore.setState({
       images: mockImages,
-      currentImageId: 'image_001',
-      currentImageIndex: 0
+      currentImageId: 'image_001'
     });
   });
 
@@ -140,8 +139,7 @@ describe('ImageNavigationDropdown', () => {
   it('should show empty state when no images in store', () => {
     useSegmentationStore.setState({
       images: [],
-      currentImageId: null,
-      currentImageIndex: -1
+      currentImageId: null
     });
 
     const onNavigate = vi.fn();

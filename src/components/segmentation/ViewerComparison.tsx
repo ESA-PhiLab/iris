@@ -5,7 +5,7 @@
  * The legacy ViewManager has been removed as part of the migration to React.
  */
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import ReactViewManager from './ReactViewManager';
 import ErrorBoundary from './ErrorBoundary';
 import { useViewManagerStore } from '../../stores/viewManagerStore';
@@ -19,18 +19,6 @@ const ViewerComparison: React.FC<ViewerComparisonProps> = () => {
   // Use store hooks instead of direct window access
   const { isInitialized } = useViewManagerStore();
   const { config } = useSegmentationStore();
-
-  // useConfigLoader has set the views and view groups of the config
-  useEffect(() => {
-    if (!isInitialized && config) {
-      const viewManagerStore = useViewManagerStore.getState();
-      const currentImageId = useSegmentationStore.getState().currentImageId;
-      if (currentImageId) {
-        viewManagerStore.setImage(currentImageId, viewManagerStore.imageLocation || [0, 0]);
-      }
-      viewManagerStore.setInitialized(true);
-    }
-  }, [isInitialized, config]);
 
   const containerStyle: React.CSSProperties = {
     width: '100%',

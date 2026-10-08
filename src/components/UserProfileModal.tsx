@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import { useSegmentationStore } from '../stores/segmentationStore';
+import { segmentationUrl } from '../utils/urls';
 import type { UserProfile } from '../types/iris';
 import { useTheme } from '../contexts/ThemeContext';
 import type { ThemeName } from '../themes/colorschemes';
@@ -103,10 +105,10 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   const handleThemeChange = (newTheme: ThemeName) => { setTheme(newTheme); };
 
   const handleImageClick = (imageId: string) => {
-    if (typeof (window as any).goto_image === 'function') {
-      if (typeof (window as any).save_mask === 'function') (window as any).save_mask();
-      (window as any).goto_image('segmentation', imageId);
-    }
+    // Keep the mask being edited, then open the image in a new tab
+    const { maskChanged, saveCurrentMask } = useSegmentationStore.getState();
+    if (maskChanged) saveCurrentMask().catch(() => {});
+    window.open(segmentationUrl(imageId));
     onClose();
   };
 

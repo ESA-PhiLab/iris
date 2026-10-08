@@ -23,15 +23,16 @@ const ImageInfoModal: React.FC<ImageInfoModalProps> = ({ isOpen, onClose }) => {
   const [error, setError] = useState<string | null>(null);
   const { theme } = useTheme();
   
-  const { currentImageId, apiUrls } = useSegmentationStore();
+  const currentImageId = useSegmentationStore((state) => state.currentImageId);
+  // Metadata and thumbnails are served next to the pages
+  const mainUrl = '/';
 
   useEffect(() => {
     if (isOpen) {
       const fetchMetadata = async () => {
         const imageId = currentImageId;
-        const mainUrl = apiUrls?.main;
 
-        if (!imageId || !mainUrl) {
+        if (!imageId) {
           setError('Image ID not available');
           return;
         }
@@ -54,7 +55,7 @@ const ImageInfoModal: React.FC<ImageInfoModalProps> = ({ isOpen, onClose }) => {
       };
       fetchMetadata();
     }
-  }, [isOpen, currentImageId, apiUrls]);
+  }, [isOpen, currentImageId]);
 
   // Handle Escape key
   useEffect(() => {
@@ -74,7 +75,6 @@ const ImageInfoModal: React.FC<ImageInfoModalProps> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   const imageId = currentImageId || 'Unknown';
-  const mainUrl = apiUrls?.main || '';
 
   return (
     <div

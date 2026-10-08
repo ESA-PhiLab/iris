@@ -70,13 +70,9 @@ describe('SegmentationApp - URL Parameter Handling', () => {
    * beforeEach runs before each test in this describe block.
    * We use it to set up a clean test environment:
    * 1. Save the real window.location so we can restore it later
-   * 2. Mock window.init_segmentation (legacy function the app expects)
-   * 3. Mock window.vars (legacy global variable the app expects)
    */
   beforeEach(() => {
     originalLocation = window.location;
-    (window as any).init_segmentation = vi.fn();
-    (window as any).vars = {};
     
     // Mock fetch for authentication check - fix the URL to match what the app actually calls
     global.fetch = vi.fn((url) => {
@@ -109,11 +105,6 @@ describe('SegmentationApp - URL Parameter Handling', () => {
       value: originalLocation,
       writable: true,
     });
-    delete (window as any).init_segmentation;
-    delete (window as any).vars;
-    delete (window as any).openLogin;
-    delete (window as any).openUserProfile;
-    delete (window as any).irisReactApp;
     vi.restoreAllMocks();
   });
 
@@ -162,107 +153,6 @@ describe('SegmentationApp - URL Parameter Handling', () => {
     await waitFor(() => {
       const modal = getByTestId('preferences-modal');
       expect(modal).toHaveAttribute('data-open', 'false');
-    });
-  });
-
-  it('exposes window.openLogin function for legacy JS', async () => {
-    // Mock window.location
-    delete (window as any).location;
-    (window as any).location = {
-      ...originalLocation,
-      search: '',
-      pathname: '/segmentation',
-      hostname: 'localhost',
-    };
-
-    // Render the component
-    let getByTestId: any;
-    await act(async () => {
-      const result = render(<SegmentationApp />);
-      getByTestId = result.getByTestId;
-    });
-
-    // Wait for the component to initialize and expose the function
-    await waitFor(() => {
-      expect(window.openLogin).toBeDefined();
-      expect(typeof window.openLogin).toBe('function');
-    }, { timeout: 3000 });
-
-    // Call the function and verify login form appears
-    window.openLogin!();
-    
-    await waitFor(() => {
-      const loginForm = getByTestId('login-form');
-      expect(loginForm).toBeInTheDocument();
-    });
-  });
-
-  it('exposes window.openUserProfile function for legacy JS', async () => {
-    // Mock window.location
-    delete (window as any).location;
-    (window as any).location = {
-      ...originalLocation,
-      search: '',
-      pathname: '/segmentation',
-      hostname: 'localhost',
-    };
-
-    // Render the component
-    let getByTestId: any;
-    await act(async () => {
-      const result = render(<SegmentationApp />);
-      getByTestId = result.getByTestId;
-    });
-
-    // Wait for the component to initialize and expose the function
-    await waitFor(() => {
-      expect(window.openUserProfile).toBeDefined();
-      expect(typeof window.openUserProfile).toBe('function');
-    }, { timeout: 3000 });
-
-    // Call the function and verify profile modal appears
-    await act(async () => {
-      window.openUserProfile!('test-user-123');
-    });
-    
-    await waitFor(() => {
-      const profileModal = getByTestId('user-profile-modal');
-      expect(profileModal).toHaveAttribute('data-open', 'true');
-    });
-  });
-
-  it('exposes window.irisReactApp.openHelpModal function for legacy JS', async () => {
-    // Mock window.location
-    delete (window as any).location;
-    (window as any).location = {
-      ...originalLocation,
-      search: '',
-      pathname: '/segmentation',
-      hostname: 'localhost',
-    };
-
-    // Render the component
-    let getByTestId: any;
-    await act(async () => {
-      const result = render(<SegmentationApp />);
-      getByTestId = result.getByTestId;
-    });
-
-    // Wait for the component to initialize and expose the function
-    await waitFor(() => {
-      expect(window.irisReactApp).toBeDefined();
-      expect(window.irisReactApp?.openHelpModal).toBeDefined();
-      expect(typeof window.irisReactApp?.openHelpModal).toBe('function');
-    }, { timeout: 3000 });
-
-    // Call the function and verify help modal appears
-    await act(async () => {
-      window.irisReactApp!.openHelpModal!();
-    });
-    
-    await waitFor(() => {
-      const helpModal = getByTestId('help-modal');
-      expect(helpModal).toHaveAttribute('data-open', 'true');
     });
   });
 });

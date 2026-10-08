@@ -17,6 +17,8 @@ import { useSegmentationStore } from '../../stores/segmentationStore';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Georef, areaCorners, cornersBounds, lngLatToPixel, pixelToLngLat } from '../../utils/georef';
 import { rasterEngine } from '../../raster/engine';
+import { brushImageRect } from '../../segmentation/brush';
+import { biggerBrushSize, smallerBrushSize } from './toolbar/BrushTool';
 
 const ESRI_IMAGERY =
   'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
@@ -25,39 +27,19 @@ const ESRI_IMAGERY =
 const maps = new Set<MapLibreMap>();
 let syncing = false;
 
-/** Same rounding as the legacy round_number() */
-const roundNumber = (x: number) => (x + 0.5) | 0;
-
 /** Footprint of the brush around the cursor, in image pixels */
-const brushPolygon = (
-  georef: Georef,
-  cursor: [number, number],
-  size: number,
-  shape: string
-): Feature => {
-  // Same offset as the legacy get_tool_offset()
-  const offset = size === 1 ? 0 : roundNumber(-size / 2);
-  const x = cursor[0] + offset;
-  const y = cursor[1] + offset;
-
-  let pixels: [number, number][];
-  if (shape === 'round') {
-    const radius = size / 2;
-    pixels = Array.from({ length: 48 }, (_, i) => {
-      const angle = (2 * Math.PI * i) / 48;
-      return [x + radius + radius * Math.cos(angle), y + radius + radius * Math.sin(angle)];
-    });
-  } else {
-    pixels = [[x, y], [x + size, y], [x + size, y + size], [x, y + size]];
-  }
-
-  const ring = pixels.map((pixel) => pixelToLngLat(georef, pixel));
+const brushPolygon = (georef: Georef, cursor: [number, number], size: number): Feature => {
+  const [x0, y0, x1, y1] = brushImageRect(cursor, size);
+  const ring = ([[x0, y0], [x1, y0], [x1, y1], [x0, y1]] as [number, number][])
+    .map((pixel) => pixelToLngLat(georef, pixel));
   return {
     type: 'Feature',
     properties: {},
     geometry: { type: 'Polygon', coordinates: [[...ring, ring[0]]] },
   };
 };
+
+const NO_FEATURES: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: [] };
 
 /** CSS filter of the image, set in the right panel */
 const imageFilter = () => {
@@ -343,7 +325,7 @@ const ReactMapView: React.FC<ReactMapViewProps> = ({ view, imageId, viewCount })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [georef, imageId, view.name, viewKey]);
 
-  // Mask, drawn by the legacy code into the hidden mask canvas
+  // Mask, coloured by the editor into the hidden mask canvas
   useEffect(() => {
     if (!georef || !hiddenMaskCanvas || !maskArea) return;
 
@@ -355,15 +337,11 @@ const ReactMapView: React.FC<ReactMapViewProps> = ({ view, imageId, viewCount })
       );
     });
 
-    const refresh = () => {
-      if (mapRef.current) refreshCanvasSource(mapRef.current, 'mask');
-    };
-    window.addEventListener('react-mask-render', refresh);
-    window.addEventListener('iris-mask-loaded', refresh);
-
     const unsubscribe = useSegmentationStore.subscribe((state, previous) => {
       const map = mapRef.current;
-      if (state.showMask !== previous.showMask && map?.getLayer('mask')) {
+      if (!map) return;
+      if (state.maskVersion !== previous.maskVersion) refreshCanvasSource(map, 'mask');
+      if (state.showMask !== previous.showMask && map.getLayer('mask')) {
         map.setLayoutProperty('mask', 'visibility', state.showMask ? 'visible' : 'none');
       }
     });
@@ -371,8 +349,6 @@ const ReactMapView: React.FC<ReactMapViewProps> = ({ view, imageId, viewCount })
     return () => {
       cancelReady();
       unsubscribe();
-      window.removeEventListener('react-mask-render', refresh);
-      window.removeEventListener('iris-mask-loaded', refresh);
     };
   }, [georef, hiddenMaskCanvas, maskArea]);
 
@@ -381,11 +357,10 @@ const ReactMapView: React.FC<ReactMapViewProps> = ({ view, imageId, viewCount })
     if (!georef) return;
 
     const update = () => {
-      const map = mapRef.current;
-      const source = map?.getSource('brush') as GeoJSONSource | undefined;
+      const source = mapRef.current?.getSource('brush') as GeoJSONSource | undefined;
       if (!source) return;
-      const { cursorImage, toolSize, toolShape } = useSegmentationStore.getState();
-      source.setData(brushPolygon(georef, cursorImage, toolSize, toolShape));
+      const { cursorImage, toolSize, currentTool } = useSegmentationStore.getState();
+      source.setData(currentTool === 'move' ? NO_FEATURES : brushPolygon(georef, cursorImage, toolSize));
     };
 
     const cancelReady = whenReady(update);
@@ -393,7 +368,7 @@ const ReactMapView: React.FC<ReactMapViewProps> = ({ view, imageId, viewCount })
       if (
         state.cursorImage !== previous.cursorImage
         || state.toolSize !== previous.toolSize
-        || state.toolShape !== previous.toolShape
+        || state.currentTool !== previous.currentTool
       ) {
         update();
       }
@@ -405,30 +380,36 @@ const ReactMapView: React.FC<ReactMapViewProps> = ({ view, imageId, viewCount })
     };
   }, [georef]);
 
-  // Drawing: the legacy mouse handlers get the image pixel under the mouse
+  // Drawing with the left button: the editor gets the image pixel under the mouse
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !georef) return;
 
-    const forward = (handler: 'mouse_down' | 'mouse_move' | 'mouse_up') => (e: MapMouseEvent) => {
-      const legacyHandler = (window as any)[handler];
-      if (!legacyHandler) return;
-      const [x, y] = lngLatToPixel(georef, [e.lngLat.lng, e.lngLat.lat]);
-      const event = e.originalEvent as MouseEvent & { irisCursorImage?: [number, number] };
-      event.irisCursorImage = [roundNumber(x), roundNumber(y)];
-      legacyHandler.call(map.getCanvas(), event);
+    const cursorOf = (e: MapMouseEvent) => lngLatToPixel(georef, [e.lngLat.lng, e.lngLat.lat]);
+    const onMouseDown = (e: MapMouseEvent) => {
+      const cursor = cursorOf(e);
+      const editor = useSegmentationStore.getState();
+      editor.setCursorImage(cursor);
+      if (e.originalEvent.button === 0) editor.startStroke(cursor);
     };
-    const onMouseDown = forward('mouse_down');
-    const onMouseMove = forward('mouse_move');
-    const onMouseUp = forward('mouse_up');
+    const onMouseMove = (e: MapMouseEvent) => {
+      const cursor = cursorOf(e);
+      const editor = useSegmentationStore.getState();
+      editor.setCursorImage(cursor);
+      if (e.originalEvent.buttons & 1) editor.continueStroke(cursor);
+    };
+    // The stroke ends wherever the button is released
+    const onMouseUp = (e: MouseEvent) => {
+      if (e.button === 0) useSegmentationStore.getState().endStroke();
+    };
     map.on('mousedown', onMouseDown);
     map.on('mousemove', onMouseMove);
-    map.on('mouseup', onMouseUp);
+    window.addEventListener('mouseup', onMouseUp);
 
     return () => {
       map.off('mousedown', onMouseDown);
       map.off('mousemove', onMouseMove);
-      map.off('mouseup', onMouseUp);
+      window.removeEventListener('mouseup', onMouseUp);
     };
   }, [georef]);
 
@@ -469,10 +450,16 @@ const ReactMapView: React.FC<ReactMapViewProps> = ({ view, imageId, viewCount })
 
     // Shift + wheel resizes the brush instead of zooming
     const onWheel = (e: WheelEvent) => {
-      if (!useSegmentationStore.getState().toolResizingMode) return;
+      if (!e.shiftKey) return;
       e.preventDefault();
       e.stopPropagation();
-      (window as any).mouse_wheel?.call(map.getCanvas(), e);
+      const editor = useSegmentationStore.getState();
+      if (editor.currentTool === 'move') return;
+      // Shift turns the wheel sideways on some systems
+      const delta = e.deltaY || e.deltaX;
+      if (!delta) return;
+      const step = delta < 0 ? biggerBrushSize : smallerBrushSize;
+      editor.setBrushSize(editor.currentTool, step(editor.brushSizes[editor.currentTool]));
     };
 
     wrapper.addEventListener('mousedown', onMouseDown);

@@ -8,7 +8,7 @@ import ClassSelectionModal from '../ClassSelectionModal';
 import ImageInfoModal from '../ImageInfoModal';
 import ConfusionMatrixModal from '../ConfusionMatrixModal';
 import ErrorModal from '../ErrorModal';
-import { useSegmentationStore } from '../../stores/segmentationStore';
+import { useUiStore } from '../../stores/uiStore';
 import '../ErrorModal.css';
 
 interface SegmentationModalsProps {
@@ -54,7 +54,8 @@ const SegmentationModals: React.FC<SegmentationModalsProps> = ({
   isConfusionMatrixOpen,
   onCloseConfusionMatrix
 }) => {
-  const { errorModal, hideErrorModal } = useSegmentationStore();
+  const errorModal = useUiStore((state) => state.errorModal);
+  const hideErrorModal = useUiStore((state) => state.hideErrorModal);
 
   return (
     <>

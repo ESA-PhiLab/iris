@@ -5,6 +5,22 @@ import * as matchers from '@testing-library/jest-dom/matchers';
 // Extend Vitest's expect with jest-dom matchers
 expect.extend(matchers);
 
+// Node's own localStorage hides jsdom's and is undefined without a file:
+// give the tests one in memory
+if (typeof window.localStorage === 'undefined') {
+  const items = new Map<string, string>();
+  const storage = {
+    get length() { return items.size; },
+    key: (index: number) => [...items.keys()][index] ?? null,
+    getItem: (key: string) => items.get(key) ?? null,
+    setItem: (key: string, value: string) => { items.set(key, String(value)); },
+    removeItem: (key: string) => { items.delete(key); },
+    clear: () => { items.clear(); },
+  };
+  Object.defineProperty(globalThis, 'localStorage', { value: storage, configurable: true });
+  Object.defineProperty(window, 'localStorage', { value: storage, configurable: true });
+}
+
 // Mock ResizeObserver for tests
 global.ResizeObserver = vi.fn().mockImplementation(() => ({
   observe: vi.fn(),

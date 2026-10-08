@@ -1,5 +1,8 @@
 import React from 'react';
 import { useSegmentationStore } from '../../stores/segmentationStore';
+import { useUiStore } from '../../stores/uiStore';
+import { goToImage, goToNextImage, goToPreviousImage } from '../../segmentation/navigation';
+import { saveMask } from '../../segmentation/commands';
 import { useTheme } from '../../contexts/ThemeContext';
 import { tooltip } from '../../utils/shortcuts';
 import { useShortcut } from '../../hooks/useShortcut';
@@ -25,154 +28,45 @@ const TopBar: React.FC<TopBarProps> = ({ onOpenPreferences, onOpenHelp, onOpenPr
   const config = useSegmentationStore((state) => state.config);
   const projectName = config?.name || 'IRIS';
   
-  const { 
-    getPrevImageId, 
-    getNextImageId, 
-    navigateNext, 
-    navigatePrev,
-    saveCurrentMask,
-    isLoading,
-    maskChanged,
-  } = useSegmentationStore();
-  
+  const isLoading = useSegmentationStore((state) => state.isLoading);
+  const maskChanged = useSegmentationStore((state) => state.maskChanged);
+  // Read again when the image list or the current image changes
+  useSegmentationStore((state) => state.images);
+  useSegmentationStore((state) => state.currentImageId);
+  const { getPrevImageId, getNextImageId } = useSegmentationStore.getState();
+
   const hasPrev = getPrevImageId() !== null;
   const hasNext = getNextImageId() !== null;
 
-  const handleNavigateToImage = (imageId: string) => {
-    const w = window as any;
-    const store = useSegmentationStore.getState();
-    const hasUnsavedChanges = store.maskChanged;
-    
-    if (hasUnsavedChanges) {
-      if (w.dialogue_before_next_image) {
-        w.pendingNavigationImageId = imageId;
-        w.dialogue_before_next_image();
-      }
-    } else {
-      const url = `/segmentation/?image_id=${encodeURIComponent(imageId)}`;
-      if (w.goto_url) {
-        w.goto_url(url);
-      } else {
-        window.location.href = url;
-      }
-    }
-  };
-
-  const handlePrevious = async () => {
-    if (maskChanged) {
-      try {
-        await saveCurrentMask();
-        const prevImageId = navigatePrev();
-        if (prevImageId) {
-          const url = `/segmentation/?image_id=${encodeURIComponent(prevImageId)}`;
-          const w = window as any;
-          if (w.goto_url) {
-            w.goto_url(url);
-          } else {
-            window.location.href = url;
-          }
-        }
-      } catch (error) {
-        console.error('Failed to save before navigation:', error);
-      }
-    } else {
-      const prevImageId = navigatePrev();
-      if (prevImageId) {
-        const url = `/segmentation/?image_id=${encodeURIComponent(prevImageId)}`;
-        const w = window as any;
-        if (w.goto_url) {
-          w.goto_url(url);
-        } else {
-          window.location.href = url;
-        }
-      }
-    }
-  };
-
-  const handleNext = async () => {
-    if (maskChanged) {
-      try {
-        await saveCurrentMask();
-        const nextImageId = navigateNext();
-        if (nextImageId) {
-          const url = `/segmentation/?image_id=${encodeURIComponent(nextImageId)}`;
-          const w = window as any;
-          if (w.goto_url) {
-            w.goto_url(url);
-          } else {
-            window.location.href = url;
-          }
-        }
-      } catch (error) {
-        console.error('Failed to save before navigation:', error);
-      }
-    } else {
-      const nextImageId = navigateNext();
-      if (nextImageId) {
-        const url = `/segmentation/?image_id=${encodeURIComponent(nextImageId)}`;
-        const w = window as any;
-        if (w.goto_url) {
-          w.goto_url(url);
-        } else {
-          window.location.href = url;
-        }
-      }
-    }
-  };
-
-  const handleSave = async () => {
-    try {
-      await saveCurrentMask();
-    } catch (error) {
-      console.error('Failed to save mask:', error);
-    }
-  };
+  const handleNavigateToImage = (imageId: string) => { goToImage(imageId); };
+  const handlePrevious = () => { goToPreviousImage(); };
+  const handleNext = () => { goToNextImage(); };
+  const handleSave = () => { saveMask(); };
 
   const handleExportGeoTIFF = async () => {
+    const imageId = useSegmentationStore.getState().currentImageId;
+    if (!imageId) return;
+    const ui = useUiStore.getState();
+    ui.notify('Exporting GeoTIFF...');
     try {
-      const imageId = useSegmentationStore.getState().currentImageId;
-      if (!imageId) {
-        alert('No image loaded');
-        return;
-      }
-
-      const w = window as any;
-      if (w.show_message) w.show_message('Exporting GeoTIFF...');
-
-      const response = await fetch(`/segmentation/api/export-geotiff/${imageId}`, {
-        method: 'GET',
+      const response = await fetch(`/segmentation/api/export-geotiff/${encodeURIComponent(imageId)}`, {
         credentials: 'same-origin'
       });
-
-      if (response.ok) {
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${imageId}_annotated.tif`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-        
-        if (w.show_message) w.show_message('GeoTIFF exported successfully', 2000);
-      } else {
-        const error = await response.json();
-        const errorMsg = error.message || error.error || 'Export failed';
-        if (w.show_dialogue) {
-          w.show_dialogue('error', `<p>Could not export GeoTIFF: ${errorMsg}</p>`);
-        } else {
-          alert(`Export failed: ${errorMsg}`);
-        }
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.message || error.error || `Export failed (${response.status})`);
       }
+      const url = window.URL.createObjectURL(await response.blob());
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${imageId}_annotated.tif`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      ui.notify('GeoTIFF exported successfully', 2000);
     } catch (error) {
-      const w = window as any;
-      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-      if (w.show_dialogue) {
-        w.show_dialogue('error', `<p>Could not export GeoTIFF: ${errorMsg}</p>`);
-      } else {
-        alert(`Export failed: ${errorMsg}`);
-      }
+      ui.showErrorModal(error instanceof Error ? error.message : String(error), 'Could not export GeoTIFF');
     }
   };
 

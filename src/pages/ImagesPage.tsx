@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { segmentationUrl } from '../utils/urls';
 import { ImageData, ImagesApiResponse } from '../types/iris';
 
 // Declare global function from base.html
@@ -84,9 +85,7 @@ const ImagesPage: React.FC = () => {
   }, [orderBy, isAscending]);
 
   const handleGotoImage = (imageId: string) => {
-    if (window.goto_image) {
-      window.goto_image('segmentation', imageId);
-    }
+    window.open(segmentationUrl(imageId));
   };
 
   if (isLoading) {

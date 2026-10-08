@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useSegmentationStore } from '../../stores/segmentationStore';
 import { useViewManagerStore } from '../../stores/viewManagerStore';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -248,32 +248,6 @@ const RightPanel: React.FC<RightPanelProps> = ({ expanded, onToggle, onSelectCla
   const currentClassConfig = currentClass >= 0 && currentClass < classes.length
     ? classes[currentClass]
     : null;
-
-  // Watch for showMask changes and trigger canvas update
-  // Note: maskType changes are handled in the store's setMaskType function
-  useEffect(() => {
-    const w = window as any;
-    // Only call if function exists and vars is initialized
-    if (w.vars && w.show_mask) {
-      try {
-        w.show_mask(showMask);
-      } catch (error) {
-        console.error('[RightPanel] Error toggling mask visibility:', error);
-      }
-    }
-  }, [showMask]);
-
-  // Watch for filter changes and apply them
-  useEffect(() => {
-    const w = window as any;
-    if (w.renderFromStore) {
-      try {
-        w.renderFromStore();
-      } catch (error) {
-        console.error('[RightPanel] Error applying filters:', error);
-      }
-    }
-  }, [brightness, saturation, contrast, invert]);
 
   const maskTypes: Array<{ value: 'final' | 'user' | 'errors'; label: string; title: string; shortcut: ShortcutName }> = [
     { value: 'final', label: 'Final', title: 'Final mask', shortcut: 'maskFinal' },

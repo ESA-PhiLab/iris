@@ -1,75 +1,39 @@
-import { render, screen } from '@testing-library/react';
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { screen } from '@testing-library/react';
+import { render } from '../../test/test-utils';
 import ReactViewManager from './ReactViewManager';
+import { useViewManagerStore } from '../../stores/viewManagerStore';
 
-// Mock the store
-const mockStore = {
-  currentGroup: 0,
-  viewWidth: 400,
-  viewHeight: 300,
-  showControls: true,
-  imageId: 'test-image',
-  imageLocation: [0, 0] as [number, number],
-  // PHASE 3A: Add missing zoom/pan/canvas state
-  currentView: null,
-  zoomLevel: 1.0,
-  panOffset: { x: 0, y: 0 },
-  canvasDimensions: { width: 400, height: 300 },
-  mousePosition: { x: 0, y: 0 },
-  isMouseDown: false,
-  isDragging: false,
-  // Actions
-  getCurrentViews: () => [],
-  updateViewDimensions: () => {},
-  setImageLocation: () => {},
-  // PHASE 3A: Add missing actions
-  setCurrentView: () => {},
-  updateCanvasDimensions: () => {},
-  updateMousePosition: () => {},
-  setMouseDown: () => {},
-  setDragging: () => {},
-  screenToImageCoordinates: () => ({ x: 0, y: 0 }),
-  imageToScreenCoordinates: () => ({ x: 0, y: 0 }),
-  getDebugInfo: () => ({
-    hasViews: false,
-    viewsCount: 0,
-    currentGroup: 'default',
-    imageId: 'test-image',
-    imageLocation: [0, 0],
-    filters: { contrast: false, invert: false, brightness: 100, saturation: 100 },
-    isInitialized: false,
-    initializationError: null,
-    // PHASE 3A: Add missing debug info
-    currentView: null,
-    zoomLevel: 1.0,
-    panOffset: { x: 0, y: 0 },
-    canvasDimensions: { width: 400, height: 300 },
-    mousePosition: { x: 0, y: 0 },
-    isMouseDown: false,
-    isDragging: false,
-  }),
-};
-
-vi.mock('../../stores/viewManagerStore', () => ({
-  useViewManagerStore: () => mockStore,
+vi.mock('./ReactViewPort', () => ({
+  default: ({ view }: { view: { name: string } }) => <div data-testid="viewport">{view.name}</div>,
 }));
+
+const view = (name: string) => ({ name, type: 'image' as const, description: '', data: '$B1' });
 
 describe('ReactViewManager', () => {
   beforeEach(() => {
-    // Mock window.vars
-    (window as any).vars = {
-      config: { views: {} },
-      image_shape: [100, 100],
-    };
+    useViewManagerStore.setState({
+      views: { RGB: view('RGB'), SWIR: view('SWIR') },
+      viewGroups: { default: ['RGB', 'SWIR'], radar: ['SWIR'] },
+      currentGroup: 'default',
+      imageId: 'coast',
+    });
   });
 
-  it('renders no views message when no views configured', () => {
+  it('shows the views of the current group', () => {
     render(<ReactViewManager />);
-    expect(screen.getByText('No views configured or image not loaded')).toBeInTheDocument();
+    expect(screen.getAllByTestId('viewport').map((v) => v.textContent)).toEqual(['RGB', 'SWIR']);
   });
 
-  it('renders with basic props', () => {
-    const { container } = render(<ReactViewManager className="test-class" />);
-    expect(container.firstChild).toHaveClass('react-view-manager test-class');
+  it('follows the group', () => {
+    useViewManagerStore.setState({ currentGroup: 'radar' });
+    render(<ReactViewManager />);
+    expect(screen.getAllByTestId('viewport').map((v) => v.textContent)).toEqual(['SWIR']);
+  });
+
+  it('waits for the image', () => {
+    useViewManagerStore.setState({ imageId: null });
+    render(<ReactViewManager />);
+    expect(screen.getByText('Loading image...')).toBeInTheDocument();
   });
 });

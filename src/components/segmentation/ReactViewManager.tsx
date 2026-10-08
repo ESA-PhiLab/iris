@@ -1,15 +1,9 @@
 /**
- * React ViewManager Component
- * 
- * This component replaces the legacy ViewManager class with a React-based implementation.
- * It manages multiple ViewPorts and their associated layers (RGB, Mask, Preview, etc.).
- * 
- * PHASE 3A: Enhanced with zoom/pan/canvas state management
+ * The views of the current group, side by side
  */
 
-import React, { useEffect, useRef, useCallback } from 'react';
+import React from 'react';
 import { useViewManagerStore } from '../../stores/viewManagerStore';
-
 import ReactViewPort from './ReactViewPort';
 
 interface ReactViewManagerProps {
@@ -17,208 +11,52 @@ interface ReactViewManagerProps {
   style?: React.CSSProperties;
 }
 
-const ReactViewManager: React.FC<ReactViewManagerProps> = ({ 
-  className = '',
-  style = {} 
-}) => {
-  const containerRef = useRef<HTMLDivElement>(null);
-  
-  // PHASE 3A: Enhanced store subscriptions with new state
-  const {
-    currentGroup,
-    showControls,
-    imageId,
-    // PHASE 3A: New zoom/pan/canvas state
-    currentView,
-    zoomLevel,
-    panOffset,
-    canvasDimensions,
-    mousePosition,
-    isMouseDown,
-    isDragging,
-    // Actions
-    getCurrentViews,
-    updateViewDimensions,
-    // PHASE 3A: New actions
-    setCurrentView,
-    updateCanvasDimensions,
-    updateMousePosition,
-    setMouseDown,
-    setDragging,
-    screenToImageCoordinates,
-    imageToScreenCoordinates,
-    getDebugInfo,
-  } = useViewManagerStore();
-  
-  const currentViews = getCurrentViews();
-  
-  // PHASE 3A: Update canvas dimensions when container size changes
-  useEffect(() => {
-    const updateContainerDimensions = () => {
-      if (containerRef.current) {
-        const rect = containerRef.current.getBoundingClientRect();
-        updateCanvasDimensions({
-          width: rect.width,
-          height: rect.height
-        });
-      }
-      updateViewDimensions();
-    };
-    
-    const handleResize = () => {
-      updateContainerDimensions();
-    };
-    
-    // Initial update
-    updateContainerDimensions();
-    
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, [updateViewDimensions, updateCanvasDimensions, currentViews.length]);
-  
-  // PHASE 3A: Mouse event handlers for canvas interaction
-  const handleMouseMove = useCallback((event: React.MouseEvent) => {
-    if (containerRef.current) {
-      const rect = containerRef.current.getBoundingClientRect();
-      const mouseX = event.clientX - rect.left;
-      const mouseY = event.clientY - rect.top;
-      
-      updateMousePosition({ x: mouseX, y: mouseY });
-      
-      // Sync with legacy vars during migration
-      const w = window as any;
-      if (w.vars) {
-        w.vars.mouse_x = mouseX;
-        w.vars.mouse_y = mouseY;
-      }
-    }
-  }, [updateMousePosition]);
-  
-  const handleMouseDown = useCallback((_event: React.MouseEvent) => {
-    setMouseDown(true);
-    
-    // Sync with legacy vars during migration
-    const w = window as any;
-    if (w.vars) {
-      w.vars.mouse_down = true;
-    }
-  }, [setMouseDown]);
-  
-  const handleMouseUp = useCallback((_event: React.MouseEvent) => {
-    setMouseDown(false);
-    setDragging(false);
-    
-    // Sync with legacy vars during migration
-    const w = window as any;
-    if (w.vars) {
-      w.vars.mouse_down = false;
-      w.vars.dragging = false;
-    }
-  }, [setMouseDown, setDragging]);
-  
-  // PHASE 3A: Enhanced render function with zoom/pan support
-  const renderAllViewPorts = useCallback(() => {
-    // This will trigger re-render of all viewport canvases
-    // Similar to the legacy vm.render() function
-    // Now includes zoom/pan state from React store
-    console.log('[ReactViewManager] Rendering all viewports with zoom/pan state:', {
-      zoomLevel,
-      panOffset,
-      currentView,
-      viewCount: currentViews.length
-    });
-  }, [zoomLevel, panOffset, currentView, currentViews.length]);
-  
-  // PHASE 3A: Expose enhanced functions to legacy code during migration
-  useEffect(() => {
-    const w = window as any;
-    if (!w.reactViewManager) {
-      w.reactViewManager = {};
-    }
-    
-    // Enhanced legacy bridge with Phase 3A functions
-    w.reactViewManager.render = renderAllViewPorts;
-    w.reactViewManager.getZoom = () => zoomLevel;
-    w.reactViewManager.getPan = () => panOffset;
-    w.reactViewManager.getCurrentView = () => currentView;
-    w.reactViewManager.getCanvasSize = () => canvasDimensions;
-    w.reactViewManager.getMouse = () => mousePosition;
-    w.reactViewManager.screenToImage = screenToImageCoordinates;
-    w.reactViewManager.imageToScreen = imageToScreenCoordinates;
-  }, [renderAllViewPorts, zoomLevel, panOffset, currentView, canvasDimensions, mousePosition, screenToImageCoordinates, imageToScreenCoordinates]);
-  
+const ReactViewManager: React.FC<ReactViewManagerProps> = ({ className = '', style = {} }) => {
+  const currentGroup = useViewManagerStore((state) => state.currentGroup);
+  const showControls = useViewManagerStore((state) => state.showControls);
+  const imageId = useViewManagerStore((state) => state.imageId);
+  const currentView = useViewManagerStore((state) => state.currentView);
+  const setCurrentView = useViewManagerStore((state) => state.setCurrentView);
+  // Read the views again when the views or the groups change
+  useViewManagerStore((state) => state.views);
+  useViewManagerStore((state) => state.viewGroups);
+  const currentViews = useViewManagerStore.getState().getCurrentViews();
+
   if (!imageId || currentViews.length === 0) {
-    // PHASE 3A: Enhanced debug info with new state
-    const debugInfo = {
-      imageId,
-      currentViewsLength: currentViews.length,
-      currentView,
-      zoomLevel,
-      panOffset,
-      canvasDimensions,
-      storeDebugInfo: getDebugInfo(),
-    };
-    
-    // Log the issue for debugging
-    console.warn('⚠️ ReactViewManager: No views or image available', debugInfo);
-    
     return (
-      <div 
-        ref={containerRef}
+      <div
         className={`react-view-manager ${className}`}
         style={{
           display: 'flex',
-          flexDirection: 'column',
           justifyContent: 'center',
           alignItems: 'center',
-          height: '400px',
+          height: '100%',
           color: '#666',
-          fontSize: '12px',
-          padding: '20px',
-          ...style
+          fontSize: '14px',
+          ...style,
         }}
       >
-        <div style={{ marginBottom: '10px', fontSize: '14px' }}>
-          No views configured or image not loaded
-        </div>
-        <div style={{ marginBottom: '10px', fontSize: '12px', color: '#999' }}>
-          Draw at least 10 pixels from two classes!
-        </div>
-        <details style={{ fontSize: '10px', color: '#999' }}>
-          <summary>Debug Info (Phase 3A Enhanced)</summary>
-          <pre style={{ marginTop: '5px', fontSize: '9px' }}>
-            {JSON.stringify(debugInfo, null, 2)}
-          </pre>
-        </details>
+        {imageId ? 'No views configured for this group' : 'Loading image...'}
       </div>
     );
   }
-  
+
   return (
-    <div 
-      ref={containerRef}
+    <div
       className={`react-view-manager ${className}`}
       style={{
         display: 'flex',
         flexDirection: 'row',
-        flexWrap: 'nowrap', // Keep all views in one row
-        gap: '0px',
+        flexWrap: 'nowrap',
         width: '100%',
         height: '100%',
-        minHeight: '0', // Allow shrinking
-        maxHeight: '100%', // Don't exceed parent
+        minHeight: 0,
+        maxHeight: '100%',
         position: 'relative',
-        overflow: 'hidden', // Prevent overflow, force fit
-        boxSizing: 'border-box', // Include padding/border in dimensions
-        // PHASE 3A: Add cursor style based on interaction state
-        cursor: isDragging ? 'grabbing' : (isMouseDown ? 'grab' : 'default'),
-        ...style
+        overflow: 'hidden',
+        boxSizing: 'border-box',
+        ...style,
       }}
-      // PHASE 3A: Mouse event handlers for canvas interaction
-      onMouseMove={handleMouseMove}
-      onMouseDown={handleMouseDown}
-      onMouseUp={handleMouseUp}
-      onMouseLeave={handleMouseUp} // Reset mouse state when leaving container
     >
       {currentViews.map((view, index) => (
         <ReactViewPort
@@ -231,7 +69,6 @@ const ReactViewManager: React.FC<ReactViewManagerProps> = ({
           onViewActivate={() => setCurrentView(view.name)}
         />
       ))}
-      
     </div>
   );
 };
