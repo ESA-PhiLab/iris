@@ -1,9 +1,8 @@
 /**
  * Where IRIS gets the project and keeps the masks
  *
- * Two kinds: the IRIS server, or no server at all, where the project is read
- * from its files and the masks stay in the browser. A file iris.json next to
- * the page means no server; it names the project file.
+ * The file iris.json next to the page names the project file, the accounts
+ * and where the masks go (staticBackend.ts). Tests use their own backends.
  */
 
 import type { ImageFileSource } from '../raster/cog';
@@ -11,6 +10,7 @@ import type { ImageInfo } from '../stores/segmentationStore';
 import type { ProjectConfig, UserConfig, UserInfo, UserProfile } from '../types/iris';
 import type { ImageNotes } from './localLabels';
 import type { LabelEntry } from './labelStorage';
+import type { SiteConfig } from './staticBackend';
 
 export interface UserMask {
   mask: Uint8Array;
@@ -26,14 +26,11 @@ export interface Preferences {
 
 /** What the page shows of the person using IRIS */
 export interface Profile extends UserProfile {
-  canChangePassword: boolean;
   canSignOut: boolean;
 }
 
 /** What the sign-in form offers */
 export interface SignInOptions {
-  register: boolean;
-  forgotPassword: boolean;
   guest: boolean;
 }
 
@@ -46,7 +43,6 @@ export interface ReviewSource {
 }
 
 export interface Backend {
-  readonly kind: 'server' | 'static';
   /** The person using IRIS, null when they have to sign in first */
   currentUser(): Promise<UserInfo | null>;
   signInOptions(): SignInOptions;
@@ -74,15 +70,18 @@ export interface Backend {
   saveNotes(imageId: string, notes: ImageNotes): Promise<void>;
   loadPreferences(allBands: string[]): Promise<Preferences>;
   savePreferences(config: UserConfig): Promise<void>;
-  /** The profile of the user, or of another user (server only) */
-  loadProfile(userId?: string): Promise<Profile>;
+  loadProfile(): Promise<Profile>;
   signOut(): Promise<void>;
-  /** The user's masks as files, when they are kept in the browser */
-  downloadMasks?(onProgress?: (done: number, total: number) => void): Promise<{ bytes: Uint8Array; name: string } | null>;
+  /** The user's masks as files */
+  downloadMasks(onProgress?: (done: number, total: number) => void): Promise<{ bytes: Uint8Array; name: string } | null>;
   /** Write what is still waiting, before the page leaves */
   flush(): Promise<void>;
-  /** The masks of all users, for those who review them; the server has its admin pages */
-  review?(): ReviewSource | null;
+  /** The masks of all users, for the admins who review them; null for the others */
+  review(): ReviewSource | null;
+  /** The project file as written, for the admins who edit it */
+  loadProjectFile(): Promise<{ config: Record<string, any>; location: string; savesTo: 'hub' | 'download' }>;
+  /** Save the edited project: to its dataset on the Hub, else as a file to download */
+  saveProjectFile(config: Record<string, any>): Promise<'hub' | 'download'>;
 }
 
 let current: Backend | null = null;
@@ -100,14 +99,22 @@ export const setBackend = (chosen: Backend) => {
 /** The backend, or null before one is chosen */
 export const chosenBackend = (): Backend | null => current;
 
-/** iris.json next to the page, or null when a server runs IRIS */
-export const loadSiteConfig = async (): Promise<{ project: string } | null> => {
+/** iris.json next to the page; throws an error that says what is wrong */
+export const loadSiteConfig = async (): Promise<SiteConfig> => {
+  const address = new URL('iris.json', window.location.href).href;
+  let response: Response;
   try {
-    const response = await fetch(new URL('iris.json', window.location.href).href, { cache: 'no-store' });
-    if (!response.ok) return null;
-    const site = await response.json();
-    return typeof site?.project === 'string' ? site : null;
+    response = await fetch(address, { cache: 'no-store' });
   } catch {
-    return null;
+    throw new Error(`Could not read ${address}`);
   }
+  if (!response.ok) throw new Error(`Could not read ${address} (${response.status}): IRIS needs it next to the page`);
+  let site: SiteConfig;
+  try {
+    site = await response.json();
+  } catch {
+    throw new Error(`${address} is not a JSON file: IRIS needs iris.json next to the page, naming the project file`);
+  }
+  if (typeof site?.project !== 'string') throw new Error(`${address} has to name the project file in "project"`);
+  return site;
 };

@@ -25,14 +25,13 @@ const ViewsSection = forwardRef<any, {}>((_props, ref) => {
           <polyline points="6 9 12 15 18 9" />
         </svg>
       </button>
-      {isOpen && (
-        <div style={s.panelStyle}>
-          <small style={s.descriptionStyle}>
-            Configure how multi-spectral images are presented. Each view defines band mappings and display settings.
-          </small>
-          <ViewListEditor ref={editorRef} />
-        </div>
-      )}
+      {/* Hidden rather than removed, so a folded section keeps its data */}
+      <div style={{ ...s.panelStyle, display: isOpen ? undefined : 'none' }}>
+        <small style={s.descriptionStyle}>
+          Configure how multi-spectral images are presented. Each view defines band mappings and display settings.
+        </small>
+        <ViewListEditor ref={editorRef} />
+      </div>
     </div>
   );
 });

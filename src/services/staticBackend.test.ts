@@ -82,7 +82,8 @@ describe('staticBackend', () => {
   it('keeps the AI settings of the user', async () => {
     const source = await open();
     const preferences = await source.loadPreferences(['$S2.B1', '$S2.B2']);
-    expect(preferences.isAdmin).toBe(false);
+    // Without accounts the one person using the page runs the project
+    expect(preferences.isAdmin).toBe(true);
     expect(preferences.config.segmentation.ai_model.bands).toEqual(['$S2.B1', '$S2.B2']);
 
     preferences.config.segmentation.ai_model.n_estimators = 99;
@@ -90,12 +91,12 @@ describe('staticBackend', () => {
     expect((await source.loadPreferences([])).config.segmentation.ai_model.n_estimators).toBe(99);
   });
 
-  it('downloads the masks as the files of the server', async () => {
+  it('downloads the masks as mask files', async () => {
     const source = await open();
-    expect(await source.downloadMasks!()).toBeNull();
+    expect(await source.downloadMasks()).toBeNull();
     await source.saveMask('coast', mask(1));
 
-    const file = await source.downloadMasks!();
+    const file = await source.downloadMasks();
 
     expect(file!.name).toBe('clouds_masks.zip');
     const files = unzipSync(file!.bytes);

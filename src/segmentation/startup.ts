@@ -6,7 +6,6 @@
 import { useSegmentationStore } from '../stores/segmentationStore';
 import { ViewConfig, ViewGroup, useViewManagerStore } from '../stores/viewManagerStore';
 import { backend, loadSiteConfig, setBackend } from '../services/backend';
-import { serverBackend } from '../services/serverBackend';
 import { staticBackend } from '../services/staticBackend';
 
 /** Views of the project, with their band expressions */
@@ -42,10 +41,9 @@ export const projectViewGroups = (config: any, views: { [name: string]: ViewConf
 export const pageImageId = (): string | null =>
   new URLSearchParams(window.location.search).get('image_id');
 
-/** The server when there is one, else the project files next to the page */
+/** The project, the accounts and the masks named by iris.json next to the page */
 export const chooseBackend = async () => {
-  const site = await loadSiteConfig();
-  setBackend(site ? staticBackend(site) : serverBackend());
+  setBackend(staticBackend(await loadSiteConfig()));
   return backend();
 };
 

@@ -1,90 +1,4 @@
-// IRIS API Type Definitions
-
-export interface User {
-  id: number;
-  name: string;
-  email?: string; // Optional for backward compatibility
-  created: string;
-  isAdmin: boolean;
-  tested: boolean;
-  image_seed: number;
-  segmentation: {
-    score: number;
-    score_unverified: number;
-    n_masks: number;
-    rank?: number;
-    last_masks?: Action[];
-  };
-}
-
-export interface Action {
-  id: number;
-  type: string;
-  image_id: string;
-  user_id: number;
-  last_modification: string;
-  time_spent: string;
-  score: number;
-  unverified: boolean;
-  complete: boolean;
-  notes?: string;
-  difficulty: number;
-  username?: string; // Added by API for admin views
-}
-
-// Data Transfer Objects (DTOs) - match backend API property names
-export interface UserDto {
-  id: number;
-  name: string;
-  created: string;
-  admin: boolean; // Backend uses 'admin'
-  tested: boolean;
-  image_seed: number;
-  segmentation: {
-    score: number;
-    score_unverified: number;
-    n_masks: number;
-    rank?: number;
-    last_masks?: Action[];
-  };
-}
-
-export interface UsersApiResponse {
-  users: UserDto[]; // API response contains DTOs
-}
-
-export interface ImageStats {
-  processed: number;
-  total: number;
-}
-
-export interface ActionsApiResponse {
-  actions: Action[];
-  image_stats: ImageStats;
-  order_by: string;
-  ascending: boolean;
-}
-
-// Images API types
-export interface ImageTypeStats {
-  score: number;
-  count: number;
-  difficulty: number;
-  time_spent: number;
-}
-
-export interface ImageData {
-  image_id: string;
-  types: {
-    [key: string]: ImageTypeStats;
-  };
-}
-
-export interface ImagesApiResponse {
-  images: ImageData[];
-  order_by: string;
-  ascending: boolean;
-}
+// IRIS Type Definitions
 
 // Preferences/Config Types
 export interface AIModelConfig {
@@ -153,7 +67,7 @@ export interface UserInfo {
     score_unverified: number;
     n_masks: number;
     rank?: number;
-    last_masks?: Action[];
+    last_masks?: SegmentationMask[];
   };
   config?: any; // Project configuration (only available for current user or admin)
 }
@@ -178,12 +92,6 @@ export interface UserConfig {
     ai_model: AIModelConfig;
   };
   classes: ClassConfig[];
-}
-
-export interface UserConfigApiResponse {
-  config: UserConfig;
-  all_bands: string[];
-  is_admin: boolean;
 }
 
 // User Profile Types
@@ -227,8 +135,4 @@ export interface UserProfile {
     last_masks: SegmentationMask[];
   };
   is_current_user: boolean;
-}
-
-export interface CurrentUserResponse {
-  user: UserDto | null;
 }

@@ -1,17 +1,16 @@
 {
-  "name": "iris-frontend",
+  "name": "iris",
   "version": "1.0.0",
-  "description": "React components for IRIS",
+  "private": true,
+  "description": "Segmentation of satellite images in the browser, without a server",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "build:watch": "vite build --watch",
     "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "cypress": "cypress open",
-    "cypress:headless": "cypress run",
-    "cypress:test": "cypress run --spec 'cypress/e2e/preferences-segmentation-ai.cy.js'"
+    "credentials": "node scripts/credentials.mjs"
   },
   "dependencies": {
     "@developmentseed/epsg": "0.8.1",
@@ -22,16 +21,15 @@
     "proj4": "2.20.9",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^6.8.0",
     "zustand": "^5.0.9"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.1.5",
     "@testing-library/react": "^14.1.2",
+    "@types/node": "^22.20.5",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
     "@vitejs/plugin-react": "^4.0.0",
-    "cypress": "^14.5.4",
     "jsdom": "^23.0.1",
     "patch-package": "^8.0.0",
     "typescript": "^5.0.0",

@@ -2,9 +2,9 @@ name: Security Checks
 
 on:
   push:
-    branches: [ master, testci ]
+    branches: [ master ]
   pull_request:
-    branches: [ master, testci ]
+    branches: [ master ]
 
 jobs:
   security:
@@ -14,32 +14,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
-          python-version: '3.11'
+          node-version: 22
 
-      - name: Install UV
-        uses: astral-sh/setup-uv@v3
-
-      - name: Install dependencies
-        run: uv sync
-
-      - name: Run dependency vulnerability scan
+      - name: Dependency security audit
         run: |
-          uv pip install safety pip-audit
-          uv run safety check || echo "Safety found vulnerabilities"
-          uv run pip-audit || echo "pip-audit found vulnerabilities"
-
-      - name: Run security linting
-        run: |
-          uv pip install bandit[toml]
-          uv run bandit -r iris/ || echo "Bandit found security issues"
-
-      - name: Frontend security audit
-        working-directory: iris
-        run: |
-          npm install
+          npm ci
           npm audit --audit-level=moderate || echo "npm audit found vulnerabilities"
 
   secrets:

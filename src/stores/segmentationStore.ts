@@ -513,6 +513,9 @@ export const useSegmentationStore = create<SegmentationState>((set, get) => {
     predictMask: async () => {
       const { currentImageId, maskData, userMaskData, classes, config, isLoading, userPixelCounts } = get();
       if (isLoading || !currentImageId || !maskData || !userMaskData) return;
+      if (config?.segmentation?.ai_model === (false as unknown)) {
+        throw new Error('The AI is turned off in this project.');
+      }
       if (classesWithEnoughPixels(userPixelCounts, classes.length) < 2) {
         throw new Error('You need to draw at least 10 pixels for more than one class to use the AI.');
       }

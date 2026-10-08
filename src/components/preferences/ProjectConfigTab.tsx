@@ -4,9 +4,11 @@ import ClassesSection from './config/ClassesSection';
 import ViewsSection from './config/ViewsSection';
 import ViewGroupsSection from './config/ViewGroupsSection';
 import SegmentationSection from './config/SegmentationSection';
-import { getProjectConfig, updateProjectConfig, validateProjectConfig } from '../../services/config';
-import type { ProjectConfig } from '../../services/config';
+import { backend } from '../../services/backend';
+import { validateProject } from '../../project/validate';
 import { useTheme } from '../../contexts/ThemeContext';
+
+type ProjectConfig = Record<string, any>;
 
 /**
  * SectionRef Interface
@@ -41,6 +43,8 @@ const ProjectConfigTab: React.FC<ProjectConfigTabProps> = ({ onStateChange }) =>
   const [loadedConfig, setLoadedConfig] = useState<ProjectConfig | null>(null);
   const [originalConfigJson, setOriginalConfigJson] = useState<string>('');
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  /** The project is saved to its dataset on the Hub, or downloaded */
+  const [savesTo, setSavesTo] = useState<'hub' | 'download'>('download');
 
   const { theme } = useTheme();
 
@@ -53,16 +57,7 @@ const ProjectConfigTab: React.FC<ProjectConfigTabProps> = ({ onStateChange }) =>
       populateSections(loadedConfig);
       setTimeout(() => {
         try {
-          const generalData = generalRef.current?.getData();
-          const classesData = classesRef.current?.getData();
-          const viewsData = viewsRef.current?.getData();
-          const viewGroupsData = viewGroupsRef.current?.getData();
-          const segmentationData = segmentationRef.current?.getData();
-          const currentConfig: ProjectConfig = {
-            ...generalData, classes: classesData, views: viewsData,
-            view_groups: viewGroupsData, segmentation: segmentationData,
-          };
-          setOriginalConfigJson(JSON.stringify(currentConfig));
+          setOriginalConfigJson(JSON.stringify(formConfig()));
           setHasUnsavedChanges(false);
         } catch (err) {
           console.error('[ProjectConfigTab] Error capturing initial state:', err);
@@ -85,8 +80,9 @@ const ProjectConfigTab: React.FC<ProjectConfigTabProps> = ({ onStateChange }) =>
     setLoading(true);
     setError(null);
     try {
-      const response = await getProjectConfig();
+      const response = await backend().loadProjectFile();
       const config = response.config;
+      setSavesTo(response.savesTo);
       setLoadedConfig(config);
       setHasUnsavedChanges(false);
       setSuccess('Configuration loaded successfully');
@@ -101,13 +97,22 @@ const ProjectConfigTab: React.FC<ProjectConfigTabProps> = ({ onStateChange }) =>
 
   const populateSections = (config: ProjectConfig) => {
     if (generalRef.current?.setData) {
-      generalRef.current.setData({ name: config.name, host: config.host, port: config.port, images: config.images });
+      generalRef.current.setData({ name: config.name, images: config.images });
     }
     if (classesRef.current?.setData) classesRef.current.setData(config.classes);
     if (viewsRef.current?.setData) viewsRef.current.setData(config.views);
     if (viewGroupsRef.current?.setData) viewGroupsRef.current.setData(config.view_groups);
     if (segmentationRef.current?.setData) segmentationRef.current.setData(config.segmentation);
   };
+
+  /** The project as the form shows it */
+  const formConfig = (): ProjectConfig => ({
+    ...generalRef.current?.getData(),
+    classes: classesRef.current?.getData(),
+    views: viewsRef.current?.getData(),
+    view_groups: viewGroupsRef.current?.getData(),
+    segmentation: segmentationRef.current?.getData(),
+  });
 
   const getAvailableViews = (): string[] => {
     const viewsData = viewsRef.current?.getData();
@@ -117,16 +122,7 @@ const ProjectConfigTab: React.FC<ProjectConfigTabProps> = ({ onStateChange }) =>
   const checkForChanges = () => {
     if (!originalConfigJson) return;
     try {
-      const generalData = generalRef.current?.getData();
-      const classesData = classesRef.current?.getData();
-      const viewsData = viewsRef.current?.getData();
-      const viewGroupsData = viewGroupsRef.current?.getData();
-      const segmentationData = segmentationRef.current?.getData();
-      const currentConfig: ProjectConfig = {
-        ...generalData, classes: classesData, views: viewsData,
-        view_groups: viewGroupsData, segmentation: segmentationData,
-      };
-      const changed = JSON.stringify(currentConfig) !== originalConfigJson;
+      const changed = JSON.stringify(formConfig()) !== originalConfigJson;
       setHasUnsavedChanges(changed);
       if (onStateChange) onStateChange({ hasUnsavedChanges: changed });
     } catch (err) {
@@ -139,24 +135,25 @@ const ProjectConfigTab: React.FC<ProjectConfigTabProps> = ({ onStateChange }) =>
     setError(null);
     setSuccess(null);
     try {
-      const generalData = generalRef.current?.getData();
-      const classesData = classesRef.current?.getData();
-      const viewsData = viewsRef.current?.getData();
-      const viewGroupsData = viewGroupsRef.current?.getData();
-      const segmentationData = segmentationRef.current?.getData();
+      const form = formConfig();
+      // What the form does not show, e.g. the ids of the images, stays as it was
       const config: ProjectConfig = {
-        ...generalData, classes: classesData, views: viewsData,
-        view_groups: viewGroupsData, segmentation: segmentationData,
+        ...loadedConfig,
+        ...form,
+        images: { ...loadedConfig?.images, ...form.images },
+        segmentation: { ...loadedConfig?.segmentation, ...form.segmentation },
       };
-      const validationResult = await validateProjectConfig(config);
+      const validationResult = validateProject(config);
       if (!validationResult.valid) {
         setError(`Validation failed: ${validationResult.errors.join(', ')}`);
         return;
       }
-      const response = await updateProjectConfig(config);
-      setSuccess(response.message || 'Configuration saved successfully');
+      const savedTo = await backend().saveProjectFile(config);
+      setSuccess(savedTo === 'hub'
+        ? 'Project saved to its dataset, reload the page to use it'
+        : 'Project downloaded: replace the project file with it to use it');
       setLoadedConfig(config);
-      setOriginalConfigJson(JSON.stringify(config));
+      setOriginalConfigJson(JSON.stringify(form));
       setHasUnsavedChanges(false);
       setTimeout(() => setSuccess(null), 5000);
     } catch (err: any) {
@@ -219,7 +216,7 @@ const ProjectConfigTab: React.FC<ProjectConfigTabProps> = ({ onStateChange }) =>
           onMouseEnter={(e) => { if (!saving) e.currentTarget.style.backgroundColor = theme.buttonPrimaryHover; }}
           onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = saving ? theme.gray400 : theme.buttonPrimaryBg; }}
         >
-          {saving ? 'Saving...' : 'Save Complete Configuration'}
+          {saving ? 'Saving...' : savesTo === 'hub' ? 'Save the project to its dataset' : 'Download the project file'}
         </button>
       </div>
     </div>

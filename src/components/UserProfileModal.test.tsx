@@ -1,15 +1,41 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '../test/test-utils';
 import { UserProfileModal } from './UserProfileModal';
-import type { UserProfile } from '../types/iris';
-import { setBackend } from '../services/backend';
-import { serverBackend } from '../services/serverBackend';
+import { Backend, Profile, setBackend } from '../services/backend';
 
-setBackend(serverBackend());
+const loadProfile = vi.fn();
+setBackend({ loadProfile } as unknown as Backend);
+
+const profile = (changes: Partial<Profile> = {}): Profile => ({
+  id: 0,
+  name: 'testuser',
+  admin: true,
+  tested: true,
+  created: '',
+  image_seed: 0,
+  segmentation: {
+    rank: 1,
+    score: 1234,
+    score_unverified: 56,
+    n_masks: 42,
+    last_masks: [
+      {
+        image_id: 'img_001',
+        score: 95,
+        score_unverified: false,
+        last_modification: '2024-12-04 10:30:00',
+        time_spent: '00:15:30'
+      }
+    ]
+  },
+  is_current_user: true,
+  canSignOut: true,
+  ...changes,
+});
 
 describe('UserProfileModal', () => {
   beforeEach(() => {
-    global.fetch = vi.fn();
+    vi.clearAllMocks();
   });
 
   it('renders nothing when closed', () => {
@@ -20,44 +46,14 @@ describe('UserProfileModal', () => {
   });
 
   it('shows loading state when open', () => {
-    (global.fetch as any).mockImplementation(() => 
-      new Promise(() => {}) // Never resolves
-    );
+    loadProfile.mockImplementation(() => new Promise(() => {}));
 
     render(<UserProfileModal isOpen={true} onClose={() => {}} />);
     expect(screen.getByText('Loading profile...')).toBeInTheDocument();
   });
 
   it('displays user profile data when loaded', async () => {
-    const mockProfile: UserProfile = {
-      id: 1,
-      name: 'testuser',
-      admin: true,
-      tested: true,
-      created: '2024-01-01T00:00:00',
-      image_seed: 12345,
-      segmentation: {
-        rank: 1,
-        score: 1234,
-        score_unverified: 56,
-        n_masks: 42,
-        last_masks: [
-          {
-            image_id: 'img_001',
-            score: 95,
-            score_unverified: false,
-            last_modification: '2024-12-04 10:30:00',
-            time_spent: '00:15:30'
-          }
-        ]
-      },
-      is_current_user: true
-    };
-
-    (global.fetch as any).mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockProfile
-    });
+    loadProfile.mockResolvedValue(profile());
 
     render(<UserProfileModal isOpen={true} onClose={() => {}} />);
 
@@ -70,13 +66,11 @@ describe('UserProfileModal', () => {
     expect(screen.getByText('tested')).toBeInTheDocument();
     expect(screen.getByText('1234')).toBeInTheDocument();
     expect(screen.getByText('42')).toBeInTheDocument();
+    expect(screen.getByText('Download my masks')).toBeInTheDocument();
   });
 
-  it('displays error message on fetch failure', async () => {
-    (global.fetch as any).mockResolvedValueOnce({
-      ok: false,
-      statusText: 'Not Found'
-    });
+  it('displays error message on failure', async () => {
+    loadProfile.mockRejectedValue(new Error('Not Found'));
 
     render(<UserProfileModal isOpen={true} onClose={() => {}} />);
 
@@ -85,28 +79,8 @@ describe('UserProfileModal', () => {
     });
   });
 
-  it('shows logout button for current user', async () => {
-    const mockProfile: UserProfile = {
-      id: 1,
-      name: 'testuser',
-      admin: false,
-      tested: false,
-      created: '2024-01-01T00:00:00',
-      image_seed: 12345,
-      segmentation: {
-        rank: 1,
-        score: 100,
-        score_unverified: 0,
-        n_masks: 5,
-        last_masks: []
-      },
-      is_current_user: true
-    };
-
-    (global.fetch as any).mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockProfile
-    });
+  it('shows the logout button when the site has accounts', async () => {
+    loadProfile.mockResolvedValue(profile());
 
     render(<UserProfileModal isOpen={true} onClose={() => {}} />);
 
@@ -115,33 +89,13 @@ describe('UserProfileModal', () => {
     });
   });
 
-  it('does not show logout button for other users', async () => {
-    const mockProfile: UserProfile = {
-      id: 2,
-      name: 'otheruser',
-      admin: false,
-      tested: false,
-      created: '2024-01-01T00:00:00',
-      image_seed: 12345,
-      segmentation: {
-        rank: 2,
-        score: 50,
-        score_unverified: 0,
-        n_masks: 2,
-        last_masks: []
-      },
-      is_current_user: false
-    };
-
-    (global.fetch as any).mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockProfile
-    });
+  it('does not show the logout button without accounts', async () => {
+    loadProfile.mockResolvedValue(profile({ name: 'local', canSignOut: false }));
 
     render(<UserProfileModal isOpen={true} onClose={() => {}} />);
 
     await waitFor(() => {
-      expect(screen.getByText('otheruser')).toBeInTheDocument();
+      expect(screen.getByText('local')).toBeInTheDocument();
     });
 
     expect(screen.queryByText('Logout')).not.toBeInTheDocument();

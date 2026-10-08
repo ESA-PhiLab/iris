@@ -2,14 +2,18 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { useSegmentationStore } from './segmentationStore';
 import { useUiStore } from './uiStore';
 import { useViewManagerStore } from './viewManagerStore';
-import { encodeMask, serverBackend } from '../services/serverBackend';
-import { setBackend } from '../services/backend';
+import { Backend, setBackend } from '../services/backend';
 import type { ClassConfig, ProjectConfig } from '../types/iris';
 
 const predict = vi.fn();
 vi.mock('../raster/engine', () => ({
   rasterEngine: () => ({ predict, open: vi.fn(), render: vi.fn() }),
 }));
+
+const loadMask = vi.fn();
+const saveMask = vi.fn();
+const loadPreferences = vi.fn();
+const fakeBackend = { loadMask, saveMask, loadPreferences } as unknown as Backend;
 
 const classes: ClassConfig[] = [
   { name: 'Clear', colour: [0, 150, 255, 70] },
@@ -48,7 +52,8 @@ const stroke = (...points: Array<[number, number]>) => {
 
 describe('segmentationStore', () => {
   beforeEach(() => {
-    setBackend(serverBackend());
+    vi.clearAllMocks();
+    setBackend(fakeBackend);
     startEditing();
   });
 
@@ -173,10 +178,11 @@ describe('segmentationStore', () => {
     const mask = new Uint8Array(80).fill(2);
     const userMask = new Uint8Array(80);
     userMask[0] = 1;
-    vi.spyOn(global, 'fetch').mockResolvedValue(new Response(encodeMask({ mask, userMask })));
+    loadMask.mockResolvedValue({ mask, userMask });
 
     await store().loadMaskForImage('coast');
 
+    expect(loadMask).toHaveBeenCalledWith('coast', 80);
     expect(store().maskData).toEqual(mask);
     expect(store().userPixelCounts).toEqual({ 0: 0, 1: 0, 2: 1, total: 1 });
     expect(store().maskChanged).toBe(false);
@@ -184,7 +190,7 @@ describe('segmentationStore', () => {
 
   it('starts empty when the user has no mask of the image', async () => {
     stroke([101.5, 201.5]);
-    vi.spyOn(global, 'fetch').mockResolvedValue(new Response('No user mask available!', { status: 404 }));
+    loadMask.mockResolvedValue(null);
 
     await store().loadMaskForImage('coast');
 
@@ -193,19 +199,17 @@ describe('segmentationStore', () => {
 
   it('saves the mask', async () => {
     stroke([101.5, 201.5]);
-    const fetch = vi.spyOn(global, 'fetch').mockResolvedValue(new Response('Masks successfully saved!'));
+    saveMask.mockResolvedValue(undefined);
 
     await store().saveCurrentMask();
 
-    const [url, init] = fetch.mock.calls[0];
-    expect(url).toBe('/segmentation/save_mask/coast');
-    expect(init!.body).toEqual(encodeMask({ mask: store().maskData!, userMask: store().userMaskData! }));
+    expect(saveMask).toHaveBeenCalledWith('coast', { mask: store().maskData, userMask: store().userMaskData });
     expect(store().maskChanged).toBe(false);
   });
 
   it('shows why a mask could not be saved', async () => {
     stroke([101.5, 201.5]);
-    vi.spyOn(global, 'fetch').mockResolvedValue(new Response('disk full', { status: 500 }));
+    saveMask.mockRejectedValue(new Error('disk full'));
 
     await expect(store().saveCurrentMask()).rejects.toThrow(/disk full/);
     expect(useUiStore.getState().errorModal.isOpen).toBe(true);
@@ -225,7 +229,7 @@ describe('segmentationStore', () => {
     // The AI says class 1 everywhere: right for half the test pixels
     predict.mockResolvedValue(new Uint8Array(80).fill(1));
     // The user has no AI settings of their own
-    vi.spyOn(global, 'fetch').mockResolvedValue(new Response('', { status: 404 }));
+    loadPreferences.mockRejectedValue(new Error('no settings'));
 
     await store().predictMask();
 
@@ -245,6 +249,12 @@ describe('segmentationStore', () => {
     expect(accuracyStats.worstClass).toBe(2);
     expect(store().aiRecommendation).toMatch(/Shadow/);
     expect(Array.from(store().errorsMaskData!).filter((v) => v === 2).length).toBeGreaterThan(0);
+  });
+
+  it('does not use the AI when the project turns it off', async () => {
+    useSegmentationStore.setState({ config: { segmentation: { ai_model: false } } as unknown as ProjectConfig });
+    await expect(store().predictMask()).rejects.toThrow(/turned off/);
+    expect(predict).not.toHaveBeenCalled();
   });
 
   it('needs two classes with enough pixels for the AI', async () => {

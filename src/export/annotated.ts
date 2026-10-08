@@ -10,7 +10,6 @@ import { zipSync } from 'fflate';
 import { rasterEngine } from '../raster/engine';
 import type { ViewSpec } from '../raster/render';
 import { writeCog } from '../raster/writeCog';
-import { serverBackend } from '../services/serverBackend';
 import type { ImageFileSource } from '../raster/cog';
 import type { ProjectConfig } from '../types/iris';
 import type { Georef } from '../utils/georef';
@@ -66,18 +65,6 @@ export const annotatedGeoTiff = async ({
   });
 };
 
-/** Let the browser save a file */
-export const downloadFile = (bytes: Uint8Array, name: string, type = 'image/tiff') => {
-  const url = URL.createObjectURL(new Blob([bytes as Uint8Array<ArrayBuffer>], { type }));
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = name;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-};
-
 /** Where the merged masks and the images come from */
 export interface MergedMasksSource {
   config: ProjectConfig;
@@ -86,35 +73,15 @@ export interface MergedMasksSource {
   mergedMask(imageId: string, length: number): Promise<Uint8Array | null>;
 }
 
-/** The server merges the masks of its users */
-export const serverMergedMasks = async (): Promise<MergedMasksSource> => {
-  const response = await fetch('/segmentation/api/config', { credentials: 'same-origin' });
-  if (!response.ok) throw new Error(`Could not load the project (${response.status})`);
-  const config = await response.json();
-  return {
-    config,
-    imageFiles: (imageId) => serverBackend().imageFiles(config, imageId),
-    async mergedMask(imageId) {
-      const mask = await fetch(`/admin/api/merged-mask/${encodeURIComponent(imageId)}`, {
-        credentials: 'same-origin',
-      });
-      if (mask.status === 404) return null;
-      if (!mask.ok) throw new Error(`Could not load the merged mask of ${imageId} (${mask.status})`);
-      return new Uint8Array(await mask.arrayBuffer());
-    },
-  };
-};
-
 /**
  * GeoTIFFs of the images with the masks merged from all users, in a zip when
  * there are several; null when no image has masks
  */
 export const exportMergedImages = async (
   imageIds: string[],
-  onProgress: (done: number, total: number) => void = () => {},
-  source?: MergedMasksSource
+  onProgress: (done: number, total: number) => void,
+  { config, imageFiles, mergedMask }: MergedMasksSource
 ): Promise<{ bytes: Uint8Array; name: string; count: number } | null> => {
-  const { config, imageFiles, mergedMask } = source ?? await serverMergedMasks();
   const view = exportView((config as any).views);
 
   const files: Record<string, Uint8Array> = {};

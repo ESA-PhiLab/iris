@@ -3,14 +3,26 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { LoginForm } from './LoginForm';
 import { ThemeProvider } from '../contexts/ThemeContext';
+import { Backend, setBackend } from '../services/backend';
+
+const signIn = vi.fn();
+const enterAsGuest = vi.fn();
+const signInOptions = vi.fn();
+setBackend({ signIn, enterAsGuest, signInOptions } as unknown as Backend);
 
 function renderWithTheme(ui: React.ReactElement) {
   return render(<ThemeProvider>{ui}</ThemeProvider>);
 }
 
+const fillIn = (container: HTMLElement, username: string, password: string) => {
+  fireEvent.change(container.querySelector('#login-username')!, { target: { value: username } });
+  fireEvent.change(container.querySelector('#login-password')!, { target: { value: password } });
+};
+
 describe('LoginForm', () => {
   beforeEach(() => {
-    global.fetch = vi.fn();
+    vi.clearAllMocks();
+    signInOptions.mockReturnValue({ guest: true });
   });
 
   it('renders login form by default', () => {
@@ -22,211 +34,75 @@ describe('LoginForm', () => {
 
   it('enters as guest without an account', async () => {
     const onSuccess = vi.fn();
-    (global.fetch as any).mockResolvedValue({ ok: true, text: async () => 'Entered as guest!' });
+    enterAsGuest.mockResolvedValue(undefined);
     renderWithTheme(<LoginForm onSuccess={onSuccess} />);
 
     fireEvent.click(screen.getByText('Continue without account'));
 
     await waitFor(() => expect(onSuccess).toHaveBeenCalled());
-    expect(global.fetch).toHaveBeenCalledWith('/user/guest', { method: 'POST' });
+    expect(enterAsGuest).toHaveBeenCalled();
   });
 
   it('shows why guests cannot enter', async () => {
-    (global.fetch as any).mockResolvedValue({
-      ok: false, text: async () => 'This project does not allow guests!',
-    });
+    enterAsGuest.mockRejectedValue(new Error('This site has no guest access'));
     renderWithTheme(<LoginForm />);
 
     fireEvent.click(screen.getByText('Continue without account'));
 
     await waitFor(() => {
-      expect(screen.getByText('This project does not allow guests!')).toBeInTheDocument();
+      expect(screen.getByText('This site has no guest access')).toBeInTheDocument();
     });
   });
 
-  it('switches to register mode', () => {
+  it('does not offer guest access when the site has none', () => {
+    signInOptions.mockReturnValue({ guest: false });
     renderWithTheme(<LoginForm />);
-    
-    const registerButton = screen.getByText('I have no account yet');
-    fireEvent.click(registerButton);
-    
-    expect(screen.getByRole('button', { name: 'Register' })).toBeInTheDocument();
-    expect(screen.getByText('Retype Password:')).toBeInTheDocument();
-    expect(screen.getByText('I have already an account')).toBeInTheDocument();
-  });
-
-  it('switches back to login mode', () => {
-    renderWithTheme(<LoginForm />);
-    
-    // Switch to register
-    fireEvent.click(screen.getByText('I have no account yet'));
-    expect(screen.getByRole('button', { name: 'Register' })).toBeInTheDocument();
-    
-    // Switch back to login
-    fireEvent.click(screen.getByText('I have already an account'));
-    expect(screen.getByRole('button', { name: 'Login' })).toBeInTheDocument();
+    expect(screen.queryByText('Continue without account')).not.toBeInTheDocument();
   });
 
   it('shows error for empty username', async () => {
     renderWithTheme(<LoginForm />);
-    
-    const submitButton = screen.getByRole('button', { name: 'Login' });
-    fireEvent.click(submitButton);
-    
+
+    fireEvent.click(screen.getByRole('button', { name: 'Login' }));
+
     await waitFor(() => {
       expect(screen.getByText('Username is required')).toBeInTheDocument();
     });
+    expect(signIn).not.toHaveBeenCalled();
   });
 
   it('shows error for empty password', async () => {
     renderWithTheme(<LoginForm />);
-    
-    const usernameInput = screen.getByRole('textbox');
-    fireEvent.change(usernameInput, { target: { value: 'testuser' } });
-    
-    const submitButton = screen.getByRole('button', { name: 'Login' });
-    fireEvent.click(submitButton);
-    
+
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'testuser' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Login' }));
+
     await waitFor(() => {
       expect(screen.getByText('Password is required')).toBeInTheDocument();
     });
   });
 
-  it('submits login form successfully', async () => {
-    const mockReload = vi.fn();
-    Object.defineProperty(window, 'location', {
-      value: { reload: mockReload },
-      writable: true
-    });
-
-    (global.fetch as any).mockResolvedValueOnce({
-      ok: true,
-      text: async () => 'Successful login!'
-    });
-
-    const { container } = renderWithTheme(<LoginForm />);
-    
-    const usernameInput = container.querySelector('#login-username') as HTMLInputElement;
-    const passwordInput = container.querySelector('#login-password') as HTMLInputElement;
-    
-    fireEvent.change(usernameInput, { target: { value: 'testuser' } });
-    fireEvent.change(passwordInput, { target: { value: 'password123' } });
-    
-    const submitButton = screen.getByRole('button', { name: 'Login' });
-    fireEvent.click(submitButton);
-    
-    await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith('/user/login', expect.objectContaining({
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: 'testuser', password: 'password123' })
-      }));
-    });
-  });
-
-  it('displays error message on login failure', async () => {
-    (global.fetch as any).mockResolvedValueOnce({
-      ok: false,
-      text: async () => 'Invalid credentials'
-    });
-
-    const { container } = renderWithTheme(<LoginForm />);
-    
-    const usernameInput = container.querySelector('#login-username') as HTMLInputElement;
-    const passwordInput = container.querySelector('#login-password') as HTMLInputElement;
-    
-    fireEvent.change(usernameInput, { target: { value: 'testuser' } });
-    fireEvent.change(passwordInput, { target: { value: 'wrongpassword' } });
-    
-    const submitButton = screen.getByRole('button', { name: 'Login' });
-    fireEvent.click(submitButton);
-    
-    await waitFor(() => {
-      expect(screen.getByText('Invalid credentials')).toBeInTheDocument();
-    });
-  });
-
-  it('calls onSuccess callback on successful login', async () => {
+  it('signs in with the account and calls onSuccess', async () => {
     const onSuccess = vi.fn();
-
-    (global.fetch as any).mockResolvedValueOnce({
-      ok: true,
-      text: async () => 'Successful login!'
-    });
-
+    signIn.mockResolvedValue(undefined);
     const { container } = renderWithTheme(<LoginForm onSuccess={onSuccess} />);
-    
-    const usernameInput = container.querySelector('#login-username') as HTMLInputElement;
-    const passwordInput = container.querySelector('#login-password') as HTMLInputElement;
-    
-    fireEvent.change(usernameInput, { target: { value: 'testuser' } });
-    fireEvent.change(passwordInput, { target: { value: 'password123' } });
-    
-    const submitButton = screen.getByRole('button', { name: 'Login' });
-    fireEvent.click(submitButton);
-    
-    await waitFor(() => {
-      expect(onSuccess).toHaveBeenCalled();
-    });
+
+    fillIn(container, 'testuser', 'password123');
+    fireEvent.click(screen.getByRole('button', { name: 'Login' }));
+
+    await waitFor(() => expect(onSuccess).toHaveBeenCalled());
+    expect(signIn).toHaveBeenCalledWith('testuser', 'password123');
   });
 
-  it('validates username length', async () => {
+  it('displays why the sign in failed', async () => {
+    signIn.mockRejectedValue(new Error('Wrong user name or password'));
     const { container } = renderWithTheme(<LoginForm />);
-    
-    const usernameInput = container.querySelector('#login-username') as HTMLInputElement;
-    const passwordInput = container.querySelector('#login-password') as HTMLInputElement;
-    
-    // Create a string longer than 64 characters
-    const longUsername = 'a'.repeat(65);
-    fireEvent.change(usernameInput, { target: { value: longUsername } });
-    fireEvent.change(passwordInput, { target: { value: 'password' } });
-    
-    const submitButton = screen.getByRole('button', { name: 'Login' });
-    fireEvent.click(submitButton);
-    
-    await waitFor(() => {
-      expect(screen.getByText(/Username is too long/)).toBeInTheDocument();
-    });
-  });
 
-  it('validates password length', async () => {
-    const { container } = renderWithTheme(<LoginForm />);
-    
-    const usernameInput = container.querySelector('#login-username') as HTMLInputElement;
-    const passwordInput = container.querySelector('#login-password') as HTMLInputElement;
-    
-    fireEvent.change(usernameInput, { target: { value: 'testuser' } });
-    // Create a string longer than 64 characters
-    const longPassword = 'a'.repeat(65);
-    fireEvent.change(passwordInput, { target: { value: longPassword } });
-    
-    const submitButton = screen.getByRole('button', { name: 'Login' });
-    fireEvent.click(submitButton);
-    
-    await waitFor(() => {
-      expect(screen.getByText(/Password is too long/)).toBeInTheDocument();
-    });
-  });
+    fillIn(container, 'testuser', 'wrongpassword');
+    fireEvent.click(screen.getByRole('button', { name: 'Login' }));
 
-  it('validates password match in register mode', async () => {
-    const { container } = renderWithTheme(<LoginForm />);
-    
-    // Switch to register mode
-    fireEvent.click(screen.getByText('I have no account yet'));
-    
-    const usernameInput = container.querySelector('#register-username') as HTMLInputElement;
-    const passwordInput = container.querySelector('#register-password') as HTMLInputElement;
-    const passwordAgainInput = container.querySelector('#register-password-again') as HTMLInputElement;
-    
-    fireEvent.change(usernameInput, { target: { value: 'testuser' } });
-    fireEvent.change(passwordInput, { target: { value: 'password123' } });
-    fireEvent.change(passwordAgainInput, { target: { value: 'password456' } });
-    
-    const submitButton = screen.getByRole('button', { name: 'Register' });
-    fireEvent.click(submitButton);
-    
     await waitFor(() => {
-      expect(screen.getByText('The passwords are not identical!')).toBeInTheDocument();
+      expect(screen.getByText('Wrong user name or password')).toBeInTheDocument();
     });
   });
 });

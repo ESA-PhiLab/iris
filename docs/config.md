@@ -1,42 +1,25 @@
 # Project file configurations
 
-To use IRIS, you need to define a project file in JSON or YAML format. A full-working example can be found [here](../demo/cloud-segmentation.json). The following will outline each of the fields one can use to change the behaviour of IRIS. If fields are not explicitly given in a project's configuration file, then they will take the values found in the [default configuration file](../iris/default_config.json).
+To use IRIS, you need to define a project file in JSON format, named by `project` in the `iris.json` next to the page (see the [README](../README.md#how-a-site-is-put-together)). A full-working example can be found [here](../public/demo/cloud-segmentation.json). The following will outline each of the fields one can use to change the behaviour of IRIS. If fields are not explicitly given in a project's configuration file, then they will take the values found in the [default configuration file](../src/project/defaultConfig.json).
+
+Paths in the project file are relative to the project file. They can also be Hugging Face paths, `hf://datasets/<owner>/<name>/<path>` or `hf://buckets/<owner>/<name>/<path>`, or full addresses (`https://...`).
+
+Admins can also edit the project in the preferences of IRIS.
 
 - [Project file configurations](#project-file-configurations)
   * [name](#name)
-  * [port](#port)
-  * [host](#host)
   * [images](#images)
   * [classes](#classes)
   * [views](#views)
+  * [view_groups](#view_groups)
   * [segmentation](#segmentation)
 
 ## name
-Optional name for this project.
+Optional name for this project. Defaults to the name of the project file. Masks kept in the browser are kept per project name.
 
 <i>Example:</i>
 ```
 "name": "cloud-segmentation"
-```
-
-## port
-Set the port which IRIS is served on. Defaults to 5000.
-<i>Example:</i>
-```
-"port": 6060
-```
-## host
-Set the host IP address for IRIS. The default value 127.0.0.1 means IRIS will only be visible on the local machine. If you want to expose IRIS publicly as a web application, we recommend setting the host to 0.0.0.0 and adjusting your router / consulting with your network administrators accordingly.
-<i>Example:</i>
-```
-"host": 0.0.0.0
-```
-
-## allow_guest
-Whether people can enter without an account, as the user `guest` shared by all of them. Defaults to `true`. Set it to `false` when every annotation must belong to a registered user, e.g. when IRIS is exposed publicly.
-<i>Example:</i>
-```
-"allow_guest": false
 ```
 
 ## images
@@ -51,8 +34,24 @@ A dictionary which defines the inputs.
   }
 ```
 
+### images : ids and images : list
+The unique ids of the images, which replace the placeholder `{id}` in the paths. Either list them in `ids`:
+```
+"ids": ["coast", "mountains"]
+```
+
+or in a JSON file next to the project file, named by `list` (by default `images.json`), holding a list of ids:
+```
+"list": "images.json"
+```
+```
+["coast", "mountains"]
+```
+
+IRIS shows the images in the order of this list.
+
 ### images : path
-This hold the input path to the images. Can be either a string containing an existing path with the placeholder `{id}` or a dictionary of paths with the placeholder `{id}` (see examples below). The placeholder will be replaced by the unique id of the current image. IRIS only reads Cloud Optimized GeoTIFFs (COG): the files must be tiled and have a CRS, so that each image can be shown at its place on the map. Other formats (*npy*, *png*, *vrt* or GeoTIFFs stored in strips) are rejected. You can create a COG with GDAL, e.g. `gdal_translate -of COG input.tif image.tif`.
+This hold the input path to the images. Can be either a string containing a path with the placeholder `{id}` or a dictionary of paths with the placeholder `{id}` (see examples below). The placeholder will be replaced by the unique id of the current image. IRIS only reads Cloud Optimized GeoTIFFs (COG): the files must be tiled and have a CRS, so that each image can be shown at its place on the map. Other formats (*npy*, *png*, *vrt* or GeoTIFFs stored in strips) are rejected. You can create a COG with GDAL, e.g. `gdal_translate -of COG input.tif image.tif`. The browser reads the files with HTTP range requests, so they must be served by a host that answers them (GitHub Pages, the Hugging Face Hub and S3 do).
 
 <i>Example:</i>
 When you have one folder `images` containing your images in *tif* format:
@@ -82,7 +81,7 @@ Optional thumbnail files for the images. Path must contain a placeholder `{id}`.
 ```
 
 ### images : metadata
-Optional metadata for the images. Path must contain a placeholder `{id}`. Metadata files can be in json, yaml or another text file format. json and yaml files will be parsed and made accessible via the GUI. If you cannot provide any metadata, just leave it out or set it to `false`.
+Optional metadata for the images. Path must contain a placeholder `{id}`. JSON files will be parsed and made accessible via the GUI; other text files are shown as they are. If you cannot provide any metadata, just leave it out or set it to `false`.
 
 <i>Example:</i>
 ```
@@ -120,12 +119,12 @@ This is a list of classes that you want to allow the user to label. Each class i
     {
         "name": "Clear",
         "description": "All clear pixels.",
-        "colour": [0,150,255,70]
+        "colour": [0, 150, 255, 70]
     },
     {
         "name": "Cloud",
         "description": "All cloudy pixels.",
-        "colour": [255,255,0,70]
+        "colour": [255, 255, 0, 70]
     }
 ]
 ```
@@ -202,25 +201,8 @@ The group `default` must always be set, further groups are optional.
 ## segmentation
 A dictionary which defines the parameters for the segmentation mode.
 
-### segmentation : path
-This directory will contain the final mask files from the segmentation (the merged masks of all users). Masks are saved as COG (*tif*) with the georeference of the mask area, so the path must end with `.tif`.
-
-<i>Example:</i>
-This will create a folder next to the project file called `masks` containing the mask files.
-```
-"path": "masks/{id}.tif"
-```
-
-### segmentation : mask_encoding
-The encodings of the final masks. Can be `integer` (one band with the class ids), `binary` (one band per class), `rgb` or `rgba` (the class colours).
-
-<i>Example:</i>
-```
-"mask_encoding": "rgb"
-```
-
 ### segmentation : mask_area
-In case you don't want to allow the user to label the complete image, you can limit the segmentation area.
+In case you don't want to allow the user to label the complete image, you can limit the segmentation area to the pixels `[x0, y0, x1, y1]` of the image. Without it, users label the whole image.
 
 <i>Example:</i>
 ```
@@ -234,4 +216,41 @@ Defines how to measure the score achieved by the user for each mask. Can be
 <i>Example:</i>
 ```
 "score": "f1"
+```
+
+### segmentation : unverified_threshold
+Scores of images annotated by this many users or fewer are marked as unverified in the review, since there are not enough masks to compare. Default is `1`.
+
+<i>Example:</i>
+```
+"unverified_threshold": 1
+```
+
+### segmentation : ai_model
+The settings of the AI, a gradient boosted decision tree trained in the browser on the pixels the user drew. Set it to `false` to turn the AI off. Users can change these settings for themselves in the preferences.
+
+| Field | Meaning | Default |
+| --- | --- | --- |
+| `bands` | Bands the AI learns from, e.g. `["$Sentinel2.B2", "$Sentinel2.B3"]`; `null` for all bands | `null` |
+| `train_ratio` | Share of the drawn pixels used for training; the rest score the AI | `0.8` |
+| `max_train_pixels` | Most drawn pixels used for training | `20000` |
+| `n_estimators` | Number of trees | `20` |
+| `max_depth` | Depth of each tree | `10` |
+| `n_leaves` | Leaves of each tree | `10` |
+| `use_edge_filter` | Also learn from the edges of the bands | `false` |
+| `use_superpixels` | Also learn from the superpixel each pixel belongs to | `false` |
+| `use_meshgrid` | Also learn from the position of each pixel in a grid | `false` |
+| `meshgrid_cells` | The grid, `<columns>x<rows>` or `pixelwise` | `"3x3"` |
+| `suppression_threshold` | Give pixels the default class where fewer than this percentage of their neighbours have another class; `0` turns it off | `0` |
+| `suppression_filter_size` | Size of the neighbourhood, in pixels | `5` |
+| `suppression_default_class` | The class given to those pixels | `0` |
+
+<i>Example:</i>
+```
+"ai_model": {
+    "n_estimators": 20,
+    "max_depth": 10,
+    "n_leaves": 10,
+    "use_edge_filter": true
+}
 ```

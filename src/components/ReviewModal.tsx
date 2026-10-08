@@ -1,6 +1,5 @@
 /**
- * Review: the masks of every user, for the admins of a project without a
- * server
+ * Review: the masks of every user, for the admins of the project
  *
  * Who annotated each image, their notes, how well their masks agree, and the
  * GeoTIFFs of the masks merged by majority.
@@ -11,7 +10,8 @@ import { useTheme } from '../contexts/ThemeContext';
 import { backend } from '../services/backend';
 import { useSegmentationStore } from '../stores/segmentationStore';
 import { ImageReview, collectReview, scoreImage } from '../review/review';
-import { downloadFile, exportMergedImages } from '../export/annotated';
+import { exportMergedImages } from '../export/annotated';
+import { downloadFile } from '../utils/download';
 import { mergeMasks } from '../segmentation/merge';
 import type { ScoreKind } from '../segmentation/merge';
 import { goToImage } from '../segmentation/navigation';
@@ -33,7 +33,7 @@ const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose }) => {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const source = backend().review?.() ?? null;
+  const source = backend().review();
   const segmentation = config?.segmentation as any;
   const scoreKind: ScoreKind = segmentation?.score ?? 'f1';
   const maskArea = useSegmentationStore((state) => state.maskArea);

@@ -10,7 +10,8 @@ Brief description of what this PR does.
 ## Demo
 ```bash
 # Example commands to test the changes
-uv run iris --help
+npm test
+npm run dev
 ```
 
 ## Related Issue

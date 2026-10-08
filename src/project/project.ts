@@ -1,10 +1,9 @@
 /**
- * A project read straight from its JSON file, without a server
+ * A project read straight from its JSON file
  *
- * The file is the same as for the IRIS server: paths are relative to the
- * file, and what it leaves out comes from the default configuration. The ids
- * of the images are listed in images.ids, or in a JSON file next to the
- * project (images.list, by default images.json).
+ * Paths are relative to the file, and what it leaves out comes from the
+ * default configuration. The ids of the images are listed in images.ids, or
+ * in a JSON file next to the project (images.list, by default images.json).
  */
 
 import defaultConfig from './defaultConfig.json';

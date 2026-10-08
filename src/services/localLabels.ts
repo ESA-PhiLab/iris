@@ -1,8 +1,8 @@
 /**
  * Masks and notes kept in the browser, in IndexedDB
  *
- * For projects opened without a server or a dataset to write to. The masks
- * stay in this browser until they are downloaded.
+ * For projects without a place on the Hub to write to, and for guests. The
+ * masks stay in this browser until they are downloaded.
  */
 
 export interface ImageNotes {

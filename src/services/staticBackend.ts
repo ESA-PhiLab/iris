@@ -17,7 +17,8 @@ import { imagePath, loadImageIds, normalizeProject } from '../project/project';
 import type { AIModelConfig, ProjectConfig, UserConfig, UserInfo } from '../types/iris';
 import type { Backend, Preferences, Profile, UserMask } from './backend';
 import { CredentialsFile, Session, clearSession, saveSession, savedSession, unlock } from './credentials';
-import { fetchFile, readableUrl, resolvePath } from './huggingface';
+import { fetchFile, hub, hubRepo, isHfPath, parseHfPath, readableUrl, resolvePath } from './huggingface';
+import { downloadFile } from '../utils/download';
 import { LabelStorage, browserStorage, hubStorage } from './labelStorage';
 import { rasterEngine } from '../raster/engine';
 import { maskCog } from '../export/maskFiles';
@@ -85,8 +86,6 @@ export const staticBackend = (site: SiteConfig): Backend => {
   };
 
   const backend: Backend = {
-    kind: 'static',
-
     async currentUser(): Promise<UserInfo | null> {
       const current = session();
       if (!current) return null;
@@ -101,7 +100,7 @@ export const staticBackend = (site: SiteConfig): Backend => {
       };
     },
 
-    signInOptions: () => ({ register: false, forgotPassword: false, guest: site.guests !== false }),
+    signInOptions: () => ({ guest: site.guests !== false }),
 
     async signIn(user, password) {
       if (!site.credentials) throw new Error('This site has no accounts');
@@ -199,10 +198,12 @@ export const staticBackend = (site: SiteConfig): Backend => {
       const config = loaded();
       const aiModel = { ...config.segmentation.ai_model, ...readSettings(config.name) };
       if (!aiModel.bands?.length) aiModel.bands = allBands;
+      const current = session();
       return {
         config: { segmentation: { ai_model: aiModel }, classes: config.classes } as UserConfig,
         allBands,
-        isAdmin: false,
+        // Admins can edit the project
+        isAdmin: current?.role === 'admin' && !current.guest,
       };
     },
 
@@ -238,7 +239,6 @@ export const staticBackend = (site: SiteConfig): Backend => {
           })),
         },
         is_current_user: true,
-        canChangePassword: false,
         canSignOut: !!site.credentials,
       };
     },
@@ -258,7 +258,7 @@ export const staticBackend = (site: SiteConfig): Backend => {
         const { georef, area } = await maskGeoreference(entry.imageId);
         const mask = await labels().loadMask(entry.user, entry.imageId, (area[2] - area[0]) * (area[3] - area[1]));
         if (!mask) continue;
-        // The layout of the server's project folder: segmentation/<image>/<user>_mask.tif
+        // The layout of the masks on the Hub: segmentation/<image>/<user>_mask.tif
         files[`segmentation/${entry.imageId}/${entry.user}_mask.tif`] = [maskCog(georef, area, mask), { level: 0 }];
       }
       onProgress(masks.length, masks.length);
@@ -266,6 +266,34 @@ export const staticBackend = (site: SiteConfig): Backend => {
     },
 
     flush: () => labels().flush(),
+
+    async loadProjectFile() {
+      const response = await fetchFile(projectFile, token(), { cache: 'no-store' });
+      if (!response.ok) throw new Error(`Could not read the project ${site.project} (${response.status})`);
+      return {
+        config: await response.json(),
+        location: projectFile,
+        savesTo: isHfPath(projectFile) && token() ? 'hub' as const : 'download' as const,
+      };
+    },
+
+    async saveProjectFile(config) {
+      const text = `${JSON.stringify(config, null, 2)}\n`;
+      if (isHfPath(projectFile) && token()) {
+        const location = parseHfPath(projectFile);
+        const { uploadFiles } = await hub();
+        await uploadFiles({
+          repo: hubRepo(location),
+          accessToken: token() ?? undefined,
+          branch: location.revision,
+          files: [{ path: location.path, content: new Blob([text], { type: 'application/json' }) }],
+          commitTitle: 'Edit the project in IRIS',
+        });
+        return 'hub';
+      }
+      downloadFile(new TextEncoder().encode(text), projectFile.split('/').pop() || 'project.json', 'application/json');
+      return 'download';
+    },
 
     review() {
       const current = session();

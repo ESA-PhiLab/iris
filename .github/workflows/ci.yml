@@ -4,166 +4,32 @@ on:
   push:
     branches:
       - master
-      - testci
   pull_request:
     branches:
       - master
-  schedule:
-    - cron: "9 16 * * 1"
 
 jobs:
   test:
-    name: "${{ matrix.python-version }} • ${{ matrix.os }}"
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
-        exclude:
-          # Reduce matrix size - only test edge cases on all platforms
-          - os: macos-latest
-            python-version: "3.10"
-          - os: macos-latest  
-            python-version: "3.11"
-          - os: macos-latest
-            python-version: "3.12"
-          - os: windows-latest
-            python-version: "3.10"
-          - os: windows-latest
-            python-version: "3.11" 
-          - os: windows-latest
-            python-version: "3.12"
-
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - name: Checkout Code
+      - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Install UV
-        uses: astral-sh/setup-uv@v3
-        with:
-          version: "latest"
-
-      - name: Install OpenMP (macOS)
-        if: runner.os == 'macOS'
-        run: brew install libomp
-
-      - name: Verify UV installation
-        run: uv --version
-          
-      - name: Create virtual environment
-        run: uv venv
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: 22
+          cache: npm
 
-      - name: Install Node.js dependencies
-        working-directory: iris
-        env:
-          CYPRESS_INSTALL_BINARY: 0
-        run: |
-          # Use npm ci for cleaner installs in CI
-          # Skip Cypress binary download (installed separately later for E2E tests)
-          npm ci || npm install
+      - name: Install dependencies
+        run: npm ci
 
-      - name: Build React/TypeScript frontend
-        working-directory: iris
+      - name: Check types
+        run: npm run typecheck
+
+      - name: Run the tests
+        run: npm test
+
+      - name: Build the site
         run: npm run build
-
-      - name: Install dependencies and IRIS
-        run: uv pip install -e ".[test]"
-
-      - name: Verify installation
-        run: uv run python environment_scripts/verify_installation.py
-
-      - name: Test CLI functionality
-        run: uv run iris --help
-
-      - name: Run pytest (Ubuntu only for coverage)
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          uv pip install pytest pytest-cov codecov
-          uv run python -m pytest -v --cov=iris --color=yes --cov-report=term-missing --cov-report=xml
-
-      - name: Run pytest (other platforms)
-        if: matrix.os != 'ubuntu-latest'
-        run: |
-          uv pip install pytest
-          uv run python -m pytest -v
-
-      - name: Upload coverage to Codecov
-        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.9'
-        uses: codecov/codecov-action@v5
-        with:
-          files: ./coverage.xml
-          token: ${{ secrets.CODECOV_TOKEN }}
-
-
-
-      - name: Verify React build artifacts
-        working-directory: iris
-        shell: bash
-        run: |
-          # Check that React build was successful
-          if [ -f "static/dist/adminApp.js" ]; then
-            echo "✅ React build successful - adminApp.js exists"
-            ls -la static/dist/
-          else
-            echo "❌ React build failed - adminApp.js not found at static/dist/"
-            exit 1
-          fi
-
-      - name: Install Cypress dependencies (Ubuntu only)
-        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.9'
-        working-directory: iris
-        run: |
-          # Install Cypress binary and dependencies
-          npx cypress install
-          # Install system dependencies for Cypress on Ubuntu
-          sudo apt-get update
-          sudo apt-get install -y libgtk2.0-0 libgtk-3-0 libgbm-dev libnotify-dev libnss3 libxss1 libxtst6 xauth xvfb
-
-      - name: Run Cypress E2E tests (Ubuntu only)
-        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.9'
-        run: |
-          # Start IRIS demo server with non-interactive admin creation
-          echo "Starting IRIS server with admin credentials..."
-          uv run iris demo --admin-user admin --admin-password 123 &
-          SERVER_PID=$!
-          echo "Started IRIS server with PID: $SERVER_PID"
-          
-          # Wait for server to be ready (max 60 seconds)
-          echo "Waiting for server to start..."
-          for i in {1..60}; do
-            if curl -s http://localhost:5000 > /dev/null; then
-              echo "✅ Server is ready!"
-              break
-            fi
-            if [ $i -eq 60 ]; then
-              echo "❌ Server failed to start within 60 seconds"
-              kill $SERVER_PID 2>/dev/null || true
-              exit 1
-            fi
-            sleep 1
-          done
-          
-          # Run Cypress tests in headless mode (from iris/ subdirectory)
-          echo "Running Cypress E2E tests..."
-          cd iris
-          npm run cypress:headless || TEST_EXIT_CODE=$?
-          
-          # Stop the server
-          echo "Stopping IRIS server..."
-          kill $SERVER_PID 2>/dev/null || true
-          wait $SERVER_PID 2>/dev/null || true
-          
-          # Exit with test result
-          exit ${TEST_EXIT_CODE:-0}

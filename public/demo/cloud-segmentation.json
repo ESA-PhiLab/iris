@@ -1,7 +1,5 @@
 {
   "name": "cloud-segmentation",
-  "port": 5000,
-  "host": "127.0.0.1",
   "images": {
     "path": {
       "Sentinel2": "images/{id}/s2.tif"
@@ -113,8 +111,6 @@
     ]
   },
   "segmentation": {
-    "path": "images/{id}/mask.tif",
-    "mask_encoding": "rgb",
     "mask_area": [
       64,
       64,
@@ -122,9 +118,7 @@
       448
     ],
     "score": "f1",
-    "prioritise_unmarked_images": true,
     "unverified_threshold": 1,
-    "test_images": null,
     "ai_model": {
       "bands": null,
       "train_ratio": 0.8,

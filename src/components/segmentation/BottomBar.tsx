@@ -9,7 +9,7 @@ import { useSegmentationStore } from '../../stores/segmentationStore';
 interface BottomBarProps {
   onOpenImageInfo: () => void;
   onOpenConfusionMatrix: () => void;
-  /** Without a server, admins review the masks here instead of the admin pages */
+  /** Admins review the masks of all users */
   onOpenReview?: () => void;
 }
 
@@ -95,13 +95,10 @@ const BottomBar: React.FC<BottomBarProps> = ({
       </div>
 
       {/* Right: Admin Button */}
-      {isAdmin && (
+      {isAdmin && onOpenReview && (
         <div>
           <button
-            onClick={() => {
-              if (onOpenReview) onOpenReview();
-              else window.location.href = '/admin/';
-            }}
+            onClick={onOpenReview}
             style={{
               background: theme.buttonDangerBg,
               border: 'none',
@@ -117,10 +114,10 @@ const BottomBar: React.FC<BottomBarProps> = ({
             }}
             onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = theme.buttonDangerHover)}
             onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = theme.buttonDangerBg)}
-            {...tooltip(onOpenReview ? 'Review the masks of all users' : 'Admin panel', onOpenReview ? 'review' : undefined)}
+            {...tooltip('Review the masks of all users', 'review')}
           >
             <ShieldIcon size={16} color={theme.toolbarText} />
-            {onOpenReview ? 'Review' : 'Admin'}
+            Review
           </button>
         </div>
       )}

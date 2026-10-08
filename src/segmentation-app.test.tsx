@@ -1,7 +1,14 @@
 import React from 'react';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, waitFor, act } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, waitFor } from '@testing-library/react';
 import SegmentationApp from './segmentation-app';
+
+const chooseBackend = vi.fn();
+const startSegmentation = vi.fn();
+vi.mock('./segmentation/startup', () => ({
+  chooseBackend: () => chooseBackend(),
+  startSegmentation: () => startSegmentation(),
+}));
 
 // Mock ThemeContext to avoid matchMedia issues in test environment
 vi.mock('./contexts/ThemeContext', () => ({
@@ -63,96 +70,36 @@ vi.mock('./components/HelpModal', () => ({
   ),
 }));
 
-describe('SegmentationApp - URL Parameter Handling', () => {
-  let originalLocation: Location;
-
-  /**
-   * beforeEach runs before each test in this describe block.
-   * We use it to set up a clean test environment:
-   * 1. Save the real window.location so we can restore it later
-   */
+describe('SegmentationApp - start', () => {
   beforeEach(() => {
-    originalLocation = window.location;
-    
-    // Mock fetch for authentication check - fix the URL to match what the app actually calls
-    global.fetch = vi.fn((url) => {
-      if (url === '/user/get/current') {
-        return Promise.resolve({
-          ok: true,
-          json: async () => ({ user: { id: 1, name: 'testuser', admin: false } })
-        });
-      }
-      // Mock image list API call
-      if (url.includes('/segmentation/api/images/list')) {
-        return Promise.resolve({
-          ok: true,
-          json: async () => ({ images: [] })
-        });
-      }
-      return Promise.reject(new Error('Unknown URL'));
-    }) as any;
+    vi.clearAllMocks();
+    startSegmentation.mockResolvedValue(undefined);
   });
 
-  /**
-   * afterEach runs after each test in this describe block.
-   * We use it to clean up and restore the original state:
-   * 1. Restore the real window.location
-   * 2. Remove the mocked functions/variables we added
-   * This prevents tests from affecting each other.
-   */
-  afterEach(() => {
-    Object.defineProperty(window, 'location', {
-      value: originalLocation,
-      writable: true,
-    });
-    vi.restoreAllMocks();
+  it('asks to sign in when nobody is signed in', async () => {
+    chooseBackend.mockResolvedValue({ currentUser: async () => null, review: () => null });
+
+    const { getByTestId } = render(<SegmentationApp />);
+
+    await waitFor(() => expect(getByTestId('login-form')).toBeInTheDocument());
+    expect(startSegmentation).not.toHaveBeenCalled();
   });
 
-  it('opens preferences modal when openPreferences=true in URL', async () => {
-    // Mock window.location to simulate arriving at /segmentation?openPreferences=true
-    delete (window as any).location;
-    (window as any).location = {
-      ...originalLocation,
-      search: '?openPreferences=true', // This is what we're testing
-      pathname: '/segmentation',
-      hostname: 'localhost',
-    };
+  it('opens the project for the user who is signed in', async () => {
+    chooseBackend.mockResolvedValue({ currentUser: async () => ({ name: 'local' }), review: () => null });
 
-    // Render the component
-    let getByTestId: any;
-    await act(async () => {
-      const result = render(<SegmentationApp />);
-      getByTestId = result.getByTestId;
-    });
+    const { queryByTestId } = render(<SegmentationApp />);
 
-    // Wait for the component to process the URL parameter and open the modal
-    await waitFor(() => {
-      const modal = getByTestId('preferences-modal');
-      expect(modal).toHaveAttribute('data-open', 'true');
-    }, { timeout: 3000 });
+    await waitFor(() => expect(startSegmentation).toHaveBeenCalled());
+    expect(queryByTestId('login-form')).not.toBeInTheDocument();
   });
 
-  it('does not open preferences modal without URL parameter', async () => {
-    // Mock window.location without the openPreferences parameter
-    delete (window as any).location;
-    (window as any).location = {
-      ...originalLocation,
-      search: '', // No URL parameters
-      pathname: '/segmentation',
-      hostname: 'localhost',
-    };
+  it('says what is wrong when the page has no project', async () => {
+    chooseBackend.mockRejectedValue(new Error('Could not read iris.json (404): IRIS needs it next to the page'));
 
-    // Render the component
-    let getByTestId: any;
-    await act(async () => {
-      const result = render(<SegmentationApp />);
-      getByTestId = result.getByTestId;
-    });
+    const { findByText } = render(<SegmentationApp />);
 
-    // Verify the modal stays closed
-    await waitFor(() => {
-      const modal = getByTestId('preferences-modal');
-      expect(modal).toHaveAttribute('data-open', 'false');
-    });
+    expect(await findByText(/IRIS needs it next to the page/)).toBeInTheDocument();
+    expect(startSegmentation).not.toHaveBeenCalled();
   });
 });

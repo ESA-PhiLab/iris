@@ -16,9 +16,7 @@ interface SegmentationModalsProps {
   onClosePreferences: () => void;
   isProfileOpen: boolean;
   onCloseProfile: () => void;
-  profileUserId: string;
   isLoginOpen: boolean;
-  loginMode: 'login' | 'register';
   onLoginSuccess?: () => void;
   isHelpOpen: boolean;
   onCloseHelp: () => void;
@@ -38,9 +36,7 @@ const SegmentationModals: React.FC<SegmentationModalsProps> = ({
   onClosePreferences,
   isProfileOpen,
   onCloseProfile,
-  profileUserId,
   isLoginOpen,
-  loginMode,
   onLoginSuccess,
   isHelpOpen,
   onCloseHelp,
@@ -61,13 +57,9 @@ const SegmentationModals: React.FC<SegmentationModalsProps> = ({
     <>
       <PreferencesModal isOpen={isPreferencesOpen} onClose={onClosePreferences} />
       
-      <UserProfileModal
-        isOpen={isProfileOpen}
-        onClose={onCloseProfile}
-        userId={profileUserId}
-      />
+      <UserProfileModal isOpen={isProfileOpen} onClose={onCloseProfile} />
       
-      {isLoginOpen && <LoginForm initialMode={loginMode} onSuccess={onLoginSuccess} />}
+      {isLoginOpen && <LoginForm onSuccess={onLoginSuccess} />}
       
       <HelpModal isOpen={isHelpOpen} onClose={onCloseHelp} />
       

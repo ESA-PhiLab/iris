@@ -29,15 +29,14 @@ const ViewGroupsSection = forwardRef<any, ViewGroupsSectionProps>(({ getAvailabl
           <polyline points="6 9 12 15 18 9" />
         </svg>
       </button>
-      {isOpen && (
-        <div style={s.panelStyle}>
-          <small style={s.descriptionStyle}>
-            Views are displayed in groups. The <code style={s.codeStyle}>default</code> group is required.
-          </small>
-          <pre style={s.preStyle}>{`"view_groups": {\n  "default": ["Cirrus", "RGB", "Snow"],\n  "clouds": ["Cirrus"]\n}`}</pre>
-          <ViewGroupListEditor ref={editorRef} getAvailableViews={getAvailableViews} />
-        </div>
-      )}
+      {/* Hidden rather than removed, so a folded section keeps its data */}
+      <div style={{ ...s.panelStyle, display: isOpen ? undefined : 'none' }}>
+        <small style={s.descriptionStyle}>
+          Views are displayed in groups. The <code style={s.codeStyle}>default</code> group is required.
+        </small>
+        <pre style={s.preStyle}>{`"view_groups": {\n  "default": ["Cirrus", "RGB", "Snow"],\n  "clouds": ["Cirrus"]\n}`}</pre>
+        <ViewGroupListEditor ref={editorRef} getAvailableViews={getAvailableViews} />
+      </div>
     </div>
   );
 });

@@ -1,281 +1,121 @@
 # IRIS - Intelligently Reinforced Image Segmentation<sup>1</sup>
 <sup>1</sup>Yes, it is a <a href="https://en.wikipedia.org/wiki/Backronym">backronym</a>.
 
-
-[![GitHub Actions](https://img.shields.io/github/actions/workflow/status/gt-sse-center/iris/ci.yml?logo=githubA)](https://github.com/gt-sse-center/iris/actions?query=workflow%3ACI)
-[![codecov](https://codecov.io/gh/loriab/iris/graph/badge.svg)](https://codecov.io/gh/loriab/iris)
-[![Docs Config](https://img.shields.io/badge/Docs-configuration_file-lightblue)](https://github.com/gt-sse-center/iris/blob/master/docs/config.md)
-![python](https://img.shields.io/badge/python-3.9+-blue.svg)
-![License](https://img.shields.io/github/license/gt-sse-center/iris)
-<!--[![Documentation
-Status](https://img.shields.io/github/actions/workflow/status/MolSSI/QCManyBody/ci.yml?label=docs&logo=readthedocs&logoColor=white)](https://molssi.github.io/QCManyBody/)-->
-<!--[![Conda (channel
-only)](https://img.shields.io/conda/vn/conda-forge/qcmanybody?color=blue&logo=anaconda&logoColor=white)](https://anaconda.org/conda-forge/qcmanybody)-->
-
-
 <img src="preview/segmentation.png" />
 
-Tool for manual image segmentation of satellite imagery (or images in general). It was designed to accelerate the creation of machine learning training datasets for Earth Observation. This application is a flask app which can be run locally. Special highlights:
-* Support by AI (gradient boosted decision tree) when doing image segmentation
-* Multiple and configurable views for multispectral imagery
-* Simple setup with pip and one configuration file
-* Platform independent app (runs on Linux, Windows and Mac OS)
-* Multi-user support: work in a team on your dataset and merge the results
+Tool for manual image segmentation of satellite imagery. It was designed to accelerate the creation of machine learning training datasets for Earth Observation. IRIS is a static web page: everything runs in the browser, so it can be published on GitHub Pages or any web host, with no server to run. Special highlights:
+* Support by AI (gradient boosted decision trees, trained in the browser) when doing image segmentation
+* Multiple and configurable views for multispectral imagery, shown at their place on a map (MapLibre)
+* Images read straight from Cloud Optimized GeoTIFFs (COG), wherever they are served: next to the page, on the Hugging Face Hub, on S3, ...
+* Masks kept in the browser, or on the Hugging Face Hub for a team
+* Accounts in an encrypted `credentials.json`, published with the page
+* One configuration file per project ([guide](docs/config.md))
 
-## Installation
+## Quick start
 
-### Prerequisites
+IRIS needs [Node.js](https://nodejs.org/) 22 or higher.
 
-IRIS requires Python 3.9 or higher and Node.js 18+ for the admin interface. We recommend using [UV](https://docs.astral.sh/uv/) for Python and dependency management.
-
-#### Install UV
-
-**macOS and Linux:**
 ```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
-```
-
-**Windows:**
-```powershell
-powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
-```
-
-**Alternative (using pip):**
-```bash
-pip install uv
-```
-
-#### Install Node.js
-
-IRIS admin interface requires Node.js 18 or higher for the React frontend.
-
-**Using Node Version Manager (recommended):**
-```bash
-# Install nvm (macOS/Linux)
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
-
-# Install and use Node.js 18
-nvm install 18
-nvm use 18
-```
-
-**Direct installation:**
-- Download from [nodejs.org](https://nodejs.org/)
-- Or use your system package manager (brew, apt, etc.)
-
-### Install IRIS
-
-#### Quick Installation (Recommended)
-
-1. **Clone the repository:**
-```bash
-# true upstream
-# git clone git@github.com:ESA-PhiLab/iris.git
-# pseudo-upstream for GT CSSE collaboration
-git clone https://github.com/gt-sse-center/iris
+git clone https://github.com/ESA-PhiLab/iris
 cd iris
-```
-
-2. **Run the installation script:**
-```bash
-# This script will install UV (if needed) and set up IRIS
-./install.sh
-```
-
-3. **Build the frontend:**
-```bash
-# Install Node.js dependencies and build React admin interface
 npm install
+npm run dev
+```
+
+Then open http://localhost:3000: IRIS opens the demo project in [public/demo](public/demo). It is recommended to use a keyboard and mouse with scrollwheel for IRIS; the help (`?` in the top bar) lists the shortcuts.
+
+## How a site is put together
+
+The page reads `iris.json` next to it, which says where everything is:
+
+```json
+{
+  "project": "demo/cloud-segmentation.json",
+  "labels": "hf://buckets/<owner>/<name>",
+  "credentials": "credentials.json",
+  "guests": true
+}
+```
+
+| Field | Meaning |
+| --- | --- |
+| `project` | The project file ([guide](docs/config.md)), a path relative to the page or a Hugging Face path. Required. |
+| `labels` | Where the masks of the team go: a bucket `hf://buckets/<owner>/<name>` (recommended) or a dataset `hf://datasets/<owner>/<name>`. Without it, every user keeps their masks in their own browser. |
+| `credentials` | The accounts, see [Accounts](#accounts). Without it there are no accounts: whoever opens the page is the user `local`, an admin. |
+| `guests` | Whether people can enter without an account (default `true`). Their masks stay in their browser. |
+
+The paths in the project file are relative to the project file, so a project and its images can live together in a folder or a dataset. The ids of the images are listed in `images.json` next to the project file, or in the project file itself (see the [guide](docs/config.md#images)).
+
+The `iris.json` in [public](public) is published with the site. Edit it to point to your own project.
+
+### Images
+
+IRIS only reads Cloud Optimized GeoTIFFs: tiled, with a CRS, so that each image can be shown at its place on the map. You can create one with GDAL:
+
+```bash
+gdal_translate -of COG input.tif image.tif
+```
+
+The browser reads the parts of the files it needs with HTTP range requests, so the files must be served by a host that answers them (GitHub Pages, the Hugging Face Hub and S3 do) and, when they are on another site than the page, that allows it with CORS.
+
+### Data on the Hugging Face Hub
+
+The project, the images and the masks can live on the [Hugging Face Hub](https://huggingface.co), written as paths:
+
+```
+hf://datasets/<owner>/<name>[@<revision>]/<path>
+hf://buckets/<owner>/<name>/<path>
+```
+
+For example `"project": "hf://datasets/my-org/clouds/project.json"`. Public datasets are read by anyone; private ones need the token of the user who signed in. The masks are written with the token of the user, as files laid out per image:
+
+```
+segmentation/<image>/<user>_mask.tif   the mask: a COG of the mask area with two bands,
+                                       the class of each pixel and whether the user drew it
+segmentation/<image>/<user>.json       the notes about the image and when the mask was saved
+```
+
+In a bucket each save simply replaces the files. In a dataset each save is a commit, so saves close together go in one commit.
+
+### Accounts
+
+`credentials.json` holds one entry per user, encrypted with a key derived from their name and password: the file shows no names and can be published with the site. Unlocking an entry gives the role of the user (`admin` or `annotator`) and their Hugging Face token, kept for the session of the browser tab.
+
+Add and remove users with:
+
+```bash
+npm run credentials -- add <user> --role admin --file public/credentials.json
+npm run credentials -- remove <user> --file public/credentials.json
+```
+
+The script asks for the password (or reads `IRIS_PASSWORD`) and reads the user's Hugging Face token from `HF_TOKEN`. Anyone who knows a password can read the token in that entry, so give each user a [fine-grained token](https://huggingface.co/docs/hub/security-tokens) limited to the project's dataset and bucket, and long random passwords (at least 12 characters).
+
+### Masks, review and export
+
+Users save their masks with the save button or by going to another image. From their profile they can download all their masks as files. The export button makes a GeoTIFF of the current image with its mask.
+
+Admins have a Review button: who annotated each image, their notes, how well their masks agree, and the GeoTIFFs of the masks merged by majority. Admins also edit the project in the preferences: when the project file is in a dataset and their token can write to it, it is saved there; otherwise the edited file is downloaded, to replace the old one with.
+
+## Publishing on GitHub Pages
+
+The workflow [pages.yml](.github/workflows/pages.yml) builds the site and publishes it on every push to `master` (or when run by hand). In the settings of the repository, under Pages, choose GitHub Actions as the source. The site is then `public/` (with `iris.json`, the demo and any `credentials.json`) plus the page built by Vite.
+
+To publish it elsewhere, build it and copy `dist/` to any web host:
+
+```bash
 npm run build
 ```
 
-#### Manual Installation
-
-1. **Clone the repository:**
-```bash
-git clone https://github.com/gt-sse-center/iris
-cd iris
-```
-
-2. **Install IRIS using UV:**
-```bash
-# This will automatically create a virtual environment and install all dependencies
-uv sync
-```
-
-3. **Build the frontend:**
-```bash
-# Install Node.js dependencies and build React admin interface
-npm install
-npm run build
-```
-
-4. **Run commands with UV (recommended):**
-```bash
-# UV automatically manages the environment - use 'uv run' for commands
-uv run iris demo
-
-# Or activate the environment manually if preferred
-source .venv/bin/activate  # On macOS/Linux
-# or
-.venv\Scripts\activate     # On Windows
-```
-
-### Verify Installation
-
-After installation, you can verify everything is working correctly:
+## Development
 
 ```bash
-# Run the installation test
-uv run python environment_scripts/verify_installation.py
-
-# Verify frontend build
-ls iris/static/dist/adminApp.js  # Should exist
-
-# Run the test suite
-uv run pytest iris/tests/
-
-# Or try the demo directly
-uv run iris demo
+npm run dev          # Vite dev server on port 3000
+npm test             # the tests (Vitest)
+npm run typecheck    # TypeScript type checking
+npm run build        # the site in dist/
+npm run preview      # serve dist/
 ```
 
+The code is in [src](src): the raster engine that reads the COGs and renders the views in a web worker ([src/raster](src/raster)), the AI ([src/ai](src/ai)), the editor ([src/segmentation](src/segmentation), [src/stores](src/stores)), where the project and the masks are read and written ([src/services](src/services)) and the interface ([src/components](src/components)).
 
-## Usage
-
-Once installed, you can run the demo version of IRIS
-
-```bash
-uv run iris demo
-```
-
-If you run IRIS from within a test runner (for example when running pytest) or other tooling that passes its own CLI flags, you can separate IRIS-specific arguments using `--`. Everything after `--` will be treated as IRIS arguments. Example:
-
-```
-pytest -v ... -- demo
-```
-
-Having run the demo, you can then create a personalised config file, based on _demo/cloud-segmentation.json_. With your own config file, you can then instantiate your own custom project. <a href="https://github.com/ESA-PhiLab/iris/blob/master/docs/config.md">Here is a guide</a> on how to write your own config file.
-
-```bash
-uv run iris label <your-config-file>
-```
-
-### Project Management Commands
-
-IRIS provides convenient commands for creating and managing projects:
-
-```bash
-# launch a project (or create it if it doesn't exist yet)
-uv run iris launch <project-name>
-
-# Remove a project (with confirmation prompt)
-uv run iris rm <project-name>
-```
-
-The `launch` command will:
-- Create a new project from the demo template if the folder doesn't exist
-- Launch an existing project by finding `cloud-segmentation.json` or any `.json` config file
-- Provide clear error messages if no suitable config is found
-
-The `rm` command safely removes project folders with confirmation and prevents accidental deletion of the demo folder.
-
-It is recommended to use a keyboard and mouse with scrollwheel for IRIS. Currently, control via trackpad is limited and awkward.
-
-### Admin Interface
-
-IRIS includes a modern React-based admin interface for managing users, viewing progress, and monitoring annotation quality:
-
-```bash
-# Access the admin interface at http://localhost:5000/admin
-# First user becomes admin automatically
-```
-
-**Admin Features:**
-- **User Management**: View all users, manage admin privileges, track annotation progress
-- **Image Progress**: Monitor which images have been annotated and by whom  
-- **Quality Metrics**: View annotation scores, difficulty ratings, and time spent
-- **Modern UI**: React Single Page Application with fast navigation
-
-### Docker
-
-You can also use Docker to deploy IRIS. The Docker image uses the modern pyproject.toml configuration for reliable dependency management.
-
-```bash
-# Build the image
-docker build --tag iris .
-
-# Run with port forwarding and volume mount
-docker run -p 80:80 -v <dataset_path>:/dataset/ --rm -it iris label /dataset/cloud-segmentation.json
-```
-
-Note: Port forwarding is needed (here we use port 80 as an example, but the port number can be set in your IRIS config file) and the directory to your project needs to be given as a volume to docker.
-
-### Run on Github Codespaces
-To run in a [Github codespace](https://docs.github.com/en/codespaces/overview) fork this repository, then in the Github UI select `Code/Codespaces/Open in codespace`. Run `pip install -e .` and then `iris demo`. You will see a popup that there is an app on port 5000, click the link to open a new window showing Iris!
-
-
-## Development and Testing
-
-### Frontend Development
-
-IRIS includes a modern React/TypeScript admin interface. For frontend development:
-
-```bash
-# Install dependencies
-npm install
-
-# Build for production
-npm run build
-
-# Development with hot reload (optional)
-npm run dev  # Runs Vite dev server on port 3000
-```
-
-The admin interface features:
-- **Modern React SPA** with client-side routing
-- **TypeScript** for type safety and better development experience  
-- **Hybrid architecture** supporting both React and legacy Flask content
-- **Incremental migration** path from Flask templates to React components
-
-### Running Tests
-
-IRIS includes a comprehensive test suite using pytest. The tests are located in `iris/tests/` and include fixtures for Flask app testing and project state management.
-
-```bash
-# Run all tests (includes frontend build verification)
-uv run pytest iris/tests/
-
-# Run tests with verbose output
-uv run pytest iris/tests/ -v
-
-# Run specific test file
-uv run pytest iris/tests/test_models_user.py -v
-
-# Frontend-specific checks
-npx tsc --noEmit  # TypeScript type checking
-```
-
-The test suite includes:
-- CLI argument parsing tests
-- User model and authentication tests  
-- Project configuration and utility tests
-- Image processing and band expression validation
-- Deep dictionary merging utilities
-- Frontend build and type checking (in CI)
-
-### E2E Testing with Cypress
-
-IRIS includes end-to-end tests for the React-based UI using Cypress. These tests verify user workflows like opening the preferences modal, editing settings, and saving configurations.
-
-```bash
-# Run Cypress tests in headless mode (requires IRIS server running)
-npm run cypress:headless
-
-# Open Cypress interactive test runner
-npm run cypress
-
-```
-
-**Note:** Cypress tests require the IRIS server to be running. Start it with `uv run iris demo` in a separate terminal before running tests.
-
-**Visit the official iris Github page:  https://github.com/ESA-PhiLab/iris**
+**Visit the official iris Github page: https://github.com/ESA-PhiLab/iris**

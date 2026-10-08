@@ -439,12 +439,7 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
                 How are images ordered?
               </button>
               <div style={panelStyle(openAccordions.has('image-order'))}>
-                <p>The IRIS project can be set up with two different image ordering modes:</p>
-                <ul>
-                  <li><b>Random:</b> Images are shown in a random order, with the order fixed for each different user (meaning you will always find images in the same order when you come back).</li>
-                  <li><b>Prioritise least annotated:</b> Images that are the least annotated are prioritised, so that you are shown images which need more annotations. This can change the order of images dynamically.</li>
-                </ul>
-                <p>The project administrator can change the image ordering mode on the server by editing the project's configuration files, this cannot be altered by a user.</p>
+                <p>Images are shown in the order of the project's image list, which the project administrator sets. When you come back, IRIS opens the image you worked on last.</p>
               </div>
 
               <button style={accordionBtnStyle(openAccordions.has('questionnaire'))} onClick={() => toggleAccordion('questionnaire')}>

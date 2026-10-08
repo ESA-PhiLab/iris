@@ -1,11 +1,10 @@
 /**
- * Where the masks of a project without a server are kept
+ * Where the masks of a project are kept
  *
  * In this browser (IndexedDB), or on the Hugging Face Hub, where every user
  * of the project writes: a storage bucket (recommended, files are simply
  * replaced) or a dataset (each save is a commit, so saves close together go
- * in one commit). On the Hub the masks are laid out like the IRIS server's
- * project folder:
+ * in one commit). On the Hub the masks are laid out as:
  *   segmentation/<image>/<user>_mask.tif   the mask (see export/maskFiles.ts)
  *   segmentation/<image>/<user>.json       the notes and when it was saved
  */

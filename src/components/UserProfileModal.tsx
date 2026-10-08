@@ -1,35 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import { useSegmentationStore } from '../stores/segmentationStore';
 import { Profile, backend } from '../services/backend';
-import { downloadFile } from '../export/annotated';
+import { downloadFile } from '../utils/download';
 import { useTheme } from '../contexts/ThemeContext';
 import type { ThemeName } from '../themes/colorschemes';
 
 interface UserProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
-  userId?: string;
 }
 
-export const UserProfileModal: React.FC<UserProfileModalProps> = ({
-  isOpen,
-  onClose,
-  userId = 'current'
-}) => {
+export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onClose }) => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [accordionOpen, setAccordionOpen] = useState(true);
-  const [showPasswordForm, setShowPasswordForm] = useState(false);
-  const [passwordForm, setPasswordForm] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: ''
-  });
-  const [passwordError, setPasswordError] = useState<string | null>(null);
-  const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
-  const [changingPassword, setChangingPassword] = useState(false);
-
   const { theme, themeName, setTheme } = useTheme();
 
   useEffect(() => {
@@ -38,7 +23,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
       setLoading(true);
       setError(null);
       try {
-        setProfile(await backend().loadProfile(userId));
+        setProfile(await backend().loadProfile());
       } catch (err) {
         setError(`Failed to load profile: ${err instanceof Error ? err.message : err}`);
       } finally {
@@ -46,7 +31,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
       }
     };
     fetchProfile();
-  }, [isOpen, userId]);
+  }, [isOpen]);
 
   useEffect(() => {
     if (isOpen) {
@@ -62,7 +47,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   const handleDownloadMasks = async () => {
     setDownloading(true);
     try {
-      const file = await backend().downloadMasks!();
+      const file = await backend().downloadMasks();
       if (file) downloadFile(file.bytes, file.name, 'application/zip');
       else setError('You have not saved any mask yet');
     } catch (err) {
@@ -79,41 +64,6 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
     } catch { setError('Failed to logout'); }
   };
 
-  const handlePasswordChange = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setPasswordError(null);
-    setPasswordSuccess(null);
-    if (!passwordForm.currentPassword) { setPasswordError('Current password is required'); return; }
-    if (!passwordForm.newPassword) { setPasswordError('New password is required'); return; }
-    if (passwordForm.newPassword.length < 4) { setPasswordError('New password must be at least 4 characters'); return; }
-    if (passwordForm.newPassword !== passwordForm.confirmPassword) { setPasswordError('New passwords do not match'); return; }
-    setChangingPassword(true);
-    try {
-      const response = await fetch('/user/api/change-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          current_password: passwordForm.currentPassword,
-          new_password: passwordForm.newPassword,
-          confirm_password: passwordForm.confirmPassword,
-        }),
-      });
-      const data = await response.json();
-      if (!response.ok) { setPasswordError(data.error || 'Failed to change password'); return; }
-      setPasswordSuccess('Password changed successfully!');
-      setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
-      setTimeout(() => { setShowPasswordForm(false); setPasswordSuccess(null); }, 2000);
-    } catch { setPasswordError('Failed to change password. Please try again.'); }
-    finally { setChangingPassword(false); }
-  };
-
-  const handleCancelPasswordChange = () => {
-    setShowPasswordForm(false);
-    setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
-    setPasswordError(null);
-    setPasswordSuccess(null);
-  };
-
   const handleThemeChange = (newTheme: ThemeName) => { setTheme(newTheme); };
 
   const handleImageClick = (imageId: string) => {
@@ -127,14 +77,6 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   if (!isOpen) return null;
 
   // Shared styles
-  const inputStyle: React.CSSProperties = {
-    width: '100%', padding: '10px 12px', borderRadius: '8px',
-    border: `1px solid ${theme.inputBorder}`, backgroundColor: theme.inputBg,
-    color: theme.inputText, fontSize: '14px', outline: 'none', boxSizing: 'border-box',
-  };
-  const labelStyle: React.CSSProperties = {
-    fontSize: '13px', fontWeight: 600, color: theme.gray700, marginBottom: '6px', display: 'block',
-  };
   const sectionStyle: React.CSSProperties = {
     padding: '16px', borderRadius: '8px', border: `1px solid ${theme.modalBorder}`,
     backgroundColor: theme.bgSecondary, marginTop: '16px',
@@ -352,107 +294,26 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
                     </div>
                   </div>
 
-                  {/* Actions: Download masks / Change Password / Logout */}
-                  {!showPasswordForm ? (
-                    <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
-                      {backend().downloadMasks && (
-                        <button onClick={handleDownloadMasks} disabled={downloading} style={{
-                          padding: '10px 16px', borderRadius: '8px',
-                          border: `1px solid ${theme.buttonSecondaryBorder}`,
-                          backgroundColor: theme.buttonSecondaryBg, color: theme.buttonSecondaryText,
-                          fontSize: '13px', fontWeight: 500, cursor: downloading ? 'wait' : 'pointer',
-                        }}
-                          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = theme.buttonSecondaryHover)}
-                          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = theme.buttonSecondaryBg)}
-                        >{downloading ? 'Preparing...' : 'Download my masks'}</button>
-                      )}
-                      {profile.canChangePassword && <button onClick={() => setShowPasswordForm(true)} style={{
-                        padding: '10px 16px', borderRadius: '8px',
-                        border: `1px solid ${theme.buttonSecondaryBorder}`,
-                        backgroundColor: theme.buttonSecondaryBg, color: theme.buttonSecondaryText,
-                        fontSize: '13px', fontWeight: 500, cursor: 'pointer',
-                      }}
-                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = theme.buttonSecondaryHover)}
-                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = theme.buttonSecondaryBg)}
-                      >Change Password</button>}
-                      {profile.canSignOut && <button onClick={handleLogout} style={{
-                        padding: '10px 16px', borderRadius: '8px', border: 'none',
-                        backgroundColor: theme.buttonDangerBg, color: theme.buttonDangerText,
-                        fontSize: '13px', fontWeight: 500, cursor: 'pointer',
-                      }}
-                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = theme.buttonDangerHover)}
-                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = theme.buttonDangerBg)}
-                      >Logout</button>}
-                    </div>
-                  ) : (
-                    <div style={sectionStyle}>
-                      <div style={{ fontSize: '14px', fontWeight: 600, color: theme.gray900, marginBottom: '12px' }}>Change Password</div>
-
-                      {passwordError && (
-                        <div style={{
-                          padding: '10px 14px', borderRadius: '8px', marginBottom: '12px',
-                          backgroundColor: theme.alertPale, color: theme.alert,
-                          fontSize: '13px', fontWeight: 500, border: `1px solid ${theme.alertLight}`,
-                        }}>{passwordError}</div>
-                      )}
-                      {passwordSuccess && (
-                        <div style={{
-                          padding: '10px 14px', borderRadius: '8px', marginBottom: '12px',
-                          backgroundColor: theme.successLight, color: theme.success,
-                          fontSize: '13px', fontWeight: 500, border: `1px solid ${theme.success}`,
-                        }}>{passwordSuccess}</div>
-                      )}
-
-                      <form onSubmit={handlePasswordChange}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                          <div>
-                            <label htmlFor="current-password" style={labelStyle}>Current Password:</label>
-                            <input id="current-password" type="password" value={passwordForm.currentPassword}
-                              onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
-                              disabled={changingPassword} style={inputStyle}
-                              onFocus={(e) => (e.currentTarget.style.borderColor = theme.inputBorderFocus)}
-                              onBlur={(e) => (e.currentTarget.style.borderColor = theme.inputBorder)} />
-                          </div>
-                          <div>
-                            <label htmlFor="new-password" style={labelStyle}>New Password (min 4 characters):</label>
-                            <input id="new-password" type="password" value={passwordForm.newPassword}
-                              onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
-                              disabled={changingPassword} style={inputStyle}
-                              onFocus={(e) => (e.currentTarget.style.borderColor = theme.inputBorderFocus)}
-                              onBlur={(e) => (e.currentTarget.style.borderColor = theme.inputBorder)} />
-                          </div>
-                          <div>
-                            <label htmlFor="confirm-password" style={labelStyle}>Confirm New Password:</label>
-                            <input id="confirm-password" type="password" value={passwordForm.confirmPassword}
-                              onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
-                              disabled={changingPassword} style={inputStyle}
-                              onFocus={(e) => (e.currentTarget.style.borderColor = theme.inputBorderFocus)}
-                              onBlur={(e) => (e.currentTarget.style.borderColor = theme.inputBorder)} />
-                          </div>
-                        </div>
-                        <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
-                          <button type="submit" disabled={changingPassword} style={{
-                            padding: '10px 16px', borderRadius: '8px', border: 'none',
-                            backgroundColor: theme.buttonPrimaryBg, color: theme.buttonPrimaryText,
-                            fontSize: '13px', fontWeight: 600, cursor: changingPassword ? 'not-allowed' : 'pointer',
-                            opacity: changingPassword ? 0.7 : 1,
-                          }}
-                            onMouseEnter={(e) => { if (!changingPassword) e.currentTarget.style.backgroundColor = theme.buttonPrimaryHover; }}
-                            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = theme.buttonPrimaryBg; }}
-                          >{changingPassword ? 'Changing...' : 'Change Password'}</button>
-                          <button type="button" onClick={handleCancelPasswordChange} disabled={changingPassword} style={{
-                            padding: '10px 16px', borderRadius: '8px',
-                            border: `1px solid ${theme.buttonSecondaryBorder}`,
-                            backgroundColor: theme.buttonSecondaryBg, color: theme.buttonSecondaryText,
-                            fontSize: '13px', fontWeight: 500, cursor: 'pointer',
-                          }}
-                            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = theme.buttonSecondaryHover)}
-                            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = theme.buttonSecondaryBg)}
-                          >Cancel</button>
-                        </div>
-                      </form>
-                    </div>
-                  )}
+                  {/* Actions: Download masks / Logout */}
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
+                    <button onClick={handleDownloadMasks} disabled={downloading} style={{
+                      padding: '10px 16px', borderRadius: '8px',
+                      border: `1px solid ${theme.buttonSecondaryBorder}`,
+                      backgroundColor: theme.buttonSecondaryBg, color: theme.buttonSecondaryText,
+                      fontSize: '13px', fontWeight: 500, cursor: downloading ? 'wait' : 'pointer',
+                    }}
+                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = theme.buttonSecondaryHover)}
+                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = theme.buttonSecondaryBg)}
+                    >{downloading ? 'Preparing...' : 'Download my masks'}</button>
+                    {profile.canSignOut && <button onClick={handleLogout} style={{
+                      padding: '10px 16px', borderRadius: '8px', border: 'none',
+                      backgroundColor: theme.buttonDangerBg, color: theme.buttonDangerText,
+                      fontSize: '13px', fontWeight: 500, cursor: 'pointer',
+                    }}
+                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = theme.buttonDangerHover)}
+                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = theme.buttonDangerBg)}
+                    >Logout</button>}
+                  </div>
                 </>
               )}
             </>

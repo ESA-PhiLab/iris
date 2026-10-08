@@ -45,10 +45,13 @@ const SegmentationApp: React.FC = () => {
       .then(async (source) => {
         const user = await source.currentUser();
         setIsAuthenticated(!!user);
-        setCanReview(!!source.review?.());
+        setCanReview(!!source.review());
         if (!user) setIsLoginOpen(true);
       })
-      .catch(() => setIsLoginOpen(true));
+      .catch((error: Error) => {
+        useUiStore.getState().showErrorModal(error.message, 'Could not open the project');
+        useViewManagerStore.getState().setInitialized(true);
+      });
   }, []);
 
   useEffect(() => {
@@ -70,16 +73,6 @@ const SegmentationApp: React.FC = () => {
       })
       .finally(() => useViewManagerStore.getState().setInitialized(true));
   }, [isAuthenticated]);
-
-  // Preferences opened from the admin pages
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('openPreferences') !== 'true') return;
-    setIsPreferencesOpen(true);
-    params.delete('openPreferences');
-    const query = params.toString();
-    window.history.replaceState({}, '', window.location.pathname + (query ? `?${query}` : ''));
-  }, []);
 
   // Keep unsaved changes when the page closes
   useEffect(() => {
@@ -166,9 +159,7 @@ const SegmentationApp: React.FC = () => {
           onClosePreferences={() => setIsPreferencesOpen(false)}
           isProfileOpen={isProfileOpen}
           onCloseProfile={() => setIsProfileOpen(false)}
-          profileUserId="current"
           isLoginOpen={isLoginOpen}
-          loginMode="login"
           onLoginSuccess={handleLoginSuccess}
           isHelpOpen={isHelpOpen}
           onCloseHelp={() => setIsHelpOpen(false)}

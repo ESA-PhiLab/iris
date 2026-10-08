@@ -4,119 +4,50 @@ import { chosenBackend } from '../services/backend';
 
 interface LoginFormProps {
   onSuccess?: () => void;
-  initialMode?: 'login' | 'register' | 'forgot-password';
 }
 
-type FormMode = 'login' | 'register' | 'forgot-password';
-
-export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, initialMode = 'login' }) => {
-  const [mode, setMode] = useState<FormMode>(initialMode);
+/** Sign in with an account of credentials.json, or enter as a guest */
+export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [passwordAgain, setPasswordAgain] = useState('');
-  const [email, setEmail] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const { theme } = useTheme();
-  // Accounts of the server, or of credentials.json when there is none
   const source = chosenBackend();
-  const options = source?.signInOptions() ?? { register: true, forgotPassword: true, guest: true };
+  const options = source?.signInOptions() ?? { guest: false };
+
+  const finish = () => {
+    if (onSuccess) { onSuccess(); } else { window.location.reload(); }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    setSuccess(null);
+    if (!username.trim()) { setError('Username is required'); return; }
+    if (!password) { setError('Password is required'); return; }
+    if (!source) { setError('The project is not loaded'); return; }
     setLoading(true);
-
-    if (mode === 'forgot-password') {
-      if (!username.trim()) { setError('Username is required'); setLoading(false); return; }
-      try {
-        const response = await fetch('/user/request-password-reset', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username }),
-        });
-        const responseText = await response.text();
-        if (!response.ok) { setError(responseText || 'Password reset request failed'); }
-        else { setSuccess(responseText); }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Password reset request failed');
-      }
-      setLoading(false);
-      return;
-    }
-
-    if (!username.trim()) { setError('Username is required'); setLoading(false); return; }
-    if (!password) { setError('Password is required'); setLoading(false); return; }
-    if (username.length > 64) { setError('Username is too long (max 64 characters)'); setLoading(false); return; }
-    if (password.length > 64) { setError('Password is too long (max 64 characters)'); setLoading(false); return; }
-
-    if (mode === 'register') {
-      if (password !== passwordAgain) { setError('The passwords are not identical!'); setLoading(false); return; }
-      if (!email.trim()) { setError('Email is required'); setLoading(false); return; }
-      const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-      if (!emailPattern.test(email)) { setError('Invalid email format'); setLoading(false); return; }
-    }
-
     try {
-      if (mode === 'login' && source) {
-        await source.signIn(username, password);
-      } else {
-        const endpoint = mode === 'login' ? '/user/login' : '/user/register';
-        const body = mode === 'login' ? { username, password } : { username, password, email };
-        const response = await fetch(endpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-        });
-        const responseText = await response.text();
-        if (!response.ok) { setError(responseText || `${mode === 'login' ? 'Login' : 'Registration'} failed`); setLoading(false); return; }
-      }
-      if (onSuccess) { onSuccess(); } else { window.location.reload(); }
+      await source.signIn(username, password);
+      finish();
     } catch (err) {
-      setError(err instanceof Error ? err.message : `${mode === 'login' ? 'Login' : 'Registration'} failed`);
+      setError(err instanceof Error ? err.message : 'Login failed');
       setLoading(false);
     }
   };
 
   const enterAsGuest = async () => {
     setError(null);
-    setSuccess(null);
+    if (!source) { setError('The project is not loaded'); return; }
     setLoading(true);
     try {
-      if (source) {
-        await source.enterAsGuest();
-      } else {
-        const response = await fetch('/user/guest', { method: 'POST' });
-        if (!response.ok) {
-          setError((await response.text()) || 'Could not enter as guest');
-          setLoading(false);
-          return;
-        }
-      }
-      if (onSuccess) { onSuccess(); } else { window.location.reload(); }
+      await source.enterAsGuest();
+      finish();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not enter as guest');
       setLoading(false);
     }
-  };
-
-  const switchMode = (newMode: FormMode) => {
-    setMode(newMode);
-    setError(null);
-    setSuccess(null);
-    setUsername('');
-    setPassword('');
-    setPasswordAgain('');
-    setEmail('');
-  };
-
-  const titles: Record<FormMode, string> = {
-    'login': 'Login',
-    'register': 'Register',
-    'forgot-password': 'Forgot Password',
   };
 
   const inputStyle: React.CSSProperties = {
@@ -180,7 +111,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, initialMode = '
             <circle cx="12" cy="7" r="4" />
           </svg>
           <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 600, color: theme.gray900 }}>
-            {titles[mode]}
+            Login
           </h2>
         </div>
 
@@ -190,10 +121,10 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, initialMode = '
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               {/* Username */}
               <div>
-                <label htmlFor={`${mode}-username`} style={labelStyle}>Username:</label>
+                <label htmlFor="login-username" style={labelStyle}>Username:</label>
                 <input
                   type="text"
-                  id={`${mode}-username`}
+                  id="login-username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   disabled={loading}
@@ -205,57 +136,22 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, initialMode = '
               </div>
 
               {/* Password */}
-              {mode !== 'forgot-password' && (
-                <div>
-                  <label htmlFor={`${mode}-password`} style={labelStyle}>Password:</label>
-                  <input
-                    type="password"
-                    id={`${mode}-password`}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    disabled={loading}
-                    style={inputStyle}
-                    onFocus={(e) => (e.currentTarget.style.borderColor = theme.inputBorderFocus)}
-                    onBlur={(e) => (e.currentTarget.style.borderColor = theme.inputBorder)}
-                  />
-                </div>
-              )}
-
-              {/* Register-only fields */}
-              {mode === 'register' && (
-                <>
-                  <div>
-                    <label htmlFor="register-password-again" style={labelStyle}>Retype Password:</label>
-                    <input
-                      type="password"
-                      id="register-password-again"
-                      value={passwordAgain}
-                      onChange={(e) => setPasswordAgain(e.target.value)}
-                      disabled={loading}
-                      style={inputStyle}
-                      onFocus={(e) => (e.currentTarget.style.borderColor = theme.inputBorderFocus)}
-                      onBlur={(e) => (e.currentTarget.style.borderColor = theme.inputBorder)}
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="register-email" style={labelStyle}>Email:</label>
-                    <input
-                      type="email"
-                      id="register-email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      disabled={loading}
-                      placeholder="your@email.com"
-                      style={inputStyle}
-                      onFocus={(e) => (e.currentTarget.style.borderColor = theme.inputBorderFocus)}
-                      onBlur={(e) => (e.currentTarget.style.borderColor = theme.inputBorder)}
-                    />
-                  </div>
-                </>
-              )}
+              <div>
+                <label htmlFor="login-password" style={labelStyle}>Password:</label>
+                <input
+                  type="password"
+                  id="login-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={loading}
+                  style={inputStyle}
+                  onFocus={(e) => (e.currentTarget.style.borderColor = theme.inputBorderFocus)}
+                  onBlur={(e) => (e.currentTarget.style.borderColor = theme.inputBorder)}
+                />
+              </div>
             </div>
 
-            {/* Error / Success messages */}
+            {/* Error */}
             {error && (
               <div style={{
                 marginTop: '16px',
@@ -270,21 +166,6 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, initialMode = '
                 {error}
               </div>
             )}
-            {success && (
-              <div style={{
-                marginTop: '16px',
-                padding: '10px 14px',
-                borderRadius: '8px',
-                backgroundColor: theme.successLight,
-                color: theme.success,
-                fontSize: '13px',
-                fontWeight: 500,
-                border: `1px solid ${theme.success}`,
-              }}>
-                {success}
-              </div>
-            )}
-
             {/* Buttons */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '20px' }}>
               <button
@@ -304,115 +185,29 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, initialMode = '
                 onMouseEnter={(e) => { if (!loading) e.currentTarget.style.backgroundColor = theme.buttonPrimaryHover; }}
                 onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = theme.buttonPrimaryBg; }}
               >
-                {loading ? 'Please wait...' : mode === 'login' ? 'Login' : mode === 'register' ? 'Register' : 'Request Reset'}
+                {loading ? 'Please wait...' : 'Login'}
               </button>
 
-              {mode === 'login' && (
-                <>
-                  {options.guest && <button
-                    type="button"
-                    onClick={enterAsGuest}
-                    disabled={loading}
-                    title="Enter as the guest user shared by everybody without an account"
-                    style={{
-                      padding: '10px 16px',
-                      borderRadius: '8px',
-                      border: `1px solid ${theme.buttonSecondaryBorder}`,
-                      backgroundColor: theme.buttonSecondaryBg,
-                      color: theme.buttonSecondaryText,
-                      fontSize: '13px',
-                      fontWeight: 500,
-                      cursor: 'pointer',
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = theme.buttonSecondaryHover)}
-                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = theme.buttonSecondaryBg)}
-                  >
-                    Continue without account
-                  </button>}
-                  {options.register && <button
-                    type="button"
-                    onClick={() => switchMode('register')}
-                    disabled={loading}
-                    style={{
-                      padding: '10px 16px',
-                      borderRadius: '8px',
-                      border: `1px solid ${theme.buttonSecondaryBorder}`,
-                      backgroundColor: theme.buttonSecondaryBg,
-                      color: theme.buttonSecondaryText,
-                      fontSize: '13px',
-                      fontWeight: 500,
-                      cursor: 'pointer',
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = theme.buttonSecondaryHover)}
-                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = theme.buttonSecondaryBg)}
-                  >
-                    I have no account yet
-                  </button>}
-                  {options.forgotPassword && <button
-                    type="button"
-                    onClick={() => switchMode('forgot-password')}
-                    disabled={loading}
-                    style={{
-                      padding: '8px 16px',
-                      borderRadius: '8px',
-                      border: 'none',
-                      backgroundColor: 'transparent',
-                      color: theme.primary,
-                      fontSize: '13px',
-                      fontWeight: 500,
-                      cursor: 'pointer',
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.color = theme.primaryHover)}
-                    onMouseLeave={(e) => (e.currentTarget.style.color = theme.primary)}
-                  >
-                    Forgot Password?
-                  </button>}
-                </>
-              )}
-
-              {mode === 'register' && (
-                <button
-                  type="button"
-                  onClick={() => switchMode('login')}
-                  disabled={loading}
-                  style={{
-                    padding: '10px 16px',
-                    borderRadius: '8px',
-                    border: `1px solid ${theme.buttonSecondaryBorder}`,
-                    backgroundColor: theme.buttonSecondaryBg,
-                    color: theme.buttonSecondaryText,
-                    fontSize: '13px',
-                    fontWeight: 500,
-                    cursor: 'pointer',
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = theme.buttonSecondaryHover)}
-                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = theme.buttonSecondaryBg)}
-                >
-                  I have already an account
-                </button>
-              )}
-
-              {mode === 'forgot-password' && (
-                <button
-                  type="button"
-                  onClick={() => switchMode('login')}
-                  disabled={loading}
-                  style={{
-                    padding: '10px 16px',
-                    borderRadius: '8px',
-                    border: `1px solid ${theme.buttonSecondaryBorder}`,
-                    backgroundColor: theme.buttonSecondaryBg,
-                    color: theme.buttonSecondaryText,
-                    fontSize: '13px',
-                    fontWeight: 500,
-                    cursor: 'pointer',
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = theme.buttonSecondaryHover)}
-                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = theme.buttonSecondaryBg)}
-                >
-                  Back to Login
-                </button>
-              )}
+              {options.guest && <button
+                type="button"
+                onClick={enterAsGuest}
+                disabled={loading}
+                title="Enter without an account: your masks stay in this browser"
+                style={{
+                  padding: '10px 16px',
+                  borderRadius: '8px',
+                  border: `1px solid ${theme.buttonSecondaryBorder}`,
+                  backgroundColor: theme.buttonSecondaryBg,
+                  color: theme.buttonSecondaryText,
+                  fontSize: '13px',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = theme.buttonSecondaryHover)}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = theme.buttonSecondaryBg)}
+              >
+                Continue without account
+              </button>}
             </div>
           </form>
         </div>

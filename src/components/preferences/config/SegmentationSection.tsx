@@ -1,5 +1,5 @@
 import { useState, useImperativeHandle, forwardRef } from 'react';
-import { FormInput, FormRadioGroup, FormCheckbox } from './FormField';
+import { FormRadioGroup } from './FormField';
 import MaskAreaConfig from './MaskAreaConfig';
 import AIModelConfig, { AIModelConfigData } from './AIModelConfig';
 import { useConfigStyles } from './useConfigStyles';
@@ -7,12 +7,9 @@ import { useConfigStyles } from './useConfigStyles';
 const SegmentationSection = forwardRef<any, {}>((_props, ref) => {
   const [isOpen, setIsOpen] = useState(false);
   const s = useConfigStyles();
-  const [path, setPath] = useState('');
-  const [maskEnum, setMaskEnum] = useState('rgb');
   const [maskAreaEnabled, setMaskAreaEnabled] = useState(false);
   const [maskAreaCoords, setMaskAreaCoords] = useState<number[]>([0, 0, 0, 0]);
   const [scoreEnum, setScoreEnum] = useState('f1');
-  const [prioritiseUnmarked, setPrioritiseUnmarked] = useState(true);
   const [aiModelEnabled, setAiModelEnabled] = useState(true);
   const [aiConfig, setAiConfig] = useState<AIModelConfigData>({
     unverifiedThreshold: 1,
@@ -33,13 +30,9 @@ const SegmentationSection = forwardRef<any, {}>((_props, ref) => {
   });
 
   const getData = () => ({
-    path,
-    mask_encoding: maskEnum,
     mask_area: maskAreaEnabled ? maskAreaCoords : null,
     score: scoreEnum,
-    prioritise_unmarked_images: prioritiseUnmarked,
     unverified_threshold: aiConfig.unverifiedThreshold,
-    test_images: null,
     ai_model: aiModelEnabled
       ? {
           bands: aiConfig.bands.trim() ? aiConfig.bands : null,
@@ -61,12 +54,7 @@ const SegmentationSection = forwardRef<any, {}>((_props, ref) => {
 
   const setData = (data: any) => {
     if (!data || typeof data !== 'object') return;
-    if (data.path !== undefined) setPath(data.path);
-    if (data.mask_encoding !== undefined) setMaskEnum(data.mask_encoding);
     if (data.score !== undefined) setScoreEnum(data.score);
-    if (data.prioritise_unmarked_images !== undefined) {
-      setPrioritiseUnmarked(data.prioritise_unmarked_images);
-    }
     if (data.mask_area !== undefined) {
       if (data.mask_area === null) {
         setMaskAreaEnabled(false);
@@ -138,66 +126,44 @@ const SegmentationSection = forwardRef<any, {}>((_props, ref) => {
           <polyline points="6 9 12 15 18 9" />
         </svg>
       </button>
-      {isOpen && (
-        <div style={s.panelStyle}>
-          <FormInput
-            label="Path"
-            value={path}
-            onChange={setPath}
-            required
-            description="This directory will contain the mask files from the segmentation. Four different mask formats are allowed: *.npy* *tif*, *png* or *jpeg*."
-            codeExample={'"path": "masks/{id}.png"'}
-          />
-          <FormRadioGroup
-            label="SegMaskEnum"
-            options={['integer', 'binary', 'rgb', 'rgba']}
-            value={maskEnum}
-            onChange={setMaskEnum}
-            description="Allowed encodings for final masks. Not all mask formats support all encodings."
-          />
-          <MaskAreaConfig
-            maskAreaEnabled={maskAreaEnabled}
-            setMaskAreaEnabled={setMaskAreaEnabled}
-            maskAreaCoords={maskAreaCoords}
-            setMaskAreaCoords={setMaskAreaCoords}
-          />
-          <FormRadioGroup
-            label="SegScoreEnum"
-            options={['f1', 'jaccard', 'accuracy']}
-            value={scoreEnum}
-            onChange={setScoreEnum}
-            description="Allowed score measure."
-          />
-          <FormCheckbox
-            label="Prioritise Unmarked Images"
-            checked={prioritiseUnmarked}
-            onChange={setPrioritiseUnmarked}
-            description="Mode to serve up images with the lowest number of annotations when user asks for next image."
-          />
-          <div style={s.sectionBox}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-              <input
-                type="checkbox"
-                checked={aiModelEnabled}
-                onChange={(e) => setAiModelEnabled(e.target.checked)}
-                style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: s.theme.primary }}
-              />
-              <label
-                style={{ cursor: 'pointer', fontWeight: 600, color: s.theme.gray900, fontSize: '14px' }}
-                onClick={() => setAiModelEnabled(!aiModelEnabled)}
-              >
-                Enable AI Model
-              </label>
-            </div>
-            <small style={{ display: 'block', color: s.theme.gray600, lineHeight: '1.5', fontSize: '12px' }}>
-              {aiModelEnabled
-                ? 'AI-assisted segmentation is enabled. Configure the model parameters below.'
-                : 'AI-assisted segmentation is disabled. The ai_model field will be set to false.'}
-            </small>
+      {/* Hidden rather than removed, so a folded section keeps its data */}
+      <div style={{ ...s.panelStyle, display: isOpen ? undefined : 'none' }}>
+        <MaskAreaConfig
+          maskAreaEnabled={maskAreaEnabled}
+          setMaskAreaEnabled={setMaskAreaEnabled}
+          maskAreaCoords={maskAreaCoords}
+          setMaskAreaCoords={setMaskAreaCoords}
+        />
+        <FormRadioGroup
+          label="SegScoreEnum"
+          options={['f1', 'jaccard', 'accuracy']}
+          value={scoreEnum}
+          onChange={setScoreEnum}
+          description="Allowed score measure."
+        />
+        <div style={s.sectionBox}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+            <input
+              type="checkbox"
+              checked={aiModelEnabled}
+              onChange={(e) => setAiModelEnabled(e.target.checked)}
+              style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: s.theme.primary }}
+            />
+            <label
+              style={{ cursor: 'pointer', fontWeight: 600, color: s.theme.gray900, fontSize: '14px' }}
+              onClick={() => setAiModelEnabled(!aiModelEnabled)}
+            >
+              Enable AI Model
+            </label>
           </div>
-          {aiModelEnabled && <AIModelConfig config={aiConfig} onChange={setAiConfig} />}
+          <small style={{ display: 'block', color: s.theme.gray600, lineHeight: '1.5', fontSize: '12px' }}>
+            {aiModelEnabled
+              ? 'AI-assisted segmentation is enabled. Configure the model parameters below.'
+              : 'AI-assisted segmentation is disabled. The ai_model field will be set to false.'}
+          </small>
         </div>
-      )}
+        {aiModelEnabled && <AIModelConfig config={aiConfig} onChange={setAiConfig} />}
+      </div>
     </div>
   );
 });

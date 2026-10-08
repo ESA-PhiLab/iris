@@ -3,10 +3,10 @@ import { render } from '@testing-library/react';
 import PreferencesModal from './PreferencesModal';
 import { ThemeProvider } from '../contexts/ThemeContext';
 import React from 'react';
-import { setBackend } from '../services/backend';
-import { serverBackend } from '../services/serverBackend';
+import { Backend, setBackend } from '../services/backend';
 
-setBackend(serverBackend());
+const loadPreferences = vi.fn();
+setBackend({ loadPreferences } as unknown as Backend);
 
 const renderWithTheme = (ui: React.ReactElement) => render(<ThemeProvider>{ui}</ThemeProvider>);
 
@@ -14,7 +14,6 @@ const renderWithTheme = (ui: React.ReactElement) => render(<ThemeProvider>{ui}</
  * PreferencesModal Tests
  * 
  * These tests focus on the keyboard shortcut blocking functionality.
- * Full integration tests for unsaved changes are covered by Cypress E2E tests.
  */
 
 describe('PreferencesModal - Keyboard Shortcuts', () => {
@@ -40,34 +39,22 @@ describe('PreferencesModal - Keyboard Shortcuts', () => {
       })),
     });
 
-    // Mock fetch with proper URL handling
-    global.fetch = vi.fn((url) => {
-      // Handle both relative and absolute URLs
-      const urlString = typeof url === 'string' ? url : url.toString();
-      if (urlString.includes('/segmentation/api/user-config')) {
-        return Promise.resolve({
-          ok: true,
-          json: () =>
-            Promise.resolve({
-              config: {
-                segmentation: {
-                  ai_model: {
-                    bands: ['B1'],
-                    n_estimators: 100,
-                    max_depth: 5,
-                    num_leaves: 31,
-                    suppress_threshold: 0.5,
-                    postprocessing: { enabled: false, min_area: 10 },
-                  },
-                },
-              },
-              all_bands: ['B1', 'B2'],
-              is_admin: false,
-            }),
-        });
-      }
-      return Promise.reject(new Error('Unknown URL'));
-    }) as any;
+    loadPreferences.mockResolvedValue({
+      config: {
+        segmentation: {
+          ai_model: {
+            bands: ['B1'],
+            n_estimators: 100,
+            max_depth: 5,
+            num_leaves: 31,
+            suppress_threshold: 0.5,
+            postprocessing: { enabled: false, min_area: 10 },
+          },
+        },
+      },
+      allBands: ['B1', 'B2'],
+      isAdmin: false,
+    });
   });
 
   afterEach(() => {

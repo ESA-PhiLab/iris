@@ -1,7 +1,7 @@
 /**
- * Mask files as the IRIS server writes them: a COG of the mask area with two
- * bands, the class of each pixel and whether the user drew it (1) or the AI
- * predicted it (0), georeferenced like the image
+ * Mask files: a COG of the mask area with two bands, the class of each pixel
+ * and whether the user drew it (1) or the AI predicted it (0), georeferenced
+ * like the image
  */
 
 import { writeCog } from '../raster/writeCog';
