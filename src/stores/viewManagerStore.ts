@@ -6,17 +6,24 @@
  */
 
 import { create } from 'zustand';
-import { ViewTransform, readViewTransform, applyViewTransform } from '../utils/viewTransform';
+import { Georef } from '../utils/georef';
 
 export interface ViewConfig {
   name: string;
-  type: 'image' | 'bingmap';
+  /** 'bingmap' is the former name of 'basemap' */
+  type: 'image' | 'basemap' | 'bingmap';
   description: string;
   // Add other view properties as needed
 }
 
 export interface ViewGroup {
   [groupName: string]: string[]; // Array of view names
+}
+
+/** Center and zoom shared by all map views */
+export interface MapCamera {
+  center: [number, number];
+  zoom: number;
 }
 
 export interface ViewFilters {
@@ -66,8 +73,12 @@ export interface ViewManagerState {
   zoomLevel: number;
   panOffset: { x: number; y: number };
   zoomFactor: number;
-  /** Zoom/pan in image-space terms, carried across viewport remounts */
-  viewTransform: ViewTransform | null;
+  /** Camera of the map views, carried across viewport remounts (null: fit the image) */
+  camera: MapCamera | null;
+  /** Incremented to make all map views fit the image again */
+  resetViewsCount: number;
+  /** Where the current image lies on the map */
+  georef: Georef | null;
   
   // PHASE 3A: Canvas State
   canvasDimensions: { width: number; height: number };
@@ -146,11 +157,10 @@ export interface ViewManagerState {
   renderPreview: () => void;
   updateViews: () => void;
   
-  // Canvas operations (ONE-WAY SYNC: React store -> Legacy)
-  zoomCanvas: (delta: number) => void;
-  moveCanvas: (dx: number, dy: number) => void;
+  // Map views
+  setCamera: (camera: MapCamera) => void;
   resetCanvas: () => void;
-  captureViewTransform: () => void;
+  loadGeoref: (imageId: string) => Promise<void>;
   
   // ViewManager instance management (ONE-WAY SYNC)
   legacyViewManagerInstance: any | null;
@@ -212,7 +222,9 @@ export const useViewManagerStore = create<ViewManagerState>((set, get) => ({
   zoomLevel: 1.0,
   panOffset: { x: 0, y: 0 },
   zoomFactor: 1.0,
-  viewTransform: null,
+  camera: null,
+  resetViewsCount: 0,
+  georef: null,
   
   // PHASE 3A: Canvas State
   canvasDimensions: { width: 400, height: 400 },
@@ -615,9 +627,8 @@ export const useViewManagerStore = create<ViewManagerState>((set, get) => ({
       }
     }
     
-    // CRITICAL: Always dispatch react-mask-render so ReactMaskLayer re-renders.
-    // When the mock ViewManager returns empty layers (no legacy canvas),
-    // ReactMaskLayer is the only thing that can render the mask.
+    // CRITICAL: Always dispatch react-mask-render so the map views
+    // (ReactMapView) copy the hidden mask canvas to the map again.
     window.dispatchEvent(new CustomEvent('react-mask-render', { detail: { bbox } }));
   },
   
@@ -634,23 +645,6 @@ export const useViewManagerStore = create<ViewManagerState>((set, get) => ({
   },
   
   updateViews: () => {
-    // Update canvas coordinates and trigger render
-    const w = window as any;
-    const oneCanvas = document.getElementsByClassName("view-canvas")[0] as HTMLCanvasElement;
-    if (oneCanvas) {
-      const ctx = oneCanvas.getContext("2d") as any;
-      if (ctx && ctx.getWorldCoords) {
-        const { canvasMousePosition } = get();
-        const imageCoords = ctx.getWorldCoords(...canvasMousePosition);
-        const newCursorImage = [imageCoords.x, imageCoords.y];
-        
-        // Update cursor image in segmentation store
-        if (w.setCursorImageInStore) {
-          w.setCursorImageInStore(newCursorImage[0], newCursorImage[1]);
-        }
-      }
-    }
-    
     // Trigger render
     get().render();
     
@@ -658,94 +652,27 @@ export const useViewManagerStore = create<ViewManagerState>((set, get) => ({
     window.dispatchEvent(new CustomEvent('iris-update-views'));
   },
   
-  // Canvas operations (ONE-WAY SYNC: React store -> Legacy)
-  zoomCanvas: (delta) => {
-    const factor = Math.pow(1.1, delta);
-    const { zoomLevel } = get();
-    const newZoom = Math.max(0.1, Math.min(10.0, zoomLevel * factor));
-    
-    // Update React store first (source of truth)
-    get().setZoomLevel(newZoom);
-    
-    // Apply to legacy canvas
-    const w = window as any;
-    if (w.getCursorImageFromStore) {
-      const cursorImage = w.getCursorImageFromStore();
-      
-      for (const canvas of document.getElementsByClassName('view-canvas')) {
-        const ctx = (canvas as HTMLCanvasElement).getContext('2d') as any;
-        if (ctx) {
-          ctx.translate(...cursorImage);
-          ctx.scale(factor, factor);
-          ctx.translate(-cursorImage[0], -cursorImage[1]);
-          
-          if (w.constrain_view) {
-            w.constrain_view(ctx, factor, 0, 0);
-          }
-        }
-      }
-    }
-    
-    get().captureViewTransform();
-    
-    // Update views
-    get().updateViews();
+  // Map views
+  setCamera: (camera) => {
+    set({ camera });
   },
-  
-  moveCanvas: (dx, dy) => {
-    if (dx === 0 && dy === 0) return;
-    
-    // Update React store first (source of truth)
-    const { panOffset } = get();
-    get().setPanOffset({ x: panOffset.x + dx, y: panOffset.y + dy });
-    
-    // Apply to legacy canvas
-    const w = window as any;
-    for (const canvas of document.getElementsByClassName('view-canvas')) {
-      const ctx = (canvas as HTMLCanvasElement).getContext('2d') as any;
-      if (ctx) {
-        ctx.translate(dx, dy);
-        if (w.constrain_view) {
-          w.constrain_view(ctx, 1, dx, dy);
-        }
-      }
-    }
-    
-    get().captureViewTransform();
-    
-    // Update views
-    get().updateViews();
-  },
-  
+
   resetCanvas: () => {
-    // Update React store first (source of truth)
     get().resetView();
-    set({ viewTransform: null });
-    
-    // Put every view canvas back to the default fit-to-canvas view
-    const w = window as any;
-    const imageShape = w.getImageShapeFromStore ? w.getImageShapeFromStore() : null;
-    if (imageShape) {
-      for (const canvas of document.getElementsByClassName('view-canvas')) {
-        const el = canvas as HTMLCanvasElement;
-        const ctx = el.getContext('2d');
-        if (ctx) applyViewTransform(ctx, el, imageShape, null);
-      }
+    set((state) => ({ camera: null, resetViewsCount: state.resetViewsCount + 1 }));
+  },
+
+  loadGeoref: async (imageId) => {
+    const response = await fetch(
+      `/segmentation/api/georef/${encodeURIComponent(imageId)}`,
+      { credentials: 'same-origin' }
+    );
+    if (!response.ok) {
+      throw new Error(`Failed to load georeference of ${imageId}: ${response.statusText}`);
     }
-    
-    // Update views
-    get().updateViews();
+    set({ georef: await response.json() });
   },
-  
-  captureViewTransform: () => {
-    const w = window as any;
-    const imageShape = w.getImageShapeFromStore ? w.getImageShapeFromStore() : null;
-    const canvas = document.getElementsByClassName('view-canvas')[0] as HTMLCanvasElement | undefined;
-    if (!imageShape || !canvas) return;
-    const viewTransform = readViewTransform(canvas, imageShape);
-    if (viewTransform) set({ viewTransform });
-  },
-  
+
   // ViewManager instance management (ONE-WAY SYNC: React store -> Legacy)
   setLegacyViewManagerInstance: (instance) => {
     set({ legacyViewManagerInstance: instance });
@@ -1216,14 +1143,6 @@ if (typeof window !== 'undefined') {
   
   (window as any).renderPreviewFromStore = () => {
     useViewManagerStore.getState().renderPreview();
-  };
-  
-  (window as any).zoomCanvasFromStore = (delta: number) => {
-    useViewManagerStore.getState().zoomCanvas(delta);
-  };
-  
-  (window as any).moveCanvasFromStore = (dx: number, dy: number) => {
-    useViewManagerStore.getState().moveCanvas(dx, dy);
   };
   
   (window as any).resetCanvasFromStore = () => {

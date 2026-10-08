@@ -26,8 +26,6 @@ const ReactViewManager: React.FC<ReactViewManagerProps> = ({
   // PHASE 3A: Enhanced store subscriptions with new state
   const {
     currentGroup,
-    viewWidth,
-    viewHeight,
     showControls,
     imageId,
     // PHASE 3A: New zoom/pan/canvas state
@@ -41,7 +39,6 @@ const ReactViewManager: React.FC<ReactViewManagerProps> = ({
     // Actions
     getCurrentViews,
     updateViewDimensions,
-    setImageLocation,
     // PHASE 3A: New actions
     setCurrentView,
     updateCanvasDimensions,
@@ -118,11 +115,6 @@ const ReactViewManager: React.FC<ReactViewManagerProps> = ({
       w.vars.dragging = false;
     }
   }, [setMouseDown, setDragging]);
-  
-  // Handle image location changes (for Bing maps, etc.)
-  const handleImageLocationChange = useCallback((newLocation: [number, number]) => {
-    setImageLocation(newLocation);
-  }, [setImageLocation]);
   
   // PHASE 3A: Enhanced render function with zoom/pan support
   const renderAllViewPorts = useCallback(() => {
@@ -233,37 +225,13 @@ const ReactViewManager: React.FC<ReactViewManagerProps> = ({
           key={`${currentGroup}-${view.name}-${index}`}
           view={view}
           index={index}
-          width={viewWidth}
-          height={viewHeight}
           showControls={showControls}
           imageId={imageId}
-          onImageLocationChange={handleImageLocationChange}
-          // PHASE 3A: Pass zoom/pan state to ViewPorts
-          zoomLevel={zoomLevel}
-          panOffset={panOffset}
           isActive={currentView === view.name}
           onViewActivate={() => setCurrentView(view.name)}
         />
       ))}
       
-      {/* PHASE 3A: Debug overlay for zoom/pan state (only in debug mode) */}
-      {getDebugInfo().isInitialized && (
-        <div style={{
-          position: 'absolute',
-          top: '5px',
-          right: '5px',
-          background: 'rgba(0,0,0,0.7)',
-          color: 'white',
-          padding: '5px',
-          fontSize: '10px',
-          borderRadius: '3px',
-          pointerEvents: 'none',
-          fontFamily: 'monospace'
-        }}>
-          Zoom: {zoomLevel.toFixed(2)}x | Pan: ({panOffset.x.toFixed(0)}, {panOffset.y.toFixed(0)})
-          {currentView && <div>View: {currentView}</div>}
-        </div>
-      )}
     </div>
   );
 };

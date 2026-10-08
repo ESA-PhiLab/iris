@@ -138,12 +138,16 @@ export const useConfigLoader = (): ConfigLoaderResult => {
         }
       }
 
-      // Set current image from URL params
-      const currentImageId = segmentationStore.currentImageId;
+      // Set current image from URL params (read the store again: the
+      // snapshot above was taken before setCurrentImage)
+      const currentImageId = useSegmentationStore.getState().currentImageId;
       if (currentImageId) {
         segmentationStore.setCurrentImage(currentImageId);
         const imageLocation = viewManagerStore.imageLocation || [0, 0];
         viewManagerStore.setImage(currentImageId, imageLocation);
+
+        // Where the image lies on the map
+        await viewManagerStore.loadGeoref(currentImageId);
       }
 
       if (w.IRIS_DEBUG) console.log('✅ React: All stores initialized successfully');

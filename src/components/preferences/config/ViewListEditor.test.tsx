@@ -77,7 +77,7 @@ describe('ViewListEditor', () => {
       });
     });
 
-    it('returns Bing Map view without data field', () => {
+    it('returns basemap view without data field', () => {
       const ref = React.createRef<any>();
       const { container } = render(<ViewListEditor ref={ref} />);
       
@@ -87,9 +87,9 @@ describe('ViewListEditor', () => {
       fireEvent.change(keyInput, { target: { value: 'BingMap' } });
       
       const typeSelect = container.querySelector('select') as HTMLSelectElement;
-      fireEvent.change(typeSelect, { target: { value: 'Bing Map' } });
+      fireEvent.change(typeSelect, { target: { value: 'Basemap' } });
       
-      // Clear the default cmap value (even though Bing Map shouldn't use it)
+      // Clear the default cmap value (even though a basemap doesn't use it)
       const textInputs = container.querySelectorAll('input[type="text"]');
       const cmapInput = Array.from(textInputs).find(input => 
         (input as HTMLInputElement).value === 'jet'
@@ -101,7 +101,7 @@ describe('ViewListEditor', () => {
       const data = ref.current?.getData();
       expect(data).toEqual({
         BingMap: {
-          type: 'bingmap',
+          type: 'basemap',
         },
       });
     });
@@ -195,7 +195,7 @@ describe('ViewListEditor', () => {
       expect(screen.getByDisplayValue('$B2')).toBeInTheDocument();
     });
 
-    it('loads Bing Map view', () => {
+    it('loads basemap view, also under its former name bingmap', () => {
       const ref = React.createRef<any>();
       const { container } = render(<ViewListEditor ref={ref} />);
       
@@ -209,7 +209,7 @@ describe('ViewListEditor', () => {
       
       expect(screen.getByDisplayValue('BingMap')).toBeInTheDocument();
       const typeSelect = container.querySelector('select') as HTMLSelectElement;
-      expect(typeSelect.value).toBe('Bing Map');
+      expect(typeSelect.value).toBe('Basemap');
     });
 
     it('handles monochrome data wrapped in single-element array', () => {
@@ -268,15 +268,15 @@ describe('ViewListEditor', () => {
       expect(screen.getByPlaceholderText('e.g., $Sentinel2.B3')).toBeInTheDocument();
     });
 
-    it('shows info message for Bing Map type', () => {
+    it('shows info message for basemap type', () => {
       const { container } = render(<ViewListEditor />);
       
       fireEvent.click(screen.getByText('+ Add'));
       
       const typeSelect = container.querySelector('select') as HTMLSelectElement;
-      fireEvent.change(typeSelect, { target: { value: 'Bing Map' } });
+      fireEvent.change(typeSelect, { target: { value: 'Basemap' } });
       
-      expect(screen.getByText(/Bing Map views don't require a data field/)).toBeInTheDocument();
+      expect(screen.getByText(/Basemap views don't require a data field/)).toBeInTheDocument();
     });
   });
 

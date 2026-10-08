@@ -13,7 +13,7 @@ const ViewListEditor = forwardRef<any, {}>((_props, ref) => {
   const s = useConfigStyles();
 
   const mapViewType = (uiType: string): string => {
-    switch (uiType) { case 'Monochrome': case 'RGB': return 'image'; case 'Bing Map': return 'bingmap'; default: return 'image'; }
+    switch (uiType) { case 'Monochrome': case 'RGB': return 'image'; case 'Basemap': return 'basemap'; default: return 'image'; }
   };
 
   const getData = () => views.reduce((acc, view) => {
@@ -33,7 +33,7 @@ const ViewListEditor = forwardRef<any, {}>((_props, ref) => {
     if (typeof data !== 'object' || data === null) return;
     const loaded = Object.entries(data).map(([key, v], i) => {
       let uiType = 'Monochrome';
-      if (v.type === 'bingmap') uiType = 'Bing Map';
+      if (v.type === 'basemap' || v.type === 'bingmap') uiType = 'Basemap';
       else if (Array.isArray(v.data) && v.data.length === 3) uiType = 'RGB';
       let mono = '';
       if (typeof v.data === 'string') mono = v.data;
@@ -81,7 +81,7 @@ const ViewListEditor = forwardRef<any, {}>((_props, ref) => {
             <select value={view.type} onChange={(e) => updateView(view.id, 'type', e.target.value)} style={s.selectStyle}>
               <option value="Monochrome">Monochrome (single band)</option>
               <option value="RGB">RGB (3 bands)</option>
-              <option value="Bing Map">Bing Map (aerial imagery)</option>
+              <option value="Basemap">Basemap (satellite imagery)</option>
             </select>
           </div>
 
@@ -122,9 +122,9 @@ const ViewListEditor = forwardRef<any, {}>((_props, ref) => {
             </div>
           )}
 
-          {view.type === 'Bing Map' && (
+          {view.type === 'Basemap' && (
             <div style={{ ...s.infoBox, marginBottom: '12px' }}>
-              <small style={{ color: s.theme.gray900 }}>ℹ️ Bing Map views don't require a data field. They use metadata location coordinates.</small>
+              <small style={{ color: s.theme.gray900 }}>ℹ️ Basemap views don't require a data field. They show satellite imagery where the image lies.</small>
             </div>
           )}
 

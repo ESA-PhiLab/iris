@@ -14,8 +14,6 @@
     <!-- Load all existing CSS and JavaScript exactly as before -->
     <link rel="stylesheet" href="{{ url_for('segmentation.static', filename='css/segmentation.css') }}">
 
-    <script type="text/javascript" src="{{ url_for('main.static', filename='javascripts/views.js') }}"></script>
-    <script type="text/javascript" src="{{ url_for('segmentation.static', filename='javascripts/segmentation/views.js') }}"></script>
     <script type="text/javascript" src="{{ url_for('segmentation.static', filename='javascripts/segmentation.js') }}"></script>
     
     <!-- CRITICAL: Signal that legacy scripts are fully loaded -->
@@ -127,7 +125,8 @@
         };
     </script>
 
-    <!-- Load React Segmentation SPA -->
+    <!-- Load React Segmentation SPA and its styles (including MapLibre's) -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='dist/segmentationApp.css') }}">
     <script type="module" src="{{ url_for('static', filename='dist/segmentationApp.js') }}"></script>
 {% endblock %}
 {% block content %}

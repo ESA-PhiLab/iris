@@ -2,29 +2,20 @@
  * React ViewPort Component
  *
  * This component replaces the legacy ViewPort class.
- * It manages a single view with multiple layers (RGB, Mask, Preview, etc.).
+ * It shows a single view as a map, with controls to change the view.
  */
 
 import React, { useRef, useState } from 'react';
 import { ViewConfig } from '../../stores/viewManagerStore';
 import { useViewManagerStore } from '../../stores/viewManagerStore';
 import { useTheme } from '../../contexts/ThemeContext';
-import ReactRGBLayer from './layers/ReactRGBLayer';
-import ReactMaskLayer from './layers/ReactMaskLayer';
-import ReactPreviewLayer from './layers/ReactPreviewLayer';
-import ReactBingLayer from './layers/ReactBingLayer';
+import ReactMapView from './ReactMapView';
 
 interface ReactViewPortProps {
   view: ViewConfig;
   index: number;
-  width: number;
-  height: number;
   showControls: boolean;
   imageId: string;
-  onImageLocationChange: (location: [number, number]) => void;
-  // PHASE 3A: New zoom/pan/interaction props
-  zoomLevel?: number;
-  panOffset?: { x: number; y: number };
   isActive?: boolean;
   onViewActivate?: () => void;
 }
@@ -32,14 +23,8 @@ interface ReactViewPortProps {
 const ReactViewPort: React.FC<ReactViewPortProps> = ({
   view,
   index,
-  width,
-  height,
   showControls,
   imageId,
-  onImageLocationChange,
-  // PHASE 3A: New props with defaults
-  zoomLevel = 1.0,
-  panOffset = { x: 0, y: 0 },
   isActive = false,
   onViewActivate,
 }) => {
@@ -203,57 +188,9 @@ const ReactViewPort: React.FC<ReactViewPortProps> = ({
       style={containerStyle}
       onClick={() => onViewActivate && onViewActivate()}
     >
-      {/* Layers Container */}
+      {/* Map of the view */}
       <div style={layersContainerStyle}>
-        {/* RGB/Image Layer */}
-        {view.type === 'image' && (
-          <ReactRGBLayer
-            view={view}
-            width={width}
-            height={height}
-            imageId={imageId}
-            zIndex={1}
-            zoomLevel={zoomLevel}
-            panOffset={panOffset}
-          />
-        )}
-
-        {/* Bing Map Layer */}
-        {view.type === 'bingmap' && (
-          <ReactBingLayer
-            view={view}
-            width={width}
-            height={height}
-            onLocationChange={onImageLocationChange}
-            zIndex={1}
-            zoomLevel={zoomLevel}
-            panOffset={panOffset}
-          />
-        )}
-
-        {/* Mask Layer (only for image views) */}
-        {view.type === 'image' && (
-          <ReactMaskLayer
-            view={view}
-            width={width}
-            height={height}
-            zIndex={2}
-            zoomLevel={zoomLevel}
-            panOffset={panOffset}
-          />
-        )}
-
-        {/* Preview Layer (only for image views) */}
-        {view.type === 'image' && (
-          <ReactPreviewLayer
-            view={view}
-            width={width}
-            height={height}
-            zIndex={3}
-            zoomLevel={zoomLevel}
-            panOffset={panOffset}
-          />
-        )}
+        <ReactMapView view={view} imageId={imageId} viewCount={currentViews.length} />
       </div>
 
       {/* View name label (always visible when controls hidden) */}

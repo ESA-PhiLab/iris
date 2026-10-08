@@ -18,11 +18,8 @@ describe('ReactViewPort', () => {
       <ReactViewPort
         view={mockView}
         index={0}
-        width={400}
-        height={300}
         showControls={true}
         imageId="test-image"
-        onImageLocationChange={() => {}}
       />
     );
     // Component uses flex layout with 100% height
@@ -37,11 +34,8 @@ describe('ReactViewPort', () => {
       <ReactViewPort
         view={mockView}
         index={0}
-        width={400}
-        height={300}
         showControls={false}
         imageId="test-image"
-        onImageLocationChange={() => {}}
       />
     );
     // Component uses flex layout with 100% height

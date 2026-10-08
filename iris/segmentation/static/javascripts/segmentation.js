@@ -133,67 +133,29 @@ function newuser_help_popup(){
 async function init_views(){
     show_loader("Loading views...");
     
-    // Check if views-container exists (React ViewManager migration)
-    const viewsContainer = get_object('views-container');
-    const useLegacyViewManager = !!viewsContainer;
+    // The views are maps drawn by React (ReactMapView). Keep a minimal mock
+    // ViewManager for the code that still asks the store for one.
+    const mockViewManager = {
+        setImage: () => {},
+        showGroup: () => {},
+        getLayers: () => [],
+        updateViewDimensions: () => {},
+        updateSize: () => {},
+        render: () => {},
+        filters: {
+            contrast: false,
+            invert: false,
+            brightness: 100,
+            saturation: 100
+        }
+    };
     
-    // Use React store as primary source, fallback to legacy vars
-    const mainUrl = window.getApiUrlFromStore ? window.getApiUrlFromStore('main') : '/';
-
-    // Only create legacy ViewManager if container exists
-    if (useLegacyViewManager) {
-        const viewManager = new ViewManager(
-            viewsContainer,
-            window.getConfigSectionFromStore ? window.getConfigSectionFromStore('views') : [],
-            window.getConfigSectionFromStore ? window.getConfigSectionFromStore('view_groups') : [],
-            mainUrl+"image/",
-            image_aspect_ratio = window.getImageAspectRatioFromStore ? window.getImageAspectRatioFromStore() : 1
-        );
-
-        // Store ViewManager instance in React store (only source)
-        if (window.setViewManagerInStore) {
-            window.setViewManagerInStore(viewManager);
-        } else {
-            console.error('[IRIS Migration] ❌ CRITICAL: setViewManagerInStore not available - React store required');
-            throw new Error('React store not available for ViewManager - initialization failed');
-        }
-
-        // Add standard layers to all view ports if the view type is not "bingmap":
-        viewManager.addStandardLayer(
-            MaskLayer,
-            (view) => view.type != "bingmap"
-        );
-        viewManager.addStandardLayer(
-            PreviewLayer,
-            (view) => view.type != "bingmap"
-        );
+    // Store mock ViewManager in React store (only source)
+    if (window.setViewManagerInStore) {
+        window.setViewManagerInStore(mockViewManager);
     } else {
-        // Create a minimal mock ViewManager for compatibility
-        const mockViewManager = {
-            setImage: () => {},
-            showGroup: () => {},
-            getLayers: () => [],
-            updateViewDimensions: () => {},
-            updateSize: () => {},
-            render: () => {
-                // Mock render - React ViewManager handles rendering
-            },
-            // Add filters property to match real ViewManager
-            filters: {
-                contrast: false,
-                invert: false,
-                brightness: 100,
-                saturation: 100
-            }
-        };
-        
-        // Store mock ViewManager in React store (only source)
-        if (window.setViewManagerInStore) {
-            window.setViewManagerInStore(mockViewManager);
-        } else {
-            console.error('[IRIS Migration] ❌ CRITICAL: setViewManagerInStore not available - React store required');
-            throw new Error('React store not available for ViewManager - initialization failed');
-        }
+        console.error('[IRIS Migration] ❌ CRITICAL: setViewManagerInStore not available - React store required');
+        throw new Error('React store not available for ViewManager - initialization failed');
     }
 
     // It much faster to change some pixel values on a sprite and draw it then
@@ -548,48 +510,39 @@ function get_tool_offset(){
 }
 
 function mouse_wheel(event){
+    // The map views zoom themselves. They only pass the wheel on in resizing
+    // mode (Shift held), to change the size of the tool:
     var delta = Math.max(-1, Math.min(1, (event.wheelDelta || -event.detail)));
+
+    // Change size of tool using React store (ONLY source)
+    const currentSize = window.getToolSizeFromStore ? window.getToolSizeFromStore() : 1;
     
-    // Get resizing mode from React store (ONLY source)
-    const resizingMode = window.getToolResizingModeFromStore ? window.getToolResizingModeFromStore() : false;
-    
-    if (!window.getToolResizingModeFromStore) {
-        console.error('[IRIS] ❌ Tool resizing mode not available from store');
+    if (!window.getToolSizeFromStore) {
+        console.error('[IRIS] ❌ Tool size not available from store');
+        return;
     }
     
-    if (resizingMode){
-        // Change size of tool using React store (ONLY source)
-        const currentSize = window.getToolSizeFromStore ? window.getToolSizeFromStore() : 1;
-        
-        if (!window.getToolSizeFromStore) {
-            console.error('[IRIS] ❌ Tool size not available from store');
-            return;
-        }
-        
-        let newSize = currentSize + delta * 0.5 * currentSize;
-        const maskShape = window.getMaskShapeFromStore();
-        if (maskShape) {
-            newSize = round_number(Math.max(
-                1, Math.min(
-                    newSize, Math.max(...maskShape)
-                )
-            ));
-        } else {
-            console.warn('[IRIS] No mask shape available, using fallback bounds');
-            newSize = round_number(Math.max(1, Math.min(newSize, 100)));
-        }
-        
-        // Update through React store (ONLY source)
-        if (!window.segmentationStore) {
-            console.error('[IRIS] ❌ Segmentation store not available');
-            return;
-        }
-        
-        window.segmentationStore.getState().setToolSize(newSize);
-        render_preview();
+    let newSize = currentSize + delta * 0.5 * currentSize;
+    const maskShape = window.getMaskShapeFromStore();
+    if (maskShape) {
+        newSize = round_number(Math.max(
+            1, Math.min(
+                newSize, Math.max(...maskShape)
+            )
+        ));
     } else {
-        zoom(delta);
+        console.warn('[IRIS] No mask shape available, using fallback bounds');
+        newSize = round_number(Math.max(1, Math.min(newSize, 100)));
     }
+    
+    // Update through React store (ONLY source)
+    if (!window.segmentationStore) {
+        console.error('[IRIS] ❌ Segmentation store not available');
+        return;
+    }
+    
+    window.segmentationStore.getState().setToolSize(newSize);
+    render_preview();
 }
 
 function mouse_move(event){
@@ -600,35 +553,6 @@ function mouse_move(event){
     
     if (!window.getCurrentToolFromStore) {
         console.error('[IRIS] ❌ Current tool not available from store');
-    }
-    
-    if (
-        (event.buttons == 2
-        || event.buttons == 4
-        || (event.buttons == 1 && currentTool == 'move'))
-    ){
-        // Get drag start from React store (ONLY source)
-        const dragStart = window.getDragStartFromStore ? 
-            window.getDragStartFromStore() : null;
-        
-        if (!window.getDragStartFromStore) {
-            console.error('[IRIS] ❌ Drag start not available from store');
-        }
-        
-        if (dragStart !== null) {
-            // Get cursor image from React store (ONLY source)
-            const cursorImage = window.getCursorImageFromStore ? 
-                window.getCursorImageFromStore() : [0, 0];
-            
-            if (!window.getCursorImageFromStore) {
-                console.error('[IRIS] ❌ Cursor image not available from store');
-            }
-            
-            move(
-                cursorImage[0]-dragStart[0],
-                cursorImage[1]-dragStart[1]
-            );
-        }
     }
 
     // mouse left button must be pressed to draw
@@ -652,240 +576,37 @@ function mouse_down(event){
 
     if (event.buttons == 1 && currentTool != 'move'){
         user_draws_on_mask();
-        
-        // Clear drag start using React store (ONLY source)
-        if (!window.setDragStartInStore) {
-            console.error('[IRIS] ❌ Drag start store not available');
-            return;
-        }
-        
-        window.setDragStartInStore(null);
-    } else if (
-        event.buttons == 2
-        || event.buttons == 4
-        || (event.buttons == 1 && currentTool == 'move')
-    ){
-        // Get cursor image from React store (ONLY source)
-        const cursorImage = window.getCursorImageFromStore ? 
-            window.getCursorImageFromStore() : [0, 0];
-        
-        if (!window.getCursorImageFromStore) {
-            console.error('[IRIS] ❌ Cursor image not available from store');
-        }
-        
-        // Set drag start using React store (ONLY source)
-        if (!window.setDragStartInStore) {
-            console.error('[IRIS] ❌ Drag start store not available');
-            return;
-        }
-        
-        window.setDragStartInStore([...cursorImage]);
     }
 }
 
 function mouse_up(event){
-    // Clear drag start using React store (ONLY source)
-    if (!window.setDragStartInStore) {
-        console.error('[IRIS] ❌ Drag start store not available');
-        return;
-    }
-    
-    window.setDragStartInStore(null);
-    
     // Save history after drawing stroke completes (groups entire stroke into one undo/redo entry)
     // This is called here instead of in user_draws_on_mask() to avoid saving history for every pixel
     update_history();
 }
 
-function mouse_enter(event){
-    update_cursor_coords(this, event);
-    
-    // Get current tool from React store (ONLY source)
-    const currentTool = window.getCurrentToolFromStore ? window.getCurrentToolFromStore() : 'draw';
-    
-    if (!window.getCurrentToolFromStore) {
-        console.error('[IRIS] ❌ Current tool not available from store');
-    }
-    
-    if (
-        event.buttons == 2
-        || event.buttons == 4
-        || (event.buttons == 1 && currentTool == 'move')
-    ){
-        // Get cursor image from React store (ONLY source)
-        const cursorImage = window.getCursorImageFromStore ? 
-            window.getCursorImageFromStore() : [0, 0];
-        
-        if (!window.getCursorImageFromStore) {
-            console.error('[IRIS] ❌ Cursor image not available from store');
-        }
-        
-        // Set drag start using React store (ONLY source)
-        if (!window.setDragStartInStore) {
-            console.error('[IRIS] ❌ Drag start store not available');
-            return;
-        }
-        
-        window.setDragStartInStore([...cursorImage]);
-    }
-}
-
-function zoom(delta){
-    // PRIMARY: Use React store (ONE-WAY SYNC)
-    if (window.zoomCanvasFromStore) {
-        window.zoomCanvasFromStore(delta);
-        return;
-    }
-    
-    let factor = Math.pow(1.1, delta);
-    // Get cursor image from React store (ONLY source)
-    const cursorImage = window.getCursorImageFromStore ? 
-        window.getCursorImageFromStore() : [0, 0];
-    
-    if (!window.getCursorImageFromStore) {
-        console.error('[IRIS] ❌ Cursor image not available from store for zoom fallback');
-    }
-
-    for (let canvas of document.getElementsByClassName('view-canvas')){
-        let ctx = canvas.getContext('2d');
-        ctx.translate(...cursorImage);
-        ctx.scale(factor, factor);
-        ctx.translate(-cursorImage[0], -cursorImage[1]);
-        constrain_view(ctx, factor, 0, 0);
-    }
-    update_views();
-}
-
-function move(dx, dy){
-    if (window.moveCanvasFromStore) {
-        window.moveCanvasFromStore(dx, dy);
-        return;
-    }
-}
-
-function constrain_view(ctx, scale, dx, dy){
-    let transforms = ctx.getTransform();
-
-    // Get image shape from React store (ONLY source)
-    const imageShape = window.getImageShapeFromStore();
-    
-    if (!imageShape) {
-        console.error('[IRIS] ❌ No image shape available for constrain_view');
-        return;
-    }
-
-    if (transforms.a*scale < ctx.canvas.width / imageShape[0]){
-        // We don't want to allow any zooming outside of the image area and reset
-        // it to the default view
-
-        transforms.a = ctx.canvas.width / imageShape[0];
-        transforms.d = ctx.canvas.height / imageShape[1];
-        transforms.b = 0;
-        transforms.c = 0;
-        transforms.e = 0;
-        transforms.f = 0;
-    }
-
-    let top_left = ctx.getCanvasCoords(0, 0);
-    if (top_left.x > 0){
-        transforms.e -= top_left.x;
-    }
-    if (top_left.y > 0){
-        transforms.f -= top_left.y;
-    }
-
-    let bottom_right = ctx.getCanvasCoords(...imageShape);
-    if (bottom_right.x < ctx.canvas.width){
-        transforms.e -= bottom_right.x - ctx.canvas.width;
-    }
-    if (bottom_right.y < ctx.canvas.height){
-        transforms.f -= bottom_right.y - ctx.canvas.height;
-    }
-
-    ctx.setTransform(
-        transforms.a, transforms.b, transforms.c,
-        transforms.d, transforms.e, transforms.f
-    );
-}
-
-function update_views(){
-    /*Update all views in all canvases. Always required after a zooming or
-    translation action.*/
-
-    // PRIMARY: Use React store (ONE-WAY SYNC)
-    if (window.updateViewsFromStore) {
-        window.updateViewsFromStore();
-        return;
-    }
-
-    // React store is required - no fallback
-    console.error('[IRIS Migration] ❌ CRITICAL: React store not available for render');
-    throw new Error('React store not available for ViewManager');
-}
-
 function reset_views(){
-    // PRIMARY: Use React store (ONE-WAY SYNC)
-    if (window.resetCanvasFromStore) {
-        window.resetCanvasFromStore();
+    // Let all map views fit the image again
+    if (!window.resetCanvasFromStore) {
+        console.error('[IRIS Migration] ❌ CRITICAL: React store not available for reset_views');
         return;
     }
-
-    console.log('[IRIS] Using reset_views fallback (React canvas transformations not yet implemented)');
-    
-    // Get image shape from React store (ONLY source)
-    const imageShape = window.getImageShapeFromStore();
-    
-    if (!imageShape) {
-        console.error('[IRIS] ❌ No image shape available for reset_views');
-        return;
-    }
-    
-    for (let canvas of document.getElementsByClassName('view-canvas')){
-        let ctx = canvas.getContext('2d');
-        ctx.setTransform(
-            ctx.canvas.width / imageShape[0], 0, 0,
-            ctx.canvas.width / imageShape[0], 0, 0
-        );
-    }
-    update_views();
-    
-    // Also update React store for consistency
-    if (window.reactViewManager && window.reactViewManager.resetView) {
-        window.reactViewManager.resetView();
-    }
+    window.resetCanvasFromStore();
 }
 
 function update_cursor_coords(obj, event){
-    // Update the current coords to image coordinate system:
-    let rect = obj.getBoundingClientRect();
-    let x = round_number(
-        (event.clientX - rect.left) / (rect.right - rect.left) * obj.width
-    );
-    let y = round_number(
-        (event.clientY - rect.top) / (rect.bottom - rect.top) * obj.height
-    );
-
-    // Update canvas coordinates through React store (ONLY source)
-    if (!window.setCanvasMousePositionInStore) {
-        console.error('[IRIS] ❌ Canvas mouse position store not available');
+    // The map views put the image coordinates under the mouse on the event
+    if (!event.irisCursorImage) {
         return;
     }
-    
-    window.setCanvasMousePositionInStore(x, y);
 
-    let canvas = document.getElementsByClassName('view-canvas')[0];
-    let image_coords = canvas.getContext("2d").getWorldCoords(x, y);
-    let newCursorImage = [
-        round_number(image_coords.x), round_number(image_coords.y)
-    ];
-    
     // Update through React store (ONLY source)
     if (!window.setCursorImageInStore) {
         console.error('[IRIS] ❌ Cursor image store not available');
         return;
     }
     
-    window.setCursorImageInStore(newCursorImage[0], newCursorImage[1]);
+    window.setCursorImageInStore(...event.irisCursorImage);
 }
 
 function update_drawn_pixels(){
@@ -1171,10 +892,6 @@ function user_draws_on_mask(){
 
     */
 
-    // Just get one canvas
-    let canvas = document.getElementsByClassName("view-canvas")[0];
-    let ctx = canvas.getContext('2d');
-
     // Get image shape from React store (ONLY source)
     const imageShape = window.getImageShapeFromStore();
     
@@ -1227,16 +944,11 @@ function user_draws_on_mask(){
     // The current bounding box is based on the square tool size, which should work for circles too
     // since the circle fits within the square, but let's make sure the center calculation is correct
 
-    // Make sure we do not draw outside of the canvas. Hence, here we have the
-    // canvas boundaries in image coordinates:
-    let canvas_bounds = [
-        ctx.getWorldCoords(0, 0),
-        ctx.getWorldCoords(canvas.width, canvas.height)
-    ];
-    x_start = Math.max(round_number(canvas_bounds[0].x), x_start);
-    x_end = Math.min(round_number(canvas_bounds[1].x), x_end);
-    y_start = Math.max(round_number(canvas_bounds[0].y), y_start);
-    y_end = Math.min(round_number(canvas_bounds[1].y), y_end);
+    // Make sure we do not draw outside of the image:
+    x_start = Math.max(0, x_start);
+    x_end = Math.min(imageShape[0], x_end);
+    y_start = Math.max(0, y_start);
+    y_end = Math.min(imageShape[1], y_end);
 
     // Transform into mask coordinates:
     const maskArea = window.getMaskAreaFromStore ? window.getMaskAreaFromStore() : null;
@@ -2892,8 +2604,6 @@ window.mouse_wheel = mouse_wheel;
 window.mouse_move = mouse_move;
 window.mouse_down = mouse_down;
 window.mouse_up = mouse_up;
-window.mouse_enter = mouse_enter;
-window.zoom = zoom;
 window.update_cursor_coords = update_cursor_coords;
 window.user_draws_on_mask = user_draws_on_mask;
 window.render_preview = render_preview;
