@@ -1,6 +1,7 @@
 import React from 'react';
 import { useSegmentationStore } from '../../stores/segmentationStore';
 import { useTheme } from '../../contexts/ThemeContext';
+import { withShortcut } from '../../utils/shortcuts';
 import { ImageNavigationDropdown } from './toolbar/ImageNavigationDropdown';
 import { 
   SaveIcon, 
@@ -225,7 +226,7 @@ const TopBar: React.FC<TopBarProps> = ({ onOpenPreferences, onOpenHelp, onOpenPr
           onMouseLeave={(e) => {
             e.currentTarget.style.backgroundColor = 'transparent';
           }}
-          title={hasPrev ? "Previous image" : "No previous image"}
+          title={hasPrev ? withShortcut("Save and open the previous image", "previousImage") : "No previous image"}
         >
           <ChevronLeftIcon size={16} color={theme.toolbarText} />
           Prev
@@ -260,7 +261,7 @@ const TopBar: React.FC<TopBarProps> = ({ onOpenPreferences, onOpenHelp, onOpenPr
           onMouseLeave={(e) => {
             e.currentTarget.style.backgroundColor = 'transparent';
           }}
-          title={hasNext ? "Next image" : "No more images"}
+          title={hasNext ? withShortcut("Save and open the next image", "nextImage") : "No more images"}
         >
           Next
           <ChevronRightIcon size={16} color={theme.toolbarText} />
@@ -294,7 +295,7 @@ const TopBar: React.FC<TopBarProps> = ({ onOpenPreferences, onOpenHelp, onOpenPr
               e.currentTarget.style.backgroundColor = 'transparent';
             }
           }}
-          title={isLoading ? "Saving..." : maskChanged ? "Save mask (unsaved changes)" : "Save mask"}
+          title={isLoading ? "Saving..." : withShortcut(maskChanged ? "Save mask, unsaved changes" : "Save mask", "save")}
         >
           <SaveIcon size={16} color={theme.toolbarText} />
           Save

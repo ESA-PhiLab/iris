@@ -3,6 +3,7 @@ import ToolButton from './toolbar/ToolButton';
 import PaintbrushSelector from './toolbar/PaintbrushSelector';
 import { useSegmentationStore } from '../../stores/segmentationStore';
 import { useTheme } from '../../contexts/ThemeContext';
+import { withShortcut } from '../../utils/shortcuts';
 
 interface LeftToolbarProps {
   onResetMask: () => void;
@@ -110,7 +111,7 @@ const LeftToolbar: React.FC<LeftToolbarProps> = ({ onResetMask }) => {
             checked={currentTool === 'move'}
             onClick={() => setCurrentTool('move')}
             disabled={isLoading}
-            title="Move/Pan"
+            title={withShortcut('Move/Pan', 'move')}
             label={isExpanded ? 'Move' : undefined}
           />
         </div>
@@ -121,7 +122,7 @@ const LeftToolbar: React.FC<LeftToolbarProps> = ({ onResetMask }) => {
           checked={currentTool === 'draw'}
           onClick={() => setCurrentTool('draw')}
           disabled={isLoading}
-          title="Draw pixels"
+          title={`${withShortcut('Draw pixels', 'draw')}, brush size: Shift+Scroll`}
           dropdownType="draw"
           label={isExpanded ? 'Draw' : undefined}
           style={isExpanded ? { maxWidth: '100%' } : { width: '50px' }}
@@ -133,7 +134,7 @@ const LeftToolbar: React.FC<LeftToolbarProps> = ({ onResetMask }) => {
           checked={currentTool === 'eraser'}
           onClick={() => setCurrentTool('eraser')}
           disabled={isLoading}
-          title="Erase pixels"
+          title={`${withShortcut('Erase pixels', 'eraser')}, brush size: Shift+Scroll`}
           dropdownType="eraser"
           label={isExpanded ? 'Erase' : undefined}
           style={isExpanded ? { maxWidth: '100%' } : { width: '50px' }}
@@ -150,7 +151,7 @@ const LeftToolbar: React.FC<LeftToolbarProps> = ({ onResetMask }) => {
             id="tb_undo"
             icon="/segmentation/static/icons/undo.png"
             onClick={handleUndo}
-            title="Undo"
+            title={withShortcut('Undo', 'undo')}
             label={isExpanded ? 'Undo' : undefined}
           />
         </div>
@@ -160,7 +161,7 @@ const LeftToolbar: React.FC<LeftToolbarProps> = ({ onResetMask }) => {
             id="tb_redo"
             icon="/segmentation/static/icons/redo.png"
             onClick={handleRedo}
-            title="Redo"
+            title={withShortcut('Redo', 'redo')}
             label={isExpanded ? 'Redo' : undefined}
           />
         </div>
@@ -177,7 +178,7 @@ const LeftToolbar: React.FC<LeftToolbarProps> = ({ onResetMask }) => {
             icon="/segmentation/static/icons/ai.png"
             onClick={handlePredictMask}
             disabled={isLoading}
-            title={isLoading ? "Predicting..." : "Predict mask using AI"}
+            title={isLoading ? "Predicting..." : withShortcut("Predict mask using AI", "predict")}
             label={isExpanded ? 'AI Predict' : undefined}
           />
         </div>
@@ -188,7 +189,7 @@ const LeftToolbar: React.FC<LeftToolbarProps> = ({ onResetMask }) => {
             icon="/segmentation/static/icons/reset_mask.png"
             onClick={onResetMask}
             disabled={isLoading}
-            title="Reset mask"
+            title={withShortcut('Reset mask', 'resetMask')}
             label={isExpanded ? 'Reset Mask' : undefined}
           />
         </div>
@@ -199,7 +200,7 @@ const LeftToolbar: React.FC<LeftToolbarProps> = ({ onResetMask }) => {
             icon="/segmentation/static/icons/reset_views.png"
             onClick={handleResetViews}
             disabled={isLoading}
-            title="Reset views"
+            title={withShortcut('Reset views', 'resetViews')}
             label={isExpanded ? 'Reset Views' : undefined}
           />
         </div>

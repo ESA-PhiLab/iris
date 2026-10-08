@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { useSegmentationStore } from '../../stores/segmentationStore';
 import { useViewManagerStore } from '../../stores/viewManagerStore';
 import { useTheme } from '../../contexts/ThemeContext';
+import { withShortcut } from '../../utils/shortcuts';
 
 /** Switch to show or hide a layer of the map views */
 const LayerToggle: React.FC<{
@@ -403,6 +404,7 @@ const RightPanel: React.FC<RightPanelProps> = ({ onSelectClass, isCollapsed, onT
       <CollapsibleSection title="Class">
         <button
           onClick={onSelectClass}
+          title={withShortcut('Select class', 'selectClass')}
           style={{
             width: '100%',
             padding: '10px 12px',
@@ -442,7 +444,7 @@ const RightPanel: React.FC<RightPanelProps> = ({ onSelectClass, isCollapsed, onT
       <CollapsibleSection title="Layers">
         
         {/* Show/Hide Toggles */}
-        <LayerToggle label="Show Mask" title="Toggle mask visibility" on={showMask} onToggle={toggleMask} />
+        <LayerToggle label="Show Mask" title={withShortcut('Toggle mask visibility', 'toggleMask')} on={showMask} onToggle={toggleMask} />
         <LayerToggle label="Image" title="Toggle image visibility" on={showImage} onToggle={toggleImage} />
         <LayerToggle label="Satellite" title="Toggle satellite imagery" on={showSatellite} onToggle={toggleSatellite} />
         
@@ -451,9 +453,9 @@ const RightPanel: React.FC<RightPanelProps> = ({ onSelectClass, isCollapsed, onT
           <div style={{ fontSize: '12px', color: theme.gray600, marginBottom: '8px' }}>Type</div>
           <SegmentedControl
             options={[
-              { value: 'final', icon: '/segmentation/static/icons/mask_final.png', title: 'Final mask', label: 'Final' },
-              { value: 'user', icon: '/segmentation/static/icons/mask_user.png', title: 'User mask', label: 'User' },
-              { value: 'errors', icon: '/segmentation/static/icons/mask_errors.png', title: 'Error mask', label: 'Errors' },
+              { value: 'final', icon: '/segmentation/static/icons/mask_final.png', title: withShortcut('Final mask', 'maskFinal'), label: 'Final' },
+              { value: 'user', icon: '/segmentation/static/icons/mask_user.png', title: withShortcut('User mask', 'maskUser'), label: 'User' },
+              { value: 'errors', icon: '/segmentation/static/icons/mask_errors.png', title: withShortcut('Error mask', 'maskErrors'), label: 'Errors' },
             ]}
             value={maskType}
             onChange={(type) => setMaskType(type as 'final' | 'user' | 'errors')}
@@ -465,7 +467,7 @@ const RightPanel: React.FC<RightPanelProps> = ({ onSelectClass, isCollapsed, onT
       <CollapsibleSection title="Adjustments" style={{ borderBottom: 'none' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {/* Brightness Slider */}
-          <div>
+          <div title={withShortcut('Brightness', 'brightness')}>
             <div style={{ 
               display: 'flex', 
               justifyContent: 'space-between', 
@@ -514,7 +516,7 @@ const RightPanel: React.FC<RightPanelProps> = ({ onSelectClass, isCollapsed, onT
           </div>
 
           {/* Saturation Slider */}
-          <div>
+          <div title={withShortcut('Saturation', 'saturation')}>
             <div style={{ 
               display: 'flex', 
               justifyContent: 'space-between', 
@@ -588,7 +590,7 @@ const RightPanel: React.FC<RightPanelProps> = ({ onSelectClass, isCollapsed, onT
                   e.currentTarget.style.backgroundColor = theme.buttonSecondaryBg;
                 }
               }}
-              title="Toggle contrast"
+              title={withShortcut('Toggle contrast', 'contrast')}
             >
               Contrast
             </button>
@@ -617,7 +619,7 @@ const RightPanel: React.FC<RightPanelProps> = ({ onSelectClass, isCollapsed, onT
                   e.currentTarget.style.backgroundColor = theme.buttonSecondaryBg;
                 }
               }}
-              title="Toggle invert"
+              title={withShortcut('Toggle invert', 'invert')}
             >
               Invert
             </button>
@@ -626,6 +628,7 @@ const RightPanel: React.FC<RightPanelProps> = ({ onSelectClass, isCollapsed, onT
           {/* Reset Button */}
           <button
             onClick={resetFilters}
+            title={withShortcut('Reset filters', 'resetFilters')}
             style={{
               width: '100%',
               padding: '8px',

@@ -1,26 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
+import { SHORTCUTS } from '../utils/shortcuts';
 
 interface HelpModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-const HOTKEYS: Record<string, string> = {
-  '1..9': 'Select class',
-  'A': 'Train AI assistant',
-  'S': 'Save mask',
-  'Enter': 'Next image',
-  'U': 'Undo',
-  'E': 'Eraser',
-  'D': 'Draw tool',
-  'W': 'Move tool',
-  'V': 'Change view',
-  'F': 'Final mask',
-  'G': 'User mask',
-  'Space': 'Toggle mask visibility',
-  'Shift+Scroll': 'Change brush size',
-};
+const HOTKEYS: Record<string, string> = Object.fromEntries(
+  Object.values(SHORTCUTS).map(({ key, description }) => [key, description])
+);
 
 const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
   const [activeTab, setActiveTab] = useState<'welcome' | 'faqs' | 'hotkeys' | 'about'>('welcome');
