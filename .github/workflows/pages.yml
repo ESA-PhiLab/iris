@@ -4,7 +4,7 @@ name: Deploy IRIS
 on:
   push:
     branches:
-      - main
+      - serverless
   workflow_dispatch:
 
 permissions:
