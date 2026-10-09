@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { fetchFile, formatHfPath, hfResolveUrl, parseHfPath, readableUrl, resolvePath } from './huggingface';
+import { fetchFile, formatHfPath, hfResolveUrl, huggingFaceUser, parseHfPath, readableUrl, resolvePath } from './huggingface';
 
 describe('Hugging Face paths', () => {
   it('reads datasets, revisions and buckets', () => {
@@ -43,6 +43,19 @@ describe('reading files of the Hub', () => {
     await fetchFile('https://example.org/p.json', 'hf_secret');
     expect((fetch.mock.calls[0][1]!.headers as Record<string, string>).Authorization).toBe('Bearer hf_secret');
     expect(fetch.mock.calls[1][1]!.headers).toBeUndefined();
+  });
+
+  it('uses a token to identify its Hugging Face account', async () => {
+    const fetch = vi.spyOn(global, 'fetch').mockResolvedValue(new Response('{"name":"alice"}'));
+    expect(await huggingFaceUser('hf_alice')).toBe('alice');
+    expect(fetch).toHaveBeenCalledWith('https://huggingface.co/api/whoami-v2', expect.objectContaining({
+      cache: 'no-store', headers: { Authorization: 'Bearer hf_alice' },
+    }));
+  });
+
+  it('rejects an invalid Hugging Face token', async () => {
+    vi.spyOn(global, 'fetch').mockResolvedValue(new Response(null, { status: 401 }));
+    await expect(huggingFaceUser('hf_invalid')).rejects.toThrow(/invalid or expired/);
   });
 
   it('asks once for the signed address of a file', async () => {

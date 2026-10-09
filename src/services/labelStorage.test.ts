@@ -95,6 +95,16 @@ describe('masks on the Hugging Face Hub', () => {
     expect(uploaded.has('segmentation/coast/bob_mask.tif')).toBe(true);
   });
 
+  it('explains a rejected bucket upload without exposing the internal Xet request', async () => {
+    const storage = hubStorage('hf://buckets/asterisk-labs/iris', 'hf_read_only');
+    uploadFiles.mockRejectedValueOnce(new Error(
+      'Authorization error. URL: https://huggingface.co/api/buckets/asterisk-labs/iris/xet-write-token'
+    ));
+
+    await expect(storage.saveMask('bob', 'coast', mask, file))
+      .rejects.toThrow(/token with the Write role/);
+  });
+
   it('queues note edits when the existing remote notes cannot be read', async () => {
     const storage = hubStorage('hf://datasets/org/clouds', 'hf_token');
     vi.mocked(global.fetch).mockRejectedValueOnce(new Error('offline'));

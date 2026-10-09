@@ -6,7 +6,7 @@ interface LoginFormProps {
   onSuccess?: () => void;
 }
 
-/** Sign in with an account of credentials.json, or enter as a guest */
+/** Sign in with credentials.json or a Hugging Face token, or enter as a guest */
 export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -15,7 +15,8 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
 
   const { theme } = useTheme();
   const source = chosenBackend();
-  const options = source?.signInOptions() ?? { guest: false };
+  const options = source?.signInOptions() ?? { guest: false, method: 'credentials' as const };
+  const huggingFaceLogin = options.method === 'huggingface';
 
   const finish = () => {
     if (onSuccess) { onSuccess(); } else { window.location.reload(); }
@@ -24,12 +25,16 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    if (!username.trim()) { setError('Username is required'); return; }
-    if (!password) { setError('Password is required'); return; }
+    const secret = huggingFaceLogin ? password.trim() : password;
+    if (!huggingFaceLogin && !username.trim()) { setError('Username is required'); return; }
+    if (!secret) {
+      setError(huggingFaceLogin ? 'Hugging Face token is required' : 'Password is required');
+      return;
+    }
     if (!source) { setError('The project is not loaded'); return; }
     setLoading(true);
     try {
-      await source.signIn(username, password);
+      await source.signIn(username, secret);
       finish();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
@@ -111,7 +116,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
             <circle cx="12" cy="7" r="4" />
           </svg>
           <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 600, color: theme.gray900 }}>
-            Login
+            {huggingFaceLogin ? 'Hugging Face login' : 'Login'}
           </h2>
         </div>
 
@@ -119,8 +124,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
         <div style={{ padding: '24px' }}>
           <form onSubmit={handleSubmit}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {/* Username */}
-              <div>
+              {!huggingFaceLogin && <div>
                 <label htmlFor="login-username" style={labelStyle}>Username:</label>
                 <input
                   type="text"
@@ -133,11 +137,12 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
                   onFocus={(e) => (e.currentTarget.style.borderColor = theme.inputBorderFocus)}
                   onBlur={(e) => (e.currentTarget.style.borderColor = theme.inputBorder)}
                 />
-              </div>
+              </div>}
 
-              {/* Password */}
               <div>
-                <label htmlFor="login-password" style={labelStyle}>Password:</label>
+                <label htmlFor="login-password" style={labelStyle}>
+                  {huggingFaceLogin ? 'Hugging Face token:' : 'Password:'}
+                </label>
                 <input
                   type="password"
                   id="login-password"
@@ -148,6 +153,18 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
                   onFocus={(e) => (e.currentTarget.style.borderColor = theme.inputBorderFocus)}
                   onBlur={(e) => (e.currentTarget.style.borderColor = theme.inputBorder)}
                 />
+                {huggingFaceLogin && <div style={{ marginTop: '7px', color: theme.gray600, fontSize: '12px', lineHeight: 1.4 }}>
+                  <a
+                    href="https://huggingface.co/settings/tokens"
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ color: theme.primary, fontWeight: 600 }}
+                  >
+                    Get a Hugging Face token
+                  </a>
+                  {' '}with the Write role, or fine-grained write access to this bucket. Your HF account must also
+                  have write access to its organization. The token remains in this tab's session.
+                </div>}
               </div>
             </div>
 
@@ -185,7 +202,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
                 onMouseEnter={(e) => { if (!loading) e.currentTarget.style.backgroundColor = theme.buttonPrimaryHover; }}
                 onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = theme.buttonPrimaryBg; }}
               >
-                {loading ? 'Please wait...' : 'Login'}
+                {loading ? 'Please wait...' : huggingFaceLogin ? 'Sign in with Hugging Face' : 'Login'}
               </button>
 
               {options.guest && <button

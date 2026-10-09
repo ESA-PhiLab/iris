@@ -1,3 +1,6 @@
 {
-  "project": "demo/cloud-segmentation.json"
+  "project": "demo/cloud-segmentation.json",
+  "labels": "hf://buckets/asterisk-labs/iris",
+  "login": "huggingface",
+  "guests": true
 }

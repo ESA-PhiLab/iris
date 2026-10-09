@@ -57,6 +57,28 @@ export const hfResolveUrl = ({ type, name, revision, path }: HfLocation) => {
 const authorization = (token?: string | null): Record<string, string> =>
   (token ? { Authorization: `Bearer ${token}` } : {});
 
+/** Verify a token and return the account name it belongs to */
+export const huggingFaceUser = async (token: string): Promise<string> => {
+  let response: Response;
+  try {
+    response = await fetch(`${HUB}/api/whoami-v2`, {
+      cache: 'no-store',
+      headers: authorization(token),
+    });
+  } catch {
+    throw new Error('Could not connect to Hugging Face');
+  }
+  if (response.status === 401 || response.status === 403) {
+    throw new Error('The Hugging Face token is invalid or expired');
+  }
+  if (!response.ok) throw new Error(`Hugging Face login failed (${response.status})`);
+  const identity = await response.json();
+  if (typeof identity?.name !== 'string' || !identity.name) {
+    throw new Error('Hugging Face returned an invalid account');
+  }
+  return identity.name;
+};
+
 /** Read a file, from the Hub with the token or from any address */
 export const fetchFile = (location: string, token?: string | null, init: RequestInit = {}) =>
   isHfPath(location)

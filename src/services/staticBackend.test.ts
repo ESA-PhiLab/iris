@@ -3,7 +3,7 @@ import { staticBackend } from './staticBackend';
 import { clearMemoryLabels } from './localLabels';
 import { unzipSync } from 'fflate';
 import { readMaskCog } from '../export/maskFiles';
-import { saveSession } from './credentials';
+import { savedSession, saveSession } from './credentials';
 
 vi.mock('../raster/engine', () => ({
   rasterEngine: () => ({
@@ -123,5 +123,19 @@ describe('staticBackend', () => {
     const source = staticBackend({ project: 'demo/clouds.json', credentials: 'credentials.json' });
     await expect(source.loadProjectFile()).rejects.toThrow(/administrator/);
     await expect(source.saveProjectFile(project)).rejects.toThrow(/administrator/);
+  });
+
+  it('identifies a user from their own Hugging Face token', async () => {
+    vi.mocked(global.fetch).mockResolvedValueOnce(new Response('{"name":"alice"}'));
+    const source = staticBackend({
+      project: 'demo/clouds.json', labels: 'hf://buckets/org/iris', login: 'huggingface', guests: true,
+    });
+
+    expect(source.signInOptions()).toEqual({ guest: true, method: 'huggingface' });
+    await source.signIn('', '  hf_alice  ');
+
+    const siteKey = new URL('iris.json', window.location.href).href;
+    expect(savedSession(siteKey)).toEqual({ user: 'alice', role: 'annotator', hfToken: 'hf_alice' });
+    expect((await source.currentUser())?.name).toBe('alice');
   });
 });

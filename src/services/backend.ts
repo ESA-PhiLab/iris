@@ -32,6 +32,7 @@ export interface Profile extends UserProfile {
 /** What the sign-in form offers */
 export interface SignInOptions {
   guest: boolean;
+  method: 'credentials' | 'huggingface';
 }
 
 /** The masks of every user, for reviewing them */
@@ -49,7 +50,7 @@ export interface Backend {
   currentUser(): Promise<UserInfo | null>;
   signInOptions(): SignInOptions;
   /** Throws an error that says what is wrong */
-  signIn(user: string, password: string): Promise<void>;
+  signIn(user: string, secret: string): Promise<void>;
   enterAsGuest(): Promise<void>;
   /** The project, with every view and default in place */
   loadProject(): Promise<ProjectConfig>;
@@ -116,5 +117,11 @@ export const loadSiteConfig = async (): Promise<SiteConfig> => {
     throw new Error(`${address} is not a JSON file: IRIS needs iris.json next to the page, naming the project file`);
   }
   if (typeof site?.project !== 'string') throw new Error(`${address} has to name the project file in "project"`);
+  if (site.login !== undefined && site.login !== 'huggingface') {
+    throw new Error(`${address} has an unsupported "login" method`);
+  }
+  if (site.login && site.credentials) {
+    throw new Error(`${address} cannot use both "login" and "credentials"`);
+  }
   return site;
 };

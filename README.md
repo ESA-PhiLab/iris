@@ -32,7 +32,7 @@ The page reads `iris.json` next to it, which says where everything is:
 {
   "project": "demo/cloud-segmentation.json",
   "labels": "hf://buckets/<owner>/<name>",
-  "credentials": "credentials.json",
+  "login": "huggingface",
   "guests": true
 }
 ```
@@ -41,6 +41,7 @@ The page reads `iris.json` next to it, which says where everything is:
 | --- | --- |
 | `project` | The project file ([guide](docs/config.md)), a path relative to the page or a Hugging Face path. Required. |
 | `labels` | Where the masks of the team go: a bucket `hf://buckets/<owner>/<name>` (recommended) or a dataset `hf://datasets/<owner>/<name>`. Without it, every user keeps their masks in their own browser. |
+| `login` | Set to `"huggingface"` to let each user sign in with their own token. The token identifies the user and remains in that browser tab's session. |
 | `credentials` | The accounts, see [Accounts](#accounts). Without it there are no accounts: whoever opens the page is the user `local`, an admin. |
 | `guests` | Whether people can enter without an account (default `true`). Their masks stay in their browser. |
 
@@ -79,7 +80,9 @@ In a bucket each save simply replaces the files. In a dataset each save is a com
 
 ### Accounts
 
-`credentials.json` holds one entry per user, encrypted with a key derived from their name and password: the file shows no names and can be published with the site. Unlocking an entry gives the role of the user (`admin` or `annotator`) and their Hugging Face token, kept for the session of the browser tab.
+The simplest shared setup uses `"login": "huggingface"`. Each person enters their own personal token; IRIS verifies it with Hugging Face, uses the corresponding HF account name on saved masks, and sends that token only to Hugging Face. A public bucket is readable without a token, but writing still requires the user's token to have write access to the bucket's organization.
+
+For teams that do not want users to enter tokens directly, `credentials.json` holds one entry per user, encrypted with a key derived from their name and password. Do not configure both `login` and `credentials`. The file shows no names and can be published with the site. Unlocking an entry gives the role of the user (`admin` or `annotator`) and their Hugging Face token, kept for the session of the browser tab.
 
 Add and remove users with:
 

@@ -17,7 +17,7 @@ import { imagePath, loadImageIds, normalizeProject } from '../project/project';
 import type { AIModelConfig, ProjectConfig, UserInfo } from '../types/iris';
 import type { Backend, Preferences, Profile, UserMask } from './backend';
 import { CredentialsFile, Session, clearSession, saveSession, savedSession, unlock } from './credentials';
-import { fetchFile, hub, hubRepo, isHfPath, parseHfPath, readableUrl, resolvePath } from './huggingface';
+import { fetchFile, hub, hubRepo, huggingFaceUser, isHfPath, parseHfPath, readableUrl, resolvePath } from './huggingface';
 import { downloadFile } from '../utils/download';
 import { LabelStorage, browserStorage, hubStorage } from './labelStorage';
 import { rasterEngine } from '../raster/engine';
@@ -28,6 +28,8 @@ export interface SiteConfig {
   project: string;
   labels?: string;
   credentials?: string;
+  /** Let each user sign in with their own Hugging Face token */
+  login?: 'huggingface';
   guests?: boolean;
 }
 
@@ -52,9 +54,10 @@ export const staticBackend = (site: SiteConfig): Backend => {
   const projectFile = resolvePath(site.project, window.location.href);
   let project: ProjectConfig | null = null;
   let storage: LabelStorage | null = null;
+  const hasLogin = !!site.credentials || site.login === 'huggingface';
 
   const session = (): Session | null =>
-    (site.credentials ? savedSession(siteKey) : { user: LOCAL_USER, role: 'admin' });
+    (hasLogin ? savedSession(siteKey) : { user: LOCAL_USER, role: 'admin' });
   const token = () => session()?.hfToken ?? null;
   const userName = () => session()?.user ?? GUEST;
   const requireAdmin = () => {
@@ -113,14 +116,22 @@ export const staticBackend = (site: SiteConfig): Backend => {
       };
     },
 
-    signInOptions: () => ({ guest: site.guests !== false }),
+    signInOptions: () => ({
+      guest: site.guests !== false,
+      method: site.login === 'huggingface' ? 'huggingface' : 'credentials',
+    }),
 
-    async signIn(user, password) {
+    async signIn(user, secret) {
+      if (site.login === 'huggingface') {
+        const account = await huggingFaceUser(secret.trim());
+        saveSession(siteKey, { user: account, role: 'annotator', hfToken: secret.trim() });
+        return;
+      }
       if (!site.credentials) throw new Error('This site has no accounts');
       const response = await fetch(new URL(site.credentials, window.location.href).href, { cache: 'no-store' });
       if (!response.ok) throw new Error(`Could not read the accounts (${response.status})`);
       const file: CredentialsFile = await response.json();
-      saveSession(siteKey, await unlock(file, user.trim(), password));
+      saveSession(siteKey, await unlock(file, user.trim(), secret));
     },
 
     async enterAsGuest() {
@@ -248,7 +259,7 @@ export const staticBackend = (site: SiteConfig): Backend => {
           })),
         },
         is_current_user: true,
-        canSignOut: !!site.credentials,
+        canSignOut: hasLogin,
       };
     },
 

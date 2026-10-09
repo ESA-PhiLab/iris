@@ -22,7 +22,7 @@ const fillIn = (container: HTMLElement, username: string, password: string) => {
 describe('LoginForm', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    signInOptions.mockReturnValue({ guest: true });
+    signInOptions.mockReturnValue({ guest: true, method: 'credentials' });
   });
 
   it('renders login form by default', () => {
@@ -55,7 +55,7 @@ describe('LoginForm', () => {
   });
 
   it('does not offer guest access when the site has none', () => {
-    signInOptions.mockReturnValue({ guest: false });
+    signInOptions.mockReturnValue({ guest: false, method: 'credentials' });
     renderWithTheme(<LoginForm />);
     expect(screen.queryByText('Continue without account')).not.toBeInTheDocument();
   });
@@ -92,6 +92,40 @@ describe('LoginForm', () => {
 
     await waitFor(() => expect(onSuccess).toHaveBeenCalled());
     expect(signIn).toHaveBeenCalledWith('testuser', 'password123');
+  });
+
+  it('does not alter a credentials-file password', async () => {
+    signIn.mockResolvedValue(undefined);
+    const onSuccess = vi.fn();
+    const { container } = renderWithTheme(<LoginForm onSuccess={onSuccess} />);
+
+    fillIn(container, 'testuser', ' password with spaces ');
+    fireEvent.click(screen.getByRole('button', { name: 'Login' }));
+
+    await waitFor(() => expect(onSuccess).toHaveBeenCalled());
+    expect(signIn).toHaveBeenCalledWith('testuser', ' password with spaces ');
+  });
+
+  it('signs in with a Hugging Face token without asking for a username', async () => {
+    signInOptions.mockReturnValue({ guest: true, method: 'huggingface' });
+    signIn.mockResolvedValue(undefined);
+    const onSuccess = vi.fn();
+    renderWithTheme(<LoginForm onSuccess={onSuccess} />);
+
+    expect(screen.queryByLabelText('Username:')).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Hugging Face token:'), { target: { value: '  hf_personal  ' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Sign in with Hugging Face' }));
+
+    await waitFor(() => expect(onSuccess).toHaveBeenCalled());
+    expect(signIn).toHaveBeenCalledWith('', 'hf_personal');
+  });
+
+  it('links to the Hugging Face token settings', () => {
+    signInOptions.mockReturnValue({ guest: true, method: 'huggingface' });
+    renderWithTheme(<LoginForm />);
+
+    expect(screen.getByRole('link', { name: 'Get a Hugging Face token' }))
+      .toHaveAttribute('href', 'https://huggingface.co/settings/tokens');
   });
 
   it('displays why the sign in failed', async () => {
