@@ -103,7 +103,9 @@ Admins have a Review button: who annotated each image, their notes, how well the
 
 ## Publishing on GitHub Pages
 
-The workflow [pages.yml](.github/workflows/pages.yml) builds the site and publishes it on every push to `master` (or when run by hand). In the settings of the repository, under Pages, choose GitHub Actions as the source. The site is then `public/` (with `iris.json`, the demo and any `credentials.json`) plus the page built by Vite.
+The workflow [pages.yml](.github/workflows/pages.yml) builds the site and publishes it on every push to `main` (or when run by hand). In the settings of the repository, under Pages, choose GitHub Actions as the source. The site is then `public/` (with `iris.json`, the demo and any `credentials.json`) plus the page built by Vite.
+
+When the repository is `asterisk-labs/iris`, the organization site's custom domain is inherited and the project is published at `https://asterisk.coop/iris/`. The project repository must not set its own `CNAME`; the domain remains owned by `asterisk-labs/asterisk-labs.github.io`.
 
 To publish it elsewhere, build it and copy `dist/` to any web host:
 
